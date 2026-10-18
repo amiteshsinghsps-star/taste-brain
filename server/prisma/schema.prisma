@@ -1,0 +1,356 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum SourceType {
+  GMAIL
+  GDRIVE
+  SLACK
+  GCS
+  FOLDER
+  DATABASE
+  URL
+}
+
+enum SyncStatus {
+  CONNECTED
+  SYNCING
+  SUCCESS
+  FAILED
+}
+
+enum EntityType {
+  ORGANIZATION
+  PERSON
+  PROCESS
+  POLICY
+  SYSTEM
+  FIELD
+}
+
+enum RelationType {
+  REQUIRES
+  GOVERNS
+  APPROVES
+  USES
+  VALIDATES
+}
+
+enum CategoryType {
+  FREIGHT
+  FINANCE
+  HR
+  COMPLIANCE
+  GENERAL
+}
+
+enum AgentStatus {
+  RUNNING
+  PAUSED
+  SUSPENDED
+}
+
+enum AgentMode {
+  COPILOT
+  AUTOPILOT
+}
+
+enum TaskStatus {
+  COMPLETED
+  FLAGGED
+  STAGED_FOR_APPROVAL
+  REJECTED
+}
+
+enum TeamRole {
+  ADMIN
+  OPS
+  ACCOUNTS
+}
+
+enum AccessScope {
+  EMAIL
+  DRIVE
+  SLACK
+  ACCOUNTING
+  BRAIN
+  WORKFLOWS
+}
+
+enum EmailCategory {
+  INQUIRY
+  BOOKING
+  BILLING
+  URGENT
+}
+
+enum EmailStatus {
+  TRIAGED
+  STAGED_FOR_APPROVAL
+  SENT
+  REJECTED
+}
+
+model User {
+  id                String             @id @default(uuid())
+  email             String             @unique
+  name              String?
+  passwordHash      String
+  role              Role               @default(USER)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  refreshTokens     RefreshToken[]
+  dataSources       DataSource[]
+  ingestedDocuments IngestedDocument[]
+  skillRules        SkillRule[]
+  queryLogs         BrainQueryLog[]
+  agentInstances    AgentInstance[]
+  agentTasks        AgentTask[]
+  agentAuditLogs    AgentAuditLog[]
+  teamMembers       TeamMember[]
+  emailMessages     EmailDeskMessage[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id              String   @id @default(uuid())
+  tokenHash       String   @unique
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isRevoked       Boolean  @default(false)
+  expiresAt       DateTime
+  replacedByToken String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model DataSource {
+  id                   String             @id @default(uuid())
+  userId               String
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                 String
+  type                 SourceType
+  status               SyncStatus         @default(CONNECTED)
+  composioConnectionId String?
+  config               Json?              @default("{}")
+  lastSyncedAt         DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  documents            IngestedDocument[]
+
+  @@index([userId])
+  @@map("data_sources")
+}
+
+model IngestedDocument {
+  id           String           @id @default(uuid())
+  dataSourceId String
+  dataSource   DataSource       @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  externalId   String?
+  title        String
+  sourceUrl    String?
+  mimeType     String?          @default("text/plain")
+  content      String
+  metadata     Json?            @default("{}")
+  chunkCount   Int              @default(0)
+  syncedAt     DateTime         @default(now())
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  chunks       KnowledgeChunk[]
+  skillRules   SkillRule[]
+
+  @@index([dataSourceId])
+  @@index([userId])
+  @@map("ingested_documents")
+}
+
+model KnowledgeChunk {
+  id         String           @id @default(uuid())
+  documentId String
+  document   IngestedDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  chunkIndex Int
+  text       String
+  metadata   Json?            @default("{}")
+  createdAt  DateTime         @default(now())
+
+  @@index([documentId])
+  @@map("knowledge_chunks")
+}
+
+model Entity {
+  id           String           @id @default(uuid())
+  name         String           @unique
+  type         EntityType       @default(PROCESS)
+  metadata     Json?            @default("{}")
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  outRelations EntityRelation[] @relation("SourceEntity")
+  inRelations  EntityRelation[] @relation("TargetEntity")
+
+  @@map("entities")
+}
+
+model EntityRelation {
+  id              String       @id @default(uuid())
+  sourceEntityId  String
+  sourceEntity    Entity       @relation("SourceEntity", fields: [sourceEntityId], references: [id], onDelete: Cascade)
+  targetEntityId  String
+  targetEntity    Entity       @relation("TargetEntity", fields: [targetEntityId], references: [id], onDelete: Cascade)
+  relationType    RelationType @default(GOVERNS)
+  evidenceChunkId String?
+  createdAt       DateTime     @default(now())
+
+  @@index([sourceEntityId])
+  @@index([targetEntityId])
+  @@map("entity_relations")
+}
+
+model SkillRule {
+  id               String            @id @default(uuid())
+  userId           String
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category         CategoryType      @default(GENERAL)
+  ruleName         String
+  description      String
+  triggerCondition String
+  actionType       String
+  parameters       Json?             @default("{}")
+  version          Int               @default(1)
+  isExecutable     Boolean           @default(true)
+  sourceDocumentId String?
+  sourceDocument   IngestedDocument? @relation(fields: [sourceDocumentId], references: [id], onDelete: SetNull)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@index([userId])
+  @@map("skill_rules")
+}
+
+model BrainQueryLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  query     String
+  answer    String
+  citations Json?    @default("[]")
+  traceId   String?
+  latencyMs Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("brain_query_logs")
+}
+
+model AgentInstance {
+  id            String          @id @default(uuid())
+  userId        String
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  type          String          @default("FREIGHT_AGENT")
+  status        AgentStatus     @default(RUNNING)
+  mode          AgentMode       @default(COPILOT)
+  configuration Json?           @default("{}")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  tasks         AgentTask[]
+  auditLogs     AgentAuditLog[]
+
+  @@index([userId])
+  @@map("agent_instances")
+}
+
+model AgentTask {
+  id           String        @id @default(uuid())
+  agentId      String
+  agent        AgentInstance @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskType     String
+  inputPayload Json
+  outputResult Json?         @default("{}")
+  status       TaskStatus    @default(COMPLETED)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([agentId])
+  @@index([userId])
+  @@map("agent_tasks")
+}
+
+model AgentAuditLog {
+  id          String         @id @default(uuid())
+  agentId     String?
+  agent       AgentInstance? @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action      String
+  details     Json?          @default("{}")
+  citationUrl String?
+  createdAt   DateTime       @default(now())
+
+  @@index([agentId])
+  @@index([userId])
+  @@map("agent_audit_logs")
+}
+
+model TeamMember {
+  id           String        @id @default(uuid())
+  ownerUserId  String
+  owner        User          @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  email        String
+  name         String
+  role         TeamRole      @default(OPS)
+  isSuspended  Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  accessGrants AccessGrant[]
+
+  @@unique([ownerUserId, email])
+  @@map("team_members")
+}
+
+model AccessGrant {
+  id           String      @id @default(uuid())
+  teamMemberId String
+  teamMember   TeamMember  @relation(fields: [teamMemberId], references: [id], onDelete: Cascade)
+  scope        AccessScope
+  isGranted    Boolean     @default(true)
+  updatedAt    DateTime    @updatedAt
+
+  @@unique([teamMemberId, scope])
+  @@map("access_grants")
+}
+
+model EmailDeskMessage {
+  id          String        @id @default(uuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  senderEmail String
+  subject     String
+  body        String
+  category    EmailCategory @default(INQUIRY)
+  citedDraft  String?
+  status      EmailStatus   @default(TRIAGED)
+  sentAt      DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([userId])
+  @@map("email_desk_messages")
+}

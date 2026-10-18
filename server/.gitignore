@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Production Build Output
+dist/
+build/
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# Prisma Database / SQLite / Logs
+*.db
+*.db-journal
+dev.db
+dev.db-journal
+*.log
+
+# OS Junk
+.DS_Store
+Thumbs.db
+
+# IDE Configs
+.vscode/
+.idea/
