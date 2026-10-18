@@ -1,0 +1,51 @@
+# Build context: source only. Without this file Docker ships node_modules and
+# .env into the image, and a 700 MB context over OneDrive-backed storage is both
+# slow and prone to truncated reads.
+node_modules
+**/node_modules
+dist
+**/dist
+build
+**/build
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Never bake local secrets or local config into an image.
+.env
+**/.env
+.env.*
+**/.env.*
+!**/.env.example
+
+# Test / eval byproducts
+**/vitest.json
+coverage
+.coverage
+
+# Local artifacts and media
+*.log
+*.mp4
+*.mov
+*.webm
+*.srt
+*.vtt
+_graphhacks-preclean
+
+# VCS / tooling / docs that the image does not need
+.git
+.gitignore
+.github
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Client build output is produced inside the image; do not copy a stale one.
+client/dist
+server/public
+
+# Docs and README are not needed to build or run.
+docs
+server/docs
+README.md
+**/README.md

@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+build/
+*.tsbuildinfo
+# the client bundle the Docker runner copies into the image; built, not committed
+server/public/
+coverage/
+.vite/
+
+# secrets — never commit a real key; rotate anything that was ever pasted/shared
+.env
+.env.*
+!.env.example
+
+# logs and local test artifacts
+*.log
+npm-debug.log*
+server/tests/vitest.json
+
+# large media (demo recordings live outside the repo until re-recorded)
+*.mp4
+*.mov
+*.webm
+
+# OS
+.DS_Store
+Thumbs.db
