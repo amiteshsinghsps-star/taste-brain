@@ -1,0 +1,515 @@
+{
+  "at": "2026-10-18T03:51:57.810Z",
+  "commit": "uncommitted",
+  "model": "none (cited-context fallback)",
+  "runs": 3,
+  "tenant": "eval-tenant",
+  "overall": {
+    "n": 20,
+    "baseline": {
+      "entityRecall": 0.55,
+      "sourceRecall": 0.65,
+      "citationValidity": 1,
+      "currency": 0.95
+    },
+    "neutronz": {
+      "entityRecall": 0.7,
+      "sourceRecall": 0.9,
+      "citationValidity": 1,
+      "currency": 1
+    },
+    "categories": [
+      {
+        "category": "ownership",
+        "n": 5,
+        "baseline": {
+          "entityRecall": 0.8,
+          "sourceRecall": 0.8,
+          "citationValidity": 1,
+          "currency": 1
+        },
+        "neutronz": {
+          "entityRecall": 1,
+          "sourceRecall": 1,
+          "citationValidity": 1,
+          "currency": 1
+        }
+      },
+      {
+        "category": "impact",
+        "n": 5,
+        "baseline": {
+          "entityRecall": 0.6,
+          "sourceRecall": 0.6,
+          "citationValidity": 1,
+          "currency": 1
+        },
+        "neutronz": {
+          "entityRecall": 0.8,
+          "sourceRecall": 0.6,
+          "citationValidity": 1,
+          "currency": 1
+        }
+      },
+      {
+        "category": "temporal",
+        "n": 5,
+        "baseline": {
+          "entityRecall": 0.4,
+          "sourceRecall": 0.2,
+          "citationValidity": 1,
+          "currency": 0.8
+        },
+        "neutronz": {
+          "entityRecall": 0.6,
+          "sourceRecall": 1,
+          "citationValidity": 1,
+          "currency": 1
+        }
+      },
+      {
+        "category": "provenance",
+        "n": 5,
+        "baseline": {
+          "entityRecall": 0.4,
+          "sourceRecall": 1,
+          "citationValidity": 1,
+          "currency": 1
+        },
+        "neutronz": {
+          "entityRecall": 0.4,
+          "sourceRecall": 1,
+          "citationValidity": 1,
+          "currency": 1
+        }
+      }
+    ]
+  },
+  "perQuestion": [
+    {
+      "id": "G01",
+      "category": "ownership",
+      "question": "Who owns the denied-party screening policy?",
+      "baseline": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G02",
+      "category": "ownership",
+      "question": "Who knows most about customs declarations?",
+      "baseline": {
+        "entityRecall": 1,
+        "sourceRecall": 0,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G03",
+      "category": "ownership",
+      "question": "Who owns the credit limit approval policy?",
+      "baseline": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G04",
+      "category": "ownership",
+      "question": "Which team does the compliance lead belong to?",
+      "baseline": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G05",
+      "category": "ownership",
+      "question": "Who authored the HS code verification SOP?",
+      "baseline": {
+        "entityRecall": 0,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G06",
+      "category": "impact",
+      "question": "What needs review if we change the credit limit threshold?",
+      "baseline": {
+        "entityRecall": 0,
+        "sourceRecall": 0,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 1,
+        "sourceRecall": 0,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G07",
+      "category": "impact",
+      "question": "Which systems does the denied-party screening policy govern?",
+      "baseline": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G08",
+      "category": "impact",
+      "question": "Which agents are governed by the credit approval policy?",
+      "baseline": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G09",
+      "category": "impact",
+      "question": "What happens to bookings above ten thousand dollars?",
+      "baseline": {
+        "entityRecall": 0,
+        "sourceRecall": 0,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 0,
+        "sourceRecall": 0,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G10",
+      "category": "impact",
+      "question": "Which rule implements the HS code verification policy?",
+      "baseline": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G11",
+      "category": "temporal",
+      "question": "What is the current credit auto-approval limit?",
+      "baseline": {
+        "entityRecall": 1,
+        "sourceRecall": 0,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G12",
+      "category": "temporal",
+      "question": "What did the current credit policy replace and what was the old limit?",
+      "baseline": {
+        "entityRecall": 0,
+        "sourceRecall": 0,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 0,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G13",
+      "category": "temporal",
+      "question": "Which HS code manifest rule was retired by the data quality decision?",
+      "baseline": {
+        "entityRecall": 0,
+        "sourceRecall": 0,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G14",
+      "category": "temporal",
+      "question": "Is the denied-party screening policy current and which version is active?",
+      "baseline": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G15",
+      "category": "temporal",
+      "question": "What currency threshold applies to invoices today?",
+      "baseline": {
+        "entityRecall": 0,
+        "sourceRecall": 0,
+        "citationValidity": 1,
+        "currency": 0,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 0,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G16",
+      "category": "provenance",
+      "question": "Where does the denied-party rule come from?",
+      "baseline": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G17",
+      "category": "provenance",
+      "question": "Who decided to freeze booking BK-1042 and on what authority?",
+      "baseline": {
+        "entityRecall": 0,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 0,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G18",
+      "category": "provenance",
+      "question": "Which document is the source of the HS code six digit requirement?",
+      "baseline": {
+        "entityRecall": 0,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 0,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G19",
+      "category": "provenance",
+      "question": "Who escalated the ACME Corp invoice INV-2231 and why?",
+      "baseline": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 1,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    },
+    {
+      "id": "G20",
+      "category": "provenance",
+      "question": "What evidence links Denied Trading LLC to a screening flag?",
+      "baseline": {
+        "entityRecall": 0,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      },
+      "neutronz": {
+        "entityRecall": 0,
+        "sourceRecall": 1,
+        "citationValidity": 1,
+        "currency": 1,
+        "hasTrace": false,
+        "latencyMs": 0
+      }
+    }
+  ],
+  "timeMachine": {
+    "total": 30,
+    "changed": 5,
+    "replayFidelity": 1
+  }
+}
