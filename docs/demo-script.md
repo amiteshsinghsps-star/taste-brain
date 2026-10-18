@@ -161,4 +161,6 @@ The previous demo recording was removed with the branding it carried, so the
 video has to be re-recorded before submission. Record the scenes above in order
 (0–6, ≈7 min), keep the FalkorDB Browser UI visible in Scene 1 and 4, and show
 `npm run e2e:v3` output (26/26) in the last 20 seconds. Captions: `ffmpeg` with
-the SRT written from this script.
+the SRT written from this script. The **spoken voiceover** for each scene — with
+the honesty call-outs to say aloud and the overclaims to avoid — is in
+[`demo-narration.md`](demo-narration.md).

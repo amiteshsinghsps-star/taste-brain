@@ -216,6 +216,7 @@ AI-assisted development was used heavily here; the tools, what they got wrong, a
 | [`docs/cypher-queries.md`](docs/cypher-queries.md) | all 100 Cypher statements grouped by subsystem, why each is Cypher rather than SQL, and the injection-safety analysis |
 | [`docs/features.md`](docs/features.md) | full feature set, what is built vs partial vs not claimed |
 | [`docs/demo-script.md`](docs/demo-script.md) | 6-minute walkthrough with the expected measured output per scene, plus the claims audit |
+| [`docs/demo-narration.md`](docs/demo-narration.md) | the spoken voiceover for the recording, the honesty call-outs to say aloud, and the overclaims not to make |
 | [`docs/deployment.md`](docs/deployment.md) | the Docker stack, configuration, and what is *not* provided (no cloud, no IaC) |
 | [`docs/ai-use.md`](docs/ai-use.md) | AI-use disclosure, including the failure modes AI produced here |
 | [`docs/qa-log.md`](docs/qa-log.md) | how each screen was verified, and how it wasn't |
