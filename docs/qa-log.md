@@ -92,6 +92,19 @@ with 200 (see "Static UI" in the table).
    `global-setup.ts` hard failure + `check-no-skips.mjs` in CI.
 8. **Approval card read `c.text` for citations** — the citation shape is
    `{documentTitle, chunkId, snippet}`; switched to `c.snippet`.
+9. **The UI showed fabricated data as if live.** The Overview "Needs Attention"
+   card invented a specific booking awaiting verification and a staged email
+   reply (no such queue state existed), the Header/Overview greeting hard-coded a
+   fake "Ops Manager / ADMIN / VERIFIED" persona, the Profile page defaulted to a
+   fake company/email/domain/role, and the Freight form was pre-filled with fake
+   parties. All removed: the UI now binds the real logged-in user (name/role/
+   email/id from `/auth/me`) and makes no fabricated state claims. The Freight
+   "Sanction Flagged" preset named a shipper that is **not** on the seeded
+   watchlist, so it never actually flagged — corrected to a real watchlist name.
+   The security-claims panel on Profile was checked against `server/src` and is
+   accurate (Argon2id with PBKDF2 fallback, the five HTTP security headers are set
+   in `index.ts`), so it stays. **This is a code fix, not yet browser-verified —
+   the human click-through (below) is still outstanding.**
 
 ## Open items a reviewer should check in a browser
 
