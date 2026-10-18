@@ -26,7 +26,7 @@ curl -s http://localhost:5000/api/status
 `/api/status` is the "the graph is really the backend" proof: it runs
 `CALL db.meta.stats()` against the live FalkorDB instance(s) and returns
 `backend: "falkordb"`, reachability, graph count and summed node/edge totals
-(measured here: `graphs=34 nodes=3080 edges=3607` — the count climbs with every
+(measured here: `graphs=35 nodes=3213 edges=3757` — the count climbs with every
 demo tenant you load, because each signup gets its own graph), plus whether an
 LLM key is present and which feature flags are on. Nothing is cached, so the
 numbers cannot be a stale counter. Assert it with `node scripts/check-status.mjs --expect-graph`
