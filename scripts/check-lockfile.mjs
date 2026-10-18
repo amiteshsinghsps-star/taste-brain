@@ -79,7 +79,7 @@ function check(file) {
 }
 
 if (!LOCKFILES.length) {
-  console.error('FAIL no package-lock.json found next to client/, server/ or home_page/');
+  console.error('FAIL no package-lock.json found next to client/ or server/');
   process.exit(1);
 }
 for (const file of LOCKFILES) check(file);

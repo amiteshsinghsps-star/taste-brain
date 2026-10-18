@@ -29,7 +29,6 @@ coverage
 *.webm
 *.srt
 *.vtt
-_graphhacks-preclean
 
 # VCS / tooling / docs that the image does not need
 .git
