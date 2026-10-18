@@ -7,6 +7,7 @@ import { PlayCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 
 interface OverviewPageProps {
+  user?: any;
   sources: any[];
   skills: any[];
   agents: any[];
@@ -22,6 +23,7 @@ interface OverviewPageProps {
 }
 
 export const OverviewPage: React.FC<OverviewPageProps> = ({
+  user,
   sources,
   skills,
   agents,
@@ -56,7 +58,10 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            Welcome back, <span className="px-2.5 py-0.5 rounded-lg bg-indigo-600 text-white font-semibold shadow-xs">Ops Manager</span>
+            Welcome back,{' '}
+            <span className="px-2.5 py-0.5 rounded-lg bg-indigo-600 text-white font-semibold shadow-xs">
+              {user?.name || (user?.email ? String(user.email).split('@')[0] : 'there')}
+            </span>
           </h1>
           <p className="text-xs text-slate-500 mt-1">Neutronz AI-OS and Company Brain operational status & real-time telemetry.</p>
         </div>
@@ -246,14 +251,14 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
 
         {/* Right Column: Needs Attention & Activity Trail (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Needs Attention Card */}
+          {/* Copilot Desks (navigation — no fabricated queue state) */}
           <Card className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-sm text-slate-900 flex items-center space-x-2">
                 <AlertCircle className="h-4 w-4 text-amber-500" />
-                <span>Needs Attention</span>
+                <span>Copilot Desks</span>
               </h3>
-              <Badge variant="warning" className="text-[10px]">Staged Copilot Tasks</Badge>
+              <Badge variant="secondary" className="text-[10px]">Human-in-the-loop</Badge>
             </div>
 
             <div className="space-y-2">
@@ -262,21 +267,21 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({
                 className="p-3 bg-amber-50/60 hover:bg-amber-100/60 border border-amber-100 rounded-xl flex items-center justify-between text-xs cursor-pointer transition-colors"
               >
                 <div>
-                  <p className="font-bold text-slate-900">Customs Clearance Holding</p>
-                  <p className="text-[11px] text-slate-500">Booking BKG-2026-889 requires manual verification</p>
+                  <p className="font-bold text-slate-900">Freight / Customs Desk</p>
+                  <p className="text-[11px] text-slate-500">Screen a booking against denied-party and credit rules</p>
                 </div>
                 <Ship className="h-4 w-4 text-amber-600 shrink-0" />
               </div>
 
               <div
-                onClick={() => onNavigateTab?.('email')}
+                onClick={() => onNavigateTab?.('approvals')}
                 className="p-3 bg-indigo-50/60 hover:bg-indigo-100/60 border border-indigo-100 rounded-xl flex items-center justify-between text-xs cursor-pointer transition-colors"
               >
                 <div>
-                  <p className="font-bold text-slate-900">Email Response Draft Ready</p>
-                  <p className="text-[11px] text-slate-500">Customs delay reply staged for approval</p>
+                  <p className="font-bold text-slate-900">Task Approvals</p>
+                  <p className="text-[11px] text-slate-500">Review and approve actions agents staged for a human</p>
                 </div>
-                <Mail className="h-4 w-4 text-indigo-600 shrink-0" />
+                <CheckSquare className="h-4 w-4 text-indigo-600 shrink-0" />
               </div>
             </div>
           </Card>

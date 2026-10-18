@@ -15,11 +15,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, setUser, onLogou
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const [companyName, setCompanyName] = useState(user?.companyName || 'Neutronz Logistics Inc.');
-  const [name, setName] = useState(user?.name || 'Ops Manager');
-  const [email, setEmail] = useState(user?.email || 'ops@neutronz.com');
-  const [industry, setIndustry] = useState('Freight Forwarding & Supply Chain');
-  const [currency, setCurrency] = useState('USD ($)');
+  const [companyName, setCompanyName] = useState(user?.companyName || '');
+  const [name, setName] = useState(user?.name || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [industry, setIndustry] = useState('');
+  const [currency, setCurrency] = useState('');
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,25 +73,31 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, setUser, onLogou
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-bold border border-white/30 flex items-center gap-1.5">
-                <Shield className="h-3.5 w-3.5 text-emerald-300" /> ADMIN ROLE
+                <Shield className="h-3.5 w-3.5 text-emerald-300" /> {user?.role || 'USER'} role
               </span>
-              <Badge variant="outline" className="border-white/30 text-white text-[10px]">VERIFIED</Badge>
             </div>
 
             <div className="h-16 w-16 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center font-extrabold text-xl text-white shadow-inner">
-              {name.split(' ').map((n: string) => n[0]).join('') || 'OP'}
+              {(user?.name || user?.email || '??')
+                .split(/[\s@._-]+/)
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((n: string) => n[0])
+                .join('')
+                .toUpperCase() || '?'}
             </div>
 
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-white">{companyName}</h2>
-              <p className="text-xs text-white/80 font-medium mt-0.5">{name}</p>
-              <p className="text-[11px] text-white/60 font-mono mt-0.5">{email}</p>
+              <h2 className="text-xl font-bold tracking-tight text-white">{companyName || <span className="text-white/70">No company set</span>}</h2>
+              <p className="text-xs text-white/80 font-medium mt-0.5">{name || '—'}</p>
+              <p className="text-[11px] text-white/60 font-mono mt-0.5">{user?.email || '—'}</p>
             </div>
           </div>
 
           <div className="pt-4 border-t border-white/15 text-[11px] text-white/70 space-y-1">
-            <p><strong>Workspace Domain:</strong> neutronz-os.internal</p>
-            <p><strong>Auth Protocol:</strong> Argon2id + Refresh Token Cookies</p>
+            <p><strong>Account id:</strong> <span className="font-mono">{user?.id || '—'}</span></p>
+            <p><strong>Auth:</strong> Argon2id hashing + rotating HTTP-only refresh cookies</p>
+            <p><strong>Tenant:</strong> one isolated FalkorDB graph derived from your JWT — never from client input</p>
           </div>
         </div>
 
@@ -130,7 +136,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ user, setUser, onLogou
 
               <div>
                 <label className="text-xs font-bold text-slate-700 block mb-1">Access Role</label>
-                <Input className="h-10 rounded-xl bg-slate-50 text-slate-500 font-mono text-xs" value="ADMIN (FULL_ACCESS)" disabled />
+                <Input className="h-10 rounded-xl bg-slate-50 text-slate-500 font-mono text-xs" value={user?.role || 'USER'} disabled />
               </div>
             </div>
 

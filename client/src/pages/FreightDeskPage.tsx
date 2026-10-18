@@ -61,7 +61,7 @@ export const FreightDeskPage: React.FC<FreightDeskPageProps> = ({
                 onClick={() =>
                   setFreightForm({
                     bookingNumber: 'BKG-SZ-LAX-9901',
-                    shipper: 'Acme Restricted Corp',
+                    shipper: 'Acme Banned Corp',
                     consignee: 'Pacific Freight Services',
                     origin: 'Shenzhen Yantian Port (CNNGB)',
                     destination: 'Port of Los Angeles (USLAX)',

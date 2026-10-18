@@ -45,12 +45,12 @@ export function App() {
   // Modals & Active Selections
   const [editingSkill, setEditingSkill] = useState<any>(null);
   const [freightForm, setFreightForm] = useState({
-    bookingNumber: 'BKG-2026-889',
-    shipper: 'Global Logistics Corp',
-    consignee: 'Acme Imports Ltd',
-    origin: 'Shanghai Port (CNSHA)',
-    destination: 'Hamburg Port (DEHAM)',
-    hsCode: '8471.30',
+    bookingNumber: '',
+    shipper: '',
+    consignee: '',
+    origin: '',
+    destination: '',
+    hsCode: '',
   });
   const [freightResult, setFreightResult] = useState<any>(null);
 
@@ -272,6 +272,7 @@ export function App() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header
           activeTab={activeTab}
+          user={currentUser}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           onSearchSubmit={(e) => (setActiveTab('ask'), handleAskBrain(e))}
@@ -289,6 +290,7 @@ export function App() {
         <main className="flex-1 overflow-y-auto p-8 space-y-6">
           {activeTab === 'overview' && (
             <OverviewPage
+              user={currentUser}
               sources={sources}
               skills={skills}
               agents={agents}

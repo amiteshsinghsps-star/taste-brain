@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 
 interface HeaderProps {
   activeTab: string;
+  user: any;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onSearchSubmit: (e: React.FormEvent) => void;
@@ -13,6 +14,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
+  user,
   searchQuery,
   setSearchQuery,
   onSearchSubmit,
@@ -20,6 +22,15 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
 }) => {
   const [showMenu, setShowMenu] = useState(false);
+
+  const displayName: string = user?.name || (user?.email ? String(user.email).split('@')[0] : 'Signed in');
+  const initials = (user?.name || user?.email || '??')
+    .split(/[\s@._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p: string) => p[0])
+    .join('')
+    .toUpperCase();
 
   return (
     <header className="h-16 border-b border-slate-200 bg-white px-8 flex items-center justify-between shrink-0">
@@ -46,11 +57,11 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex items-center space-x-2 text-left focus:outline-none group cursor-pointer"
           >
             <div className="h-8 w-8 rounded-full bg-indigo-100 group-hover:bg-indigo-600 group-hover:text-white text-indigo-700 font-bold flex items-center justify-center text-xs transition-colors shadow-2xs">
-              OP
+              {initials}
             </div>
             <div className="leading-none hidden md:block">
-              <p className="text-xs font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">Ops Manager</p>
-              <p className="text-[10px] text-slate-500 mt-0.5">Admin Role</p>
+              <p className="text-xs font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors truncate max-w-[10rem]">{displayName}</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">{user?.role || 'USER'} role</p>
             </div>
           </button>
 

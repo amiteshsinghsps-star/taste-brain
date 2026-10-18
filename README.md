@@ -180,6 +180,8 @@ This repo did not start from an empty directory, and pretending otherwise would 
 
 AI-assisted development was used heavily here; the tools, what they got wrong, and what was verified by hand are disclosed in [`docs/ai-use.md`](docs/ai-use.md).
 
+**About the git history — please read before judging the timeline.** This repository's commit history was created on **2026-10-18 by consolidating a single working copy** into logical commits (containerize → auth baseline → graph layer → retrieval → agents/ledger/memory → tests → UI/docs). The commit timestamps are that consolidation, **not a development timeline** — several commits landed within minutes of each other, and that reflects reorganising files, not the order or dates the code was actually written. The "auth + ingestion baseline" layer is **pre-existing code** (the table above), and the event work was built on top of it between roughly Oct 15–18. Nothing is backdated. Every line is explained in the docs and disclosure above; the author can walk through any file on request.
+
 ## Repository layout
 
 ```
