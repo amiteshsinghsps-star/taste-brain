@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { BrainController } from '../controllers/brain.controller';
 import { GraphController } from '../controllers/graph.controller';
+import { InsightsController } from '../controllers/insights.controller';
+import { CurationController } from '../controllers/curation.controller';
 import { authenticateToken } from '../middlewares/auth.middleware';
 import { apiRateLimiter } from '../middlewares/rate-limit.middleware';
 
@@ -59,5 +61,27 @@ router.get('/skills', BrainController.listSkills);
 router.post('/skills/update', BrainController.updateSkill);
 router.delete('/skills/:id', BrainController.deleteSkill);
 router.post('/skills/execute', BrainController.executeSkill);
+
+// Graph insights (v4): connection path, rule version diff, decision timeline,
+// handoff board, node explanation, freshness digest, graph export. All read-only.
+router.get('/brain/path', InsightsController.connectionPath);
+router.get('/brain/rules/:ruleId/versions', InsightsController.ruleVersions);
+router.get('/brain/timeline', InsightsController.timeline);
+router.get('/brain/handoffs', InsightsController.handoffs);
+router.get('/brain/explain/:id', InsightsController.explain);
+router.get('/brain/freshness-digest', InsightsController.digest);
+router.get('/brain/graph/export', InsightsController.exportGraph);
+
+// Tenant curation (v4): answer feedback -> Knowledge Health, own watchlist
+// entries -> screening engine facts, pinned brain queries.
+router.post('/brain/feedback', apiRateLimiter, CurationController.recordFeedback);
+router.get('/brain/feedback', CurationController.listFeedback);
+router.get('/brain/saved-queries', CurationController.listSaved);
+router.post('/brain/saved-queries', CurationController.saveQuery);
+router.delete('/brain/saved-queries/:id', CurationController.removeSaved);
+router.get('/watchlist', CurationController.listWatchlist);
+router.get('/watchlist/preview', CurationController.previewWatchlist);
+router.post('/watchlist', apiRateLimiter, CurationController.addWatchlistEntry);
+router.delete('/watchlist/:id', CurationController.removeWatchlistEntry);
 
 export default router;

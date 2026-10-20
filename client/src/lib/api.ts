@@ -140,6 +140,28 @@ export const api = {
   writeEpisode: (body: { summary: string; outcome?: string; agentId?: string; shared?: boolean }) =>
     fetchApi('/memory/episodes', { method: 'POST', body: JSON.stringify(body) }),
 
+  // Graph insights (v4) — all read-only views over the tenant FalkorDB graph
+  connectionPath: (from: string, to: string, hops?: number) =>
+    fetchApi(`/brain/path?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${hops ? `&hops=${hops}` : ''}`),
+  ruleVersions: (ruleId: string) => fetchApi(`/brain/rules/${encodeURIComponent(ruleId)}/versions`),
+  decisionTimeline: (subject: string) => fetchApi(`/brain/timeline?subject=${encodeURIComponent(subject)}`),
+  handoffBoard: () => fetchApi('/brain/handoffs'),
+  explainNode: (id: string) => fetchApi(`/brain/explain/${encodeURIComponent(id)}`),
+  freshnessDigest: (days?: number) => fetchApi(`/brain/freshness-digest${days ? `?days=${days}` : ''}`),
+
+  // Tenant curation (v4) — feedback, own watchlist entries, pinned queries
+  recordFeedback: (body: { question: string; verdict: 'UP' | 'DOWN'; comment?: string; traceId?: string; chunkIds?: string[]; answerSnippet?: string }) =>
+    fetchApi('/brain/feedback', { method: 'POST', body: JSON.stringify(body) }),
+  listFeedback: () => fetchApi('/brain/feedback'),
+  listSavedQueries: () => fetchApi('/brain/saved-queries'),
+  saveQuery: (body: { question: string; snippet?: string; traceId?: string }) =>
+    fetchApi('/brain/saved-queries', { method: 'POST', body: JSON.stringify(body) }),
+  deleteSavedQuery: (id: string) => fetchApi(`/brain/saved-queries/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  listWatchlist: () => fetchApi('/watchlist'),
+  addWatchlistEntry: (body: { name: string; list?: string; note?: string }) => fetchApi('/watchlist', { method: 'POST', body: JSON.stringify(body) }),
+  removeWatchlistEntry: (id: string) => fetchApi(`/watchlist/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  previewWatchlist: (name: string) => fetchApi(`/watchlist/preview?name=${encodeURIComponent(name)}`),
+
   // Skills
   listSkills: () => fetchApi('/skills'),
   extractSkills: () => fetchApi('/skills/extract', { method: 'POST' }),
@@ -172,3 +194,29 @@ export const api = {
   listEmails: () => fetchApi('/email-desk/messages'),
   approveEmail: (id: string) => fetchApi(`/email-desk/${id}/approve`, { method: 'POST' }),
 };
+
+/**
+ * Graph export downloads a serialized subgraph as a file, so it cannot go
+ * through fetchApi (which parses JSON). Auth is a header, hence the manual fetch.
+ */
+export async function downloadGraphExport(format: 'json' | 'graphml' | 'csv' | 'nodes'): Promise<{ blob: Blob; filename: string }> {
+  const token = getAccessToken();
+  const res = await fetch(`${API_BASE}/brain/graph/export?format=${encodeURIComponent(format)}`, {
+    method: 'GET',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    let message = 'Graph export failed';
+    try {
+      message = JSON.parse(text)?.message || message;
+    } catch {
+      /* non-JSON error body */
+    }
+    throw new Error(message);
+  }
+  const disposition = res.headers.get('content-disposition') || '';
+  const filename = disposition.match(/filename="?([^";]+)"?/)?.[1] || `tenant-graph.${format === 'graphml' ? 'graphml' : format === 'nodes' ? 'csv' : format}`;
+  return { blob: await res.blob(), filename };
+}

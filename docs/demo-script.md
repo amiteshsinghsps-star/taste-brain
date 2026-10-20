@@ -35,9 +35,15 @@ Proof it landed in FalkorDB, not Postgres: open the Browser UI and run
 MATCH (n) RETURN labels(n)[0] AS label, count(n) AS nodes ORDER BY nodes DESC
 ```
 
-Seeded tenant `tenant_demo-northwind` measures **135 nodes / 156 edges** —
-13 people, 4 teams, 9 documents, 7 policies, 5 rules, 30 bookings, 22 decisions,
-4 systems, 3 agents, 3 watchlist entries.
+A freshly loaded demo company measures **133 nodes / 150 edges** —
+13 people, 4 teams, 9 documents, 10 chunks, 7 policies, 5 rules, 30 bookings,
+22 decisions, 4 systems, 4 customers, 12 invoices, 3 agents, 3 watchlist entries,
+plus the planted `SUPERSEDES` versions and one `STALE` rule. That count was taken
+by seeding a scratch graph (`tenant_scratch-seedcount-v4`) and reading it back
+with `MATCH (n) RETURN labels(n)[0], count(n)`, then deleting the scratch graph —
+the graph you get from **Load demo company** is the same seed, so if the numbers
+on screen differ by a node or two, something was approved, screened or exported
+first, which is the point.
 
 ## Scene 2 — ask the brain, read the trace (90 s)
 
@@ -101,8 +107,8 @@ agents, prior decisions) → Mark reviewed → the queue drops from 2 to 1.
 ## Close (30 s)
 
 ```bash
-cd server && npm run e2e:v3     # 26/26
-npm run test:ci                 # 17 passed, 0 failed, 0 skipped
+cd server && npm run e2e:v3     # 42/42
+npm run test:ci                 # 35 passed, 0 failed, 0 skipped
 node ../scripts/check-lockfile.mjs
 ```
 
@@ -125,13 +131,62 @@ is not a shared vector store. Scope toggle shows agent-private vs tenant-shared;
 
 ---
 
+## Scene 7 — the graph answers questions a vector store cannot (75 s)
+
+**Graph Insights** in the sidebar (five tabs), plus two panels on existing pages.
+
+1. **Connection path** — ask *"how are Maya Rao and Operations connected?"* →
+   `Person:Maya Rao → Team:Operations`, `hops=1`. Then ask for a pair that is not
+   linked and read the honest answer: no path ≤ 5 hops in either direction, plus
+   each endpoint's incident-edge count, and the statement that FalkorDB's
+   `shortestPath` is **directed**, so this is the shape of the data rather than a
+   symmetric lookup. (`GET /api/brain/path`)
+2. **Rule versions** — after Scene 4's Apply, open *Automated Invoice Credit
+   Approval*: three versions (`v1 SUPERSEDED`, `v1 SUPERSEDED`, `v2 ACTIVE`) and
+   the parameter diff `maxCreditLimit 5000 → 10000`, each new version traced to
+   the `Simulation` that produced it. History was never deleted.
+3. **Handoff board** — `Freight Desk Agent → Email Triage Agent`, read from
+   `HANDED_OFF_TO` edges with per-agent task/memory counts; the seeded edge is
+   labelled as seeded. (`GET /api/brain/handoffs`)
+4. **Explain this node** — Knowledge Graph → click the *Denied-Party Screening*
+   policy: 14 neighbours by type, the owning SOP, the two source chunks it is
+   `DERIVED_FROM` (quoted, not summarised), six decisions, and the 👍/👎 the
+   answer built from it earned. (`GET /api/brain/explain/:id`)
+5. **Feedback changes health, for real** — Ask Brain: 👎 the answer you got in
+   Scene 2 → **Knowledge Health** refreshes and the score moves **67 → 63** with
+   one new `SOURCE_THUMBS_DOWN` finding pointing at the exact chunk. 👍 the same
+   answer and the finding disappears. Say out loud: the rating is a `Feedback`
+   node `ABOUT` that `Chunk` in the graph — it is not a counter in Postgres.
+6. **Your entry changes the next verdict** — Screening List: add
+   "Globex Restricted Ltd" → preview says which stored bookings would match →
+   **Add** → run the Freight Desk for that shipper → `FLAGGED` by the pure
+   engine → **Remove** → the same booking `PASSED`. Try deleting a seeded demo
+   entry and get the 409 refusal. Also show **Export** (JSON/GraphML/CSV) landing
+   the same node/edge counts the Explorer shows.
+
+Say plainly in this scene that the path, versions, timeline, handoffs, digest and
+export are **graph facts read straight out of FalkorDB with no LLM in the loop**
+— no key is set in this stack, and the answers are Cypher results.
+
+**If the recording has to stay at 3–4 minutes**, show items 1, 5 and 6 (path +
+feedback→health + watchlist flip) and put 2–4 in a still screenshot: they are
+built, endpoint-tested and asserted in `server/tests/insights-v4.test.ts`, but
+they are **not** in the video. Do not claim a track for what the video does not
+show.
+
+---
+
 ## Track mapping
 
 | Graph Hacks track | What in this demo is evidence |
 | :--- | :--- |
-| Company Brain | Scenes 1–2, 5: ingest → per-tenant graph → cited answers with traces → freshness queue |
-| Agents That Act on Connected Data | Scene 3–4: policy lookup is Cypher, screening reads `WatchlistEntry` nodes, the ledger and Time Machine both write graph nodes |
-| Agent Memory & Coordination | Scene 6: `Episode`/`Fact`/`Procedure`/`Conversation`+`Turn` nodes scoped per agent, `HANDED_OFF_TO` between agents, `GET /api/memory/recall`, per-tenant isolation asserted in `e2e:v3` |
+| Company Brain | Scenes 1–2, 5, 7: ingest → per-tenant graph → cited answers with traces → freshness queue; plus the connection path, rule-version diff, explain-node, freshness digest, and feedback that moves the Health score |
+| Agents That Act on Connected Data | Scene 3–4, 7: policy lookup is Cypher, screening reads `WatchlistEntry` nodes, the ledger and Time Machine both write graph nodes, and a watchlist entry **you** add flips the next verdict through the same pure engine |
+| Agent Memory & Coordination | Scene 6–7: `Episode`/`Fact`/`Procedure`/`Conversation`+`Turn` nodes scoped per agent, `HANDED_OFF_TO` between agents (the handoff board reads exactly those edges), `GET /api/memory/recall`, per-tenant isolation asserted in `e2e:v3` |
+
+Graph export and pinned queries are **not** claimed as evidence for a track beyond
+"the graph is the store": both are `MATCH` reads/writes over the same tenant graph,
+with no algorithm behind them.
 
 ## Claims audit
 
@@ -152,15 +207,29 @@ is not a shared vector store. Scope toggle shows agent-private vs tenant-shared;
 | Agent memory is typed and per-tenant, not a shared vector store | e2e checks 25–26 (write 201, recall finds the marker, second tenant recalls 0, stats from the graph) | `npm run e2e:v3` |
 | Lockfiles install cleanly | `scripts/check-lockfile.mjs` in CI, `npm ci` for both packages | `node scripts/check-lockfile.mjs` |
 | Cypher cannot be injected through identifiers | T6, plus label/relationship allow-lists in `precedent.service.ts` and `centralEntities` | `npm run test:ci` |
+| **"How are X and Y connected?" is a real graph path** | `insights-v4.test.ts` — *returns a hop chain where node count = edge count + 1*, *reports an unconnected pair as an absence with both degrees, not an empty list*, *`shortest_path` tool answers instead of erroring*. **Directed edges only** — `shortestPath` here does not ignore direction, and the UI says so | `npx vitest run tests/insights-v4.test.ts` |
+| **Rule versions diff in the right order** | `insights-v4.test.ts` — *diffs a rule against the version it superseded*: chronology is derived from `SUPERSEDES` edges, not the stored `version` string (the demo seed puts `1` on both nodes), and the test asserts every newest end sorts after its `to` | `npx vitest run tests/insights-v4.test.ts` |
+| **Decision timeline replays one subject** | `insights-v4.test.ts` — *replays decisions for one subject, newest first* (sorted-descending assertion on `at`) and *empty timeline is an explicit absence, not a silent zero* ("Nothing in the graph…") | `npx vitest run tests/insights-v4.test.ts` |
+| **Handoff board reads `HANDED_OFF_TO`, not a table** | `insights-v4.test.ts` — *handoff board reads HANDED_OFF_TO edges*; e2e check over HTTP returns 1 handoff across 4 agents | `npm run e2e:v3` |
+| **Explain-node is citations, not generated prose** | `insights-v4.test.ts` — *explains a node with neighbours, provenance and feedback counters* (14 neighbours / 2 chunks / 6 decisions measured) and *explains an unknown id as null so the caller can 404* | `npx vitest run tests/insights-v4.test.ts` |
+| **👎 actually moves Knowledge Health** | `insights-v4.test.ts` — *a thumbs-down on a cited chunk becomes a finding on that exact chunk*: **67 → 63**, new `SOURCE_THUMBS_DOWN` finding keyed to the cited `Chunk` id, and the same call path with 👍 removes it (upvote cancels). The rating is a `Feedback` node `ABOUT` the chunk, not a Postgres counter | `npx vitest run tests/insights-v4.test.ts` |
+| **A watchlist entry you add flips the next verdict** | `insights-v4.test.ts` — *add → engine FLAGGED → remove → engine PASSED* (the pure engine reads `WatchlistEntry` nodes, so there is nothing to redeploy), plus *seeded demo entries are refused, never deleted* (409) and *rejects junk names instead of writing noise into the graph* | `npx vitest run tests/insights-v4.test.ts` |
+| **Export formats agree** | `insights-v4.test.ts` — *JSON, GraphML and CSV all carry the same node/edge counts* (150 nodes / 183 edges measured on the demo tenant) and *escapes markup in node names instead of breaking the document*; the filename carries no internal graph name | `npx vitest run tests/insights-v4.test.ts` |
+| **Pinned queries are tenant-scoped** | `insights-v4.test.ts` — *saves, isolates and deletes* (second tenant sees 0) and *refuses an empty question*. **Known gap, disclosed:** the saved-query writes and the two deletes are behind auth but carry no `apiRateLimiter`; only `POST /brain/feedback` and `POST /watchlist` do | `npx vitest run tests/insights-v4.test.ts` |
 | "Graph algorithms" claims | **not claimed** — no `algo.pageRank`/`WCC`/`BFS` in the code; centrality is Cypher degree counting, path is `shortestPath()` | see `docs/cypher-queries.md` |
-| SOC 2 / ISO / immutable / zero-hallucination | **not claimed anywhere** | `docs/features.md` §E |
+| SOC 2 / ISO / immutable / zero-hallucination | **not claimed anywhere** | `docs/features.md` §F |
 
 ## Recording note
 
 The previous demo recording was removed with the branding it carried, so the
 video has to be re-recorded before submission. Record the scenes above in order
-(0–6, ≈7 min), keep the FalkorDB Browser UI visible in Scene 1 and 4, and show
-`npm run e2e:v3` output (26/26) in the last 20 seconds. Captions: `ffmpeg` with
+(0–7, ≈7–8 min), keep the FalkorDB Browser UI visible in Scene 1 and 4, and show
+`npm run e2e:v3` output (42/42) in the last 20 seconds. Captions: `ffmpeg` with
 the SRT written from this script. The **spoken voiceover** for each scene — with
 the honesty call-outs to say aloud and the overclaims to avoid — is in
 [`demo-narration.md`](demo-narration.md).
+
+If you cut the video to 3–4 minutes, the scenes you drop must also drop out of the
+track list in the submission form: Scene 7 beats 2–4 (rule versions, timeline,
+handoffs) and the export/pins are then **screenshot evidence, not video evidence**,
+and `e2e:v3` 42/42 in the Close is what backs them.

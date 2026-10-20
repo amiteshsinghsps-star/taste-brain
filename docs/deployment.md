@@ -88,7 +88,7 @@ mount outside the project directory.
 
 ```bash
 node scripts/check-status.mjs --expect-graph          # graph is the backend, counts > 0
-cd server && npm run e2e:v3                           # 26 black-box checks over HTTP
+cd server && npm run e2e:v3                           # 42 black-box checks over HTTP
 cd server && npm run test:removal                     # 9 checks: graph down = 503, no fallback
 ```
 

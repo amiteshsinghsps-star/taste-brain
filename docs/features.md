@@ -57,7 +57,31 @@ Endpoint list lives in [README.md](../README.md); graph schema in
 | Absence proofs ("0 `OWNS` edges") instead of empty lists | ✅ | T23 |
 | `/api/status` graph proof + removal test | ✅ | `CALL db.meta.stats()`, `npm run test:removal` |
 
-## E. Not claimed
+## E. Graph Hacks v4 — insights, curation, export
+
+Ten features, each with a real endpoint and a UI panel. "Measured" values are
+from the committed end-to-end run (`server/src/eval/e2e-v3.ts`, freshly seeded
+demo tenant), so they are reproducible rather than quoted from a screenshot;
+`server/tests/insights-v4.test.ts` is the unit-level proof (18 tests).
+
+| Feature | Status | Measured |
+| :--- | :---: | :--- |
+| "How are X and Y connected?" path finder | ✅ | `GET /api/brain/path` — e2e resolves Maya Rao → Operations, `hops=1`, chain `Person:Maya Rao → Team:Operations`. Directed-only in FalkorDB, so the answer states which orientation worked |
+| Absence is an answer, not an empty list | ✅ | same endpoint, unknown endpoint: `"No node in this tenant graph matches …"` + both endpoint degrees (`ConnectionPathResult.degrees`) |
+| Rule version diff | ✅ | `GET /api/brain/rules/:id/versions` — after a Time Machine apply: `3 version(s): v1(SUPERSEDED), v1(SUPERSEDED), v2(ACTIVE); maxCreditLimit 5000 → 10000` |
+| Decision timeline for one subject | ✅ | `GET /api/brain/timeline?subject=BK-1042` — `3 event(s) … 3 decision(s), 0 rule version change(s)`; empty result is reported as "Nothing in the graph for …" |
+| Cross-agent handoff board | ✅ | `GET /api/brain/handoffs` — `1 handoff(s) over 4 agent(s): Freight Desk Agent → Email Triage Agent`, read from `HANDED_OFF_TO` edges |
+| "Explain this node" drill-down | ✅ | `GET /api/brain/explain/:id` — Policy "Denied-Party Screening": `14 neighbour(s), 2 source chunk(s), 6 decision(s)`; unknown id → 404 |
+| Freshness digest | ✅ | `GET /api/brain/freshness-digest` — `supersededDocs=1 supersededRules=3 stale=1 pending=0`; a `v1 → v1` seed artefact is labelled as one instead of being presented as a version bump |
+| Graph export (JSON / GraphML / CSV edges / CSV nodes) | ✅ | `GET /api/brain/graph/export?format=…` — `json nodes=150 edges=183; graphml 70,410 chars with 183 <edge>; csv 183 rows`; filename `neutronz-brain-<date>.json` (no internal graph name) |
+| Answer feedback 👍/👎 wired into Knowledge Health | ✅ | `POST /api/brain/feedback` — a 👎 on the cited chunk moved the health score 67 → 63 and added exactly one `SOURCE_THUMBS_DOWN` finding whose `subjectId` is that chunk; an upvote on the same chunk cancels it. A chunk id that does not exist in the tenant graph is not linked (`linked=0`) |
+| Add / remove your own screening entry | ✅ | `POST`/`DELETE /api/watchlist` (+ `GET /watchlist/preview`) — new `WatchlistEntry` node flipped the pure engine `PASSED → FLAGGED`, deleting it flipped back to `PASSED`; deleting a seeded demo entry is refused with 409 |
+| Pinned brain queries | ✅ | `POST`/`GET`/`DELETE /api/brain/saved-queries` — saved as `SavedQuery` nodes in the tenant graph; a second tenant sees none |
+| Ledger still honest after the new write paths | ✅ | Two new append-only kinds — `WATCHLIST_ENTRY_ADDED`, `WATCHLIST_ENTRY_REMOVED` (`controllers/curation.controller.ts:77-98`). Answer feedback and pinned queries deliberately write no ledger entry: they are opinions and bookmarks, not decisions. `GET /api/ledger/verify` still returns `ok=true` on a graph that has both |
+| UI for all of the above | ✅ | `client/src/pages/InsightsPage.tsx` (5 tabs), `WatchlistPage.tsx`, Explain + export + entity chips in `KnowledgeGraphPage.tsx`, feedback/pin controls in `AskBrainPage.tsx` |
+| Browser click-through of the new panels | ⬜ | **Not verified by a human yet.** TypeScript build (`npm run build`) and the API are green; no browser run, so layout and interaction are unproven. `docs/qa-log.md` stays honest about this |
+
+## F. Not claimed
 
 No SOC 2 / ISO certification, no encryption-at-rest marketing, no "zero
 hallucinations", no real sanctions feed (the demo watchlist is seeded synthetic

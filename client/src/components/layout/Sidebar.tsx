@@ -19,6 +19,8 @@ import {
   AlertTriangle,
   History,
   Building2,
+  Route,
+  ListChecks,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -52,6 +54,8 @@ const groupsNav: NavGroup[] = [
       { id: 'sources', label: 'Data Sources', icon: Database },
       { id: 'skills', label: 'Executable Skills', icon: BookOpen },
       { id: 'graph', label: 'Knowledge Graph', icon: Share2 },
+      { id: 'insights', label: 'Graph Insights', icon: Route },
+      { id: 'watchlist', label: 'Screening List', icon: ListChecks },
       { id: 'review', label: 'Needs Review', icon: AlertTriangle },
     ],
   },

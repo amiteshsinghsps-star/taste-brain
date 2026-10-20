@@ -5,6 +5,8 @@ import { OverviewPage } from '@/pages/OverviewPage';
 import { AskBrainPage } from '@/pages/AskBrainPage';
 import { ConnectorsPage } from '@/pages/ConnectorsPage';
 import { KnowledgeGraphPage } from '@/pages/KnowledgeGraphPage';
+import { InsightsPage } from '@/pages/InsightsPage';
+import { WatchlistPage } from '@/pages/WatchlistPage';
 import { NeedsReviewPage } from '@/pages/NeedsReviewPage';
 import { ExecutableSkillsPage } from '@/pages/ExecutableSkillsPage';
 import { FreightDeskPage } from '@/pages/FreightDeskPage';
@@ -52,6 +54,9 @@ export function App() {
     destination: '',
     hsCode: '',
   });
+  // Graph explorer → path finder hand-off: two entity names picked from an edge.
+  const [pathPair, setPathPair] = useState<{ from: string; to: string }>({ from: '', to: '' });
+
   const [freightResult, setFreightResult] = useState<any>(null);
 
   useEffect(() => {
@@ -326,8 +331,19 @@ export function App() {
           )}
 
           {activeTab === 'graph' && (
-            <KnowledgeGraphPage graphData={graphData} loadAllData={loadAllData} />
+            <KnowledgeGraphPage
+              graphData={graphData}
+              loadAllData={loadAllData}
+              onPathRequest={(from, to) => {
+                setPathPair({ from, to });
+                setActiveTab('insights');
+              }}
+            />
           )}
+
+          {activeTab === 'insights' && <InsightsPage initialFrom={pathPair.from} initialTo={pathPair.to} />}
+
+          {activeTab === 'watchlist' && <WatchlistPage />}
 
           {activeTab === 'review' && <NeedsReviewPage />}
 

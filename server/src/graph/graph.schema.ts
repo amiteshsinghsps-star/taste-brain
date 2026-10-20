@@ -34,6 +34,8 @@ export const NODE_LABELS = [
   'LedgerEntry',
   'HealthFinding',
   'EvalRun',
+  'Feedback',
+  'SavedQuery',
 ] as const;
 
 export type NodeLabel = (typeof NODE_LABELS)[number];
@@ -171,6 +173,12 @@ export async function ensureGraphSchema(graph: {
     ['Booking', ['bookingNumber']],
     ['LedgerEntry', ['seq']],
     ['Simulation', ['status']],
+    ['Feedback', ['id']],
+    ['Feedback', ['verdict']],
+    ['SavedQuery', ['id']],
+    ['SavedQuery', ['createdAt']],
+    ['WatchlistEntry', ['name']],
+    ['Decision', ['at']],
   ];
   for (const [label, props] of rangeIdx) {
     try {

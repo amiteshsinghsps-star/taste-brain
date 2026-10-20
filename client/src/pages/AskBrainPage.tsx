@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Brain, Search, ExternalLink, Sparkles, HelpCircle, FileText, Copy, Check, GitBranch, Database, Scale } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Brain, Search, ExternalLink, Sparkles, HelpCircle, FileText, Copy, Check, GitBranch, Database, Scale, ThumbsUp, ThumbsDown, Pin, PinOff } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,73 @@ export const AskBrainPage: React.FC<AskBrainPageProps> = ({
   const [showTrace, setShowTrace] = useState(false);
   const [compare, setCompare] = useState<any>(null);
   const [comparing, setComparing] = useState(false);
+  const [feedbackState, setFeedbackState] = useState<'UP' | 'DOWN' | null>(null);
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
+  const [feedbackNote, setFeedbackNote] = useState<string | null>(null);
+  const [saved, setSaved] = useState<any[]>([]);
+  const [pinBusy, setPinBusy] = useState(false);
+
+  const loadSaved = async () => {
+    try {
+      const res: any = await api.listSavedQueries();
+      setSaved(res.items || []);
+    } catch {
+      setSaved([]);
+    }
+  };
+
+  useEffect(() => {
+    loadSaved();
+  }, []);
+
+  const sendFeedback = async (verdict: 'UP' | 'DOWN') => {
+    if (!brainResult) return;
+    setFeedbackBusy(true);
+    setFeedbackNote(null);
+    try {
+      const res: any = await api.recordFeedback({
+        question: searchQuery,
+        verdict,
+        traceId: brainResult.trace?.traceId,
+        chunkIds: (brainResult.citations || []).map((c: any) => c.chunkId).filter(Boolean),
+        answerSnippet: String(brainResult.answer || '').slice(0, 300),
+      });
+      setFeedbackState(verdict);
+      const linked = res.feedback?.linkedChunks?.length ?? 0;
+      setFeedbackNote(
+        verdict === 'DOWN'
+          ? `Recorded. ${linked} cited chunk(s) linked — a thumbs-down on a source becomes a Knowledge Health finding on that exact chunk.`
+          : `Recorded against ${linked} cited chunk(s).`
+      );
+    } catch (err: any) {
+      setFeedbackNote(err.message || 'Feedback failed');
+    } finally {
+      setFeedbackBusy(false);
+    }
+  };
+
+  const togglePin = async () => {
+    const question = searchQuery;
+    if (!question.trim()) return;
+    setPinBusy(true);
+    try {
+      const existing = saved.find((s) => s.question === question);
+      if (existing) {
+        await api.deleteSavedQuery(existing.id);
+      } else {
+        await api.saveQuery({
+          question,
+          snippet: String(brainResult?.answer || '').slice(0, 200),
+          traceId: brainResult?.trace?.traceId,
+        });
+      }
+      await loadSaved();
+    } finally {
+      setPinBusy(false);
+    }
+  };
+
+  const pinnedQuestion = saved.some((s) => s.question === searchQuery);
 
   const runCompare = async () => {
     if (!searchQuery) return;
@@ -136,6 +203,46 @@ export const AskBrainPage: React.FC<AskBrainPageProps> = ({
           </div>
         </div>
 
+        {/* Pinned brain queries for this tenant */}
+        {saved.length > 0 && (
+          <div className="space-y-2 pt-1">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <Pin className="h-3 w-3" /> Pinned queries ({saved.length})
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {saved.map((s: any) => (
+                <span
+                  key={s.id}
+                  className="text-xs bg-white hover:bg-indigo-50 text-slate-700 pl-3 pr-1.5 py-1 rounded-xl border border-slate-200/80 flex items-center gap-1 transition-colors"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery(s.question);
+                      setTimeout(() => handleAskBrain({ preventDefault: () => {} } as React.FormEvent), 50);
+                    }}
+                    className="font-medium"
+                    title={s.traceId ? `trace ${s.traceId}` : undefined}
+                  >
+                    {s.question}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await api.deleteSavedQuery(s.id);
+                      loadSaved();
+                    }}
+                    className="text-slate-300 hover:text-red-600"
+                    title="Unpin"
+                  >
+                    <PinOff className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Grounded Response Output */}
         {brainResult && (
           <div className="space-y-6 pt-4 border-t border-slate-100">
@@ -160,6 +267,53 @@ export const AskBrainPage: React.FC<AskBrainPageProps> = ({
               </div>
 
               {renderFormattedAnswer(brainResult.answer)}
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="text-[11px] font-semibold text-slate-500">Useful?</span>
+                <button
+                  type="button"
+                  onClick={() => sendFeedback('UP')}
+                  disabled={feedbackBusy}
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors flex items-center gap-1 disabled:opacity-50 ${
+                    feedbackState === 'UP'
+                      ? 'bg-emerald-100 border-emerald-300 text-emerald-800'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-emerald-50'
+                  }`}
+                >
+                  <ThumbsUp className="h-3 w-3" /> Yes
+                </button>
+                <button
+                  type="button"
+                  onClick={() => sendFeedback('DOWN')}
+                  disabled={feedbackBusy}
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors flex items-center gap-1 disabled:opacity-50 ${
+                    feedbackState === 'DOWN'
+                      ? 'bg-red-100 border-red-300 text-red-800'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-red-50'
+                  }`}
+                >
+                  <ThumbsDown className="h-3 w-3" /> No
+                </button>
+                <button
+                  type="button"
+                  onClick={togglePin}
+                  disabled={pinBusy}
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors flex items-center gap-1 disabled:opacity-50 ${
+                    pinnedQuestion
+                      ? 'bg-indigo-100 border-indigo-300 text-indigo-800'
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-indigo-50'
+                  }`}
+                >
+                  {pinnedQuestion ? <PinOff className="h-3 w-3" /> : <Pin className="h-3 w-3" />}
+                  {pinnedQuestion ? 'Unpin' : 'Pin this query'}
+                </button>
+                {feedbackBusy && <span className="text-[11px] text-slate-400">Saving…</span>}
+                {feedbackNote && <span className="text-[11px] text-slate-500">{feedbackNote}</span>}
+              </div>
+              <p className="text-[10px] text-slate-400">
+                Rating writes a Feedback node in this tenant's graph and links it to the cited chunks with an ABOUT edge —
+                a thumbs-down with no matching upvote shows up as a Knowledge Health finding.
+              </p>
             </div>
 
             {/* Decision Trace ("Why?" — graph path provenance) */}

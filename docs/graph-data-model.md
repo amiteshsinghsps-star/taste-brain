@@ -10,7 +10,8 @@ writing.
 FalkorDB is the system of record for company knowledge: documents, chunks,
 embeddings, people, teams, policies, rules, decisions, tasks, bookings,
 watchlist entries, agent memory (episodes/facts/procedures/conversation turns),
-simulation records and the hash-chained decision ledger are all graph nodes and
+simulation records, the hash-chained decision ledger, reader feedback verdicts
+and pinned queries are all graph nodes and
 edges, stored in one graph per tenant. Postgres (Prisma) is deliberately
 narrow: it holds authentication, connector/sync metadata, the raw ingested
 payload, per-user skill-rule rows, agent instance/task rows and audit rows.
@@ -60,8 +61,8 @@ Notes a reviewer should be aware of:
 
 ## 2. Node labels
 
-Allow-list is `NODE_LABELS` in `server/src/graph/graph.schema.ts:9-37`
-(27 labels). `isNodeLabel()` (lines 76-78) gates any label coming from LLM
+Allow-list is `NODE_LABELS` in `server/src/graph/graph.schema.ts:9-39`
+(29 labels). `isNodeLabel()` (lines 78-80) gates any label coming from LLM
 extraction or client input before it reaches Cypher.
 
 Properties are stored as graph property values; note that several numeric/bool
@@ -89,7 +90,7 @@ Queries then cast with `toInteger()` where ordering matters.
 | `Procedure` | Procedural memory | `name`, `stepsJSON` (≤4000 chars), `version`, `scope` | `server/src/services/memory/memory.service.ts:84-89` |
 | `ConversationNode` | Chat thread container (`Conversation` avoided as a Redis reserved word — `server/src/graph/graph.schema.ts:41-42`) | `id`, `scope`, `createdAt`, `demoSeed` | `server/src/services/memory/memory.service.ts:126`; `server/src/seed/northwind.seed.ts:408` |
 | `Turn` | One chat message | `role`, `text` (≤2000 chars), `at`, `scope`, `demoSeed` | `server/src/services/memory/memory.service.ts:127-132`; `server/src/seed/northwind.seed.ts:409` |
-| `WatchlistEntry` | Denied-party list row (demo data) | `name`, `list`, `note`, `demoSeed` | `server/src/seed/northwind.seed.ts:175-177` — only creator |
+| `WatchlistEntry` | Denied-party screening row | `name`, `list`, `note`, `addedBy`, `at`, `demoSeed` (`'true'` for the three seeded rows, `'false'` for tenant-added) | seeded `server/src/seed/northwind.seed.ts:175-177`; tenant write path `server/src/services/brain/watchlist.service.ts:135-142` (id `watch_custom_<slug>`, idempotent on lower-cased name, refuses to delete a seeded row at lines 170-172) |
 | `Customer` | Counterparty | `name`, `creditStatus`, `demoSeed` | `server/src/seed/northwind.seed.ts:323`; `server/src/seed/seed-v3.ts:147-149`; extraction path `server/src/services/brain/extraction.service.ts:241` |
 | `Shipment` | Demo shipment record | `bookingNumber`, `status`, `demoSeed` | `server/src/seed/northwind.seed.ts:322` — only creator |
 | `Invoice` | Finance document | `invoiceNumber`, `amount`, `currency`, `demoSeed` | `server/src/seed/northwind.seed.ts:324`; `server/src/seed/seed-v3.ts:193` |
@@ -97,6 +98,8 @@ Queries then cast with `toInteger()` where ordering matters.
 | `Simulation` | Counterfactual policy replay record | `status` (`PROPOSED`/`APPLIED`/`DISCARDED`), `ruleId`, `ruleName`, `candidateParams` (JSON string), `total`, `changed`, `replayFidelity`, `at`, `demoSeed` | `server/src/services/brain/simulation.service.ts:110-120` |
 | `LedgerEntry` | Hash-chained audit entry | `id`, `seq`, `at`, `actor`, `kind`, `subjectId`, `traceId`, `payloadHash`, `prevHash`, `hash` | `server/src/services/brain/ledger.service.ts:89-97` (raw `CREATE`, not `mergeNode`) |
 | `HealthFinding` | Persisted health-report snapshot | `score` (string), `findingsJSON` (≤8000 chars), `at` | `server/src/services/brain/health.service.ts:93-97` |
+| `Feedback` | Reader verdict on one brain answer (Track 04) | `id`, `at`, `verdict` (`UP`/`DOWN`), `question` (≤500), `comment` (≤500), `traceId`, `answerSnippet` (≤500), `givenBy` (≤160), `linkedChunksJSON` | `server/src/services/brain/feedback.service.ts:53-85`; linked to each cited `Chunk` with `ABOUT` only after the chunk id is confirmed to exist in this graph (lines 76-82) |
+| `SavedQuery` | Pinned brain question for the tenant (Track 04) | `id`, `question` (≤500), `snippet` (≤500), `traceId`, `createdAt`, `givenBy` | `server/src/services/brain/saved-query.service.ts:39-66` — idempotent on the exact question string |
 | `EvalRun` | Allow-listed only | — | **not implemented** — eval results are computed in `server/src/services/brain/eval.service.ts` and aggregated in memory / `server/src/eval/results.json`; no `EvalRun` node is ever written |
 
 Merge-key convention: entity nodes are upserted with `MERGE (n:<Label> {id: $id})`
@@ -108,13 +111,14 @@ lowercases, strips non `[a-z0-9 ]`, collapses whitespace).
 
 ## 3. Relationship types
 
-Allow-list is `RELATIONSHIP_TYPES` in `server/src/graph/graph.schema.ts:43-72`
-(27 types), gated by `isRelationshipType()` (lines 80-82).
+Allow-list is `RELATIONSHIP_TYPES` in `server/src/graph/graph.schema.ts:45-74`
+(28 types), gated by `isRelationshipType()` (lines 82-84). Track 04 added no new
+relationship types — its two new labels reuse existing edges (`ABOUT`, `OWNS`).
 
 | Type | Direction semantics | Properties | Creating call site |
 |---|---|---|---|
 | `MEMBER_OF` | `Person` → `Team` | — | `server/src/seed/northwind.seed.ts:22` |
-| `OWNS` | `Person` → `Policy` (accountable owner) | — | `server/src/seed/northwind.seed.ts:233`; extraction `server/src/services/brain/extraction.service.ts:251-258` |
+| `OWNS` | `Person` → `Policy` (accountable owner); also `Person` → `WatchlistEntry` for a tenant-added entry when a matching Person node exists | — | `server/src/seed/northwind.seed.ts:233`; extraction `server/src/services/brain/extraction.service.ts:251-258`; `server/src/services/brain/watchlist.service.ts:146-154` |
 | `AUTHORED` | `Person` → `Document` | — | `server/src/seed/northwind.seed.ts:201` |
 | `PART_OF` | `Chunk` → `Document` | — | `server/src/services/brain/graph.service.ts:90`; `server/src/services/brain/extraction.service.ts:330`; `server/src/seed/northwind.seed.ts:210`; `server/src/seed/seed-v3.ts:120` |
 | `MENTIONS` | `Document`/`Chunk` → entity | — | `server/src/services/brain/extraction.service.ts:246-247`, `:285` |
@@ -126,7 +130,7 @@ Allow-list is `RELATIONSHIP_TYPES` in `server/src/graph/graph.schema.ts:43-72`
 | `APPROVES` | Approver → subject; read in retrieval expansion filter only | `evidence` when created by extraction | `server/src/services/brain/extraction.service.ts:251-258` only — no seed or workflow writes it |
 | `SUPERSEDES` | new version → old version, on `Document` and on `Rule` | — | `server/src/services/brain/graph.service.ts:94`; `server/src/seed/seed-v3.ts:123,136`; `server/src/services/brain/simulation.service.ts:181` |
 | `DECIDED` | `Person` → `Decision` | — | `server/src/seed/northwind.seed.ts:364`; `server/src/services/brain/simulation.service.ts:204`; `server/src/services/agent/agent-workflows.service.ts` (`approveTask` — the human who clicked Approve, id `person_user_<userId>`) |
-| `ABOUT` | `Decision` → `Policy`/`Task`; `Episode` → any; `Invoice` → `Customer` | — | `server/src/seed/northwind.seed.ts:325,366,399`; `server/src/services/brain/simulation.service.ts:207`; `server/src/services/agent/agent-workflows.service.ts:332,356`; `server/src/services/memory/memory.service.ts:52`; `server/src/seed/seed-v3.ts:194` |
+| `ABOUT` | `Decision` → `Policy`/`Task`; `Episode` → any; `Invoice` → `Customer`; `Feedback` → `Chunk` | — | `server/src/seed/northwind.seed.ts:325,366,399`; `server/src/services/brain/simulation.service.ts:207`; `server/src/services/agent/agent-workflows.service.ts:332,356`; `server/src/services/memory/memory.service.ts:52`; `server/src/seed/seed-v3.ts:194`; `server/src/services/brain/feedback.service.ts:81` |
 | `PERFORMED` | `Agent` → `Task` (seed also uses `Agent` → `Shipment`, see limitations) | — | `server/src/seed/northwind.seed.ts:328,387`; `server/src/services/agent/agent-workflows.service.ts:108,282,442` |
 | `HANDED_OFF_TO` | `Task` → `Agent` (seed also uses `Task` → `Agent` reversed role assignment) | — | `server/src/seed/northwind.seed.ts:386`; `server/src/services/agent/agent-workflows.service.ts:281` |
 | `TRIGGERED` | `Task` → `Rule`; `Booking` → `Rule` | — | `server/src/seed/northwind.seed.ts:327,385`; `server/src/services/agent/agent-workflows.service.ts:111-112` |
@@ -188,23 +192,29 @@ graph LR
     ConversationNode[ConversationNode] -->|HAS_TURN| Turn[Turn]
     Invoice[Invoice] -->|ABOUT| Customer
     Shipment[Shipment] -->|FLAGGED_BY| WatchlistEntry
+    Feedback[Feedback] -->|ABOUT| Chunk
+    Person -->|OWNS| WatchlistEntry
 ```
+
+`SavedQuery` nodes carry no edges by design — they are pinned question strings
+(`question`, `snippet`, `traceId`) inside the tenant graph, not a graph pattern,
+so they appear in the entity list rather than in a relation diagram.
 
 ## 5. Indexes
 
 `ensureGraphSchema(graph, embeddingsDim)` at
-`server/src/graph/graph.schema.ts:114-202` is invoked from
-`forTenant()` in `server/src/graph/graph.client.ts:79-97`, once per graph per
-process (guarded by a `globalThis["schema:" + graphName]` flag, lines 84-95).
+`server/src/graph/graph.schema.ts:116-210` is invoked from
+`forTenant()` in `server/src/graph/graph.client.ts:99-118`, once per graph per
+process (guarded by a `globalThis["schema:" + graphName]` flag, lines 104-113).
 `embeddingsDim` comes from `env.EMBEDDINGS_DIM`
 (`server/src/config/env.ts:52`, default **256**).
 
 | Kind | Target | Source lines |
 |---|---|---|
-| Unique constraints (`constraintCreate('unique','NODE',label,'id')`) | `Person`, `Team`, `Agent`, `Document`, `Chunk`, `Policy`, `Rule`, `Decision`, `Task`, `Fact`, `Episode`, `Procedure`, `WatchlistEntry`, `Customer`, `Shipment`, `Invoice`, `System`, `Project` — all on `id` | `server/src/graph/graph.schema.ts:93-139` |
-| Range indexes | `Person(id,email)`, `Policy(id,status,category)`, `Rule(id,actionType,status)`, `Document(id,hash)`, `Chunk(id,documentId)`, `Task(id)`, `System(id)`, `Team(id)`, `Project(id)`, `Customer(id)`, `WatchlistEntry(id)`, `Shipment(id)`, `Invoice(id)`, `Decision(id)`, `Fact(id,scope)`, `Episode(id,scope)`, `Procedure(id)`, `Agent(id)`, `Booking(bookingNumber)`, `LedgerEntry(seq)`, `Simulation(status)` | `server/src/graph/graph.schema.ts:143-183` |
-| Full-text index | `Chunk(text)` — one single full-text index, `graph.createNodeFulltextIndex('Chunk', 'text')` | `server/src/graph/graph.schema.ts:186-192` |
-| Vector index | `Chunk(embedding)` — `graph.createNodeVectorIndex('Chunk', embeddingsDim, 'COSINE', 'embedding')`; dimension = `EMBEDDINGS_DIM` (default 256), similarity function `COSINE` | `server/src/graph/graph.schema.ts:194-201` |
+| Unique constraints (`constraintCreate('unique','NODE',label,'id')`) | `Person`, `Team`, `Agent`, `Document`, `Chunk`, `Policy`, `Rule`, `Decision`, `Task`, `Fact`, `Episode`, `Procedure`, `WatchlistEntry`, `Customer`, `Shipment`, `Invoice`, `System`, `Project` — all on `id` | `server/src/graph/graph.schema.ts:95-114` (list), `:132-141` (loop) |
+| Range indexes | `Person(id,email)`, `Policy(id,status,category)`, `Rule(id,actionType,status)`, `Document(id,hash)`, `Chunk(id,documentId)`, `Task(id)`, `System(id)`, `Team(id)`, `Project(id)`, `Customer(id)`, `WatchlistEntry(id)`, `Shipment(id)`, `Invoice(id)`, `Decision(id)`, `Fact(id,scope)`, `Episode(id,scope)`, `Procedure(id)`, `Agent(id)`, `Booking(bookingNumber)`, `LedgerEntry(seq)`, `Simulation(status)`, `Feedback(id)`, `Feedback(verdict)`, `SavedQuery(id)`, `SavedQuery(createdAt)`, `WatchlistEntry(name)`, `Decision(at)` | `server/src/graph/graph.schema.ts:145-192` |
+| Full-text index | `Chunk(text)` — one single full-text index, `graph.createNodeFulltextIndex('Chunk', 'text')` | `server/src/graph/graph.schema.ts:193-199` |
+| Vector index | `Chunk(embedding)` — `graph.createNodeVectorIndex('Chunk', embeddingsDim, 'COSINE', 'embedding')`; dimension = `EMBEDDINGS_DIM` (default 256), similarity function `COSINE` | `server/src/graph/graph.schema.ts:201-208` |
 
 What is actually sent to the server, verified against the client library
 (`server/node_modules/falkordb/dist/src/`, falkordb npm package):
@@ -239,7 +249,7 @@ item 2 of §X in `docs/cypher-queries.md`).
 ## 6. Tenant isolation
 
 - Graph naming is `tenantGraphName(tenantId)` in
-  `server/src/graph/graph.client.ts:99-103`:
+  `server/src/graph/graph.client.ts:119-123`:
   `tenant_<tenantId with every non-[a-zA-Z0-9_-] replaced by "_", sliced to 60 chars>`,
   i.e. prefix `tenant_` + at most 60 characters, so graph names are ≤67 chars.
   Only Redis-key-safe characters survive.
@@ -252,8 +262,8 @@ item 2 of §X in `docs/cypher-queries.md`).
   states the invariant: there is no code path that runs Cypher without a
   tenant-bound graph handle.
 - The only way to obtain a `Graph` is `forTenant(tenantId)`
-  (`server/src/graph/graph.client.ts:99-110`), which calls `requireFalkor()`
-  (lines 73-91) and throws `GraphUnavailableError`
+  (`server/src/graph/graph.client.ts:99-118`), which calls `requireFalkor()`
+  (lines 73-97) and throws `GraphUnavailableError`
   (`code = 'GRAPH_UNAVAILABLE'`, lines 55-60) when FalkorDB is unreachable —
   there is no silent fallback to Postgres. `requireFalkor()` proves the socket
   with a `client.list()` ping at most every 2 s, because `FalkorDB.connect()`
@@ -343,3 +353,22 @@ item 2 of §X in `docs/cypher-queries.md`).
    (`server/src/services/memory/memory.service.ts:107-112`). Only `Fact` and
    `Episode` have a `scope` range index
    (`server/src/graph/graph.schema.ts:169-170`).
+10. **`shortestPath` is directed-only in FalkorDB.** `MATCH path =
+    shortestPath((a)-[*..5]-(b))` fails twice over: FalkorDB accepts
+    `shortestPath` only inside a `WITH` or `RETURN` clause, and it does not
+    support undirected traversals. `directedShortest()`
+    (`server/src/services/brain/insights.service.ts:142-155`) therefore runs
+    `shortestPath((a)-[*..n]->(b))` forward and, if that returns nothing, the
+    same shape reversed, and reports which orientation worked in
+    `path.direction`. Consequence: "are these two connected at any cost,
+    ignoring arrow direction" is **not** answerable here; the API says so in its
+    `statement` field instead of inventing an undirected path. This also fixed a
+    pre-existing bug — the `shortest_path` MCP/HTTP tool used the unsupported
+    form and returned an error on every call.
+11. **`Feedback` and `SavedQuery` are graph-only and have no constraint.** They
+    get range indexes on `id` (plus `verdict` / `createdAt`) but not a unique
+    constraint, because ids are generated per write (`feedback_*`, `saved_*`) and
+    idempotency is enforced by a prior `MATCH` on `name`/`question`
+    (`watchlist.service.ts:105-111`, `saved-query.service.ts:48-55`). Duplicate
+    protection is therefore by exact lower-cased name / exact question string,
+    not by fuzzy match.

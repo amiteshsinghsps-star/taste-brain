@@ -4,6 +4,7 @@ import { runQuery } from '../../graph/graph.queries';
 import { normalizeName, isNodeLabel } from '../../graph/graph.schema';
 import { FreshnessService } from './freshness.service';
 import { PrecedentService } from './precedent.service';
+import { InsightsService } from './insights.service';
 import { assembleTrace } from './trace.service';
 
 /**
@@ -136,17 +137,30 @@ export class GraphToolsService {
     return { tool: 'who_knows_most', topic, ranking: ranked, trace };
   }
 
-  /** Shortest relationship path between two entities (Cypher shortestPath). */
+  /**
+   * Shortest relationship path between two entities. Delegates to the same
+   * directed `shortestPath()` helper the /brain/path endpoint uses: FalkorDB
+   * only accepts shortestPath inside WITH/RETURN and only for directed
+   * traversals, so the old `MATCH path = shortestPath((a)-[*..5]-(b))` form
+   * errored on every call.
+   */
   static async shortestPath(tenantId: string, fromName: string, toName: string) {
-    const graph = await forTenant(tenantId);
-    const rows = await runQuery(
-      graph,
-      `MATCH (a), (b) WHERE a.name CONTAINS $from AND b.name CONTAINS $to
-       MATCH path = shortestPath((a)-[*..5]-(b))
-       RETURN path LIMIT 1`,
-      { from: fromName, to: toName }
-    );
-    return { tool: 'shortest_path', from: fromName, to: toName, results: rows, trace: assembleTrace([], [], 'shortestPath((a)-[*..5]-(b))') };
+    const path = await InsightsService.connectionPath(tenantId, fromName, toName, 5);
+    const nodes = path.nodes.map((n) => ({ id: n.id, label: n.label, name: n.name }));
+    const edges = path.edges.map((type, i) => ({ from: path.nodes[i].id, to: path.nodes[i + 1].id, type }));
+    return {
+      tool: 'shortest_path',
+      from: fromName,
+      to: toName,
+      path,
+      results: path.connected ? path.nodes : [],
+      statement: path.statement,
+      trace: assembleTrace(
+        nodes,
+        edges,
+        'MATCH (a),(b) WITH a, b, shortestPath((a)-[*..5]->(b)) AS p — directed only, both orientations tried'
+      ),
+    };
   }
 
   /** Degree-based centrality over a set of labels (honest degree centrality). */

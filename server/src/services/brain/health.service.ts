@@ -84,6 +84,20 @@ export class HealthService {
       findings.push({ kind: 'DOC_NOT_REFRESHED', severity: 'LOW', subjectId: r.id, subjectName: r.name, detail: `Document "${r.name}" has not been refreshed in over 90 days.` })
     );
 
+    // Sources humans rated down (Feedback nodes in this same graph): a cited
+    // chunk with a thumbs-down and no thumbs-up is a knowledge-quality finding.
+    const { FeedbackService } = await import('./feedback.service');
+    const disliked = await FeedbackService.dislikedSources(tenantId);
+    disliked.forEach((d) =>
+      findings.push({
+        kind: 'SOURCE_THUMBS_DOWN',
+        severity: 'MEDIUM',
+        subjectId: d.chunkId,
+        subjectName: d.documentTitle,
+        detail: `Chunk "${d.text.slice(0, 60)}…" was cited in an answer users rated down ${d.downs} time(s) with no upvote — check whether this source is still authoritative.`,
+      })
+    );
+
     const counts = { HIGH: 0, MEDIUM: 0, LOW: 0 } as HealthReport['counts'];
     findings.forEach((f) => counts[f.severity]++);
     const score = Math.max(0, 100 - 10 * counts.HIGH - 4 * counts.MEDIUM - 1 * counts.LOW);

@@ -282,6 +282,192 @@ async function main() {
     JSON.stringify(memStats.json)
   );
 
+  // 13. Connection path ("how are these two things connected?") over shortestPath
+  const gp = await api('GET', '/api/brain/graph', undefined, token);
+  const gnodes: any[] = gp.json?.graph?.nodes ?? [];
+  const glinks: any[] = gp.json?.graph?.links ?? [];
+  const nameOf = (id: string) => gnodes.find((n) => n.id === id)?.name || '';
+  const pickLink = glinks.find((l) => nameOf(l.source) && nameOf(l.target) && nameOf(l.source).length > 3 && nameOf(l.target).length > 3);
+  const pathRes = pickLink
+    ? await api('GET', `/api/brain/path?from=${encodeURIComponent(nameOf(pickLink.source))}&to=${encodeURIComponent(nameOf(pickLink.target))}`, undefined, token)
+    : { status: 0, json: null };
+  const p = pathRes.json?.path;
+  record(
+    'connection path returns a real hop chain',
+    p?.connected === true && Array.isArray(p?.nodes) && p.nodes.length >= 2 && (p?.edges?.length ?? 0) === p.nodes.length - 1,
+    `"${nameOf(pickLink?.source ?? '')}" → "${nameOf(pickLink?.target ?? '')}": hops=${p?.hops} chain=${(p?.nodes ?? []).map((n: any) => `${n.label}:${n.name}`).join(' → ')} · ${String(p?.statement ?? '').slice(0, 90)}`
+  );
+
+  // 14. Path absence: two entities with no link say so instead of returning []
+  const farPath = await api('GET', `/api/brain/path?from=${encodeURIComponent(nameOf(pickLink?.source ?? '') || 'zz')}&to=no-such-entity-qq-${Date.now()}`, undefined, token);
+  const fp = farPath.json?.path;
+  record(
+    'unmatched endpoint reported as absence, not an empty list',
+    farPath.status === 200 && fp?.connected === false && typeof fp?.statement === 'string' && fp.statement.length > 20,
+    String(fp?.statement ?? JSON.stringify(farPath.json)).slice(0, 150)
+  );
+
+  // 15. Rule version diff — the apply in step 9 created v2 with a changed param
+  const vr = await api('GET', `/api/brain/rules/${encodeURIComponent(String(credit?.id ?? ''))}/versions`, undefined, token);
+  const vdiff = (vr.json?.diffs ?? []).find((d: any) => d.changed.some((c: any) => c.key === thresholdKey));
+  record(
+    'rule version diff shows the parameter change',
+    vr.status === 200 && (vr.json?.versions ?? []).length >= 2 && !!vdiff,
+    `${(vr.json?.versions ?? []).length} version(s): ${(vr.json?.versions ?? []).map((v: any) => `v${v.version}(${v.status})`).join(', ')}; ${thresholdKey} ${vdiff?.changed?.[0]?.before} → ${vdiff?.changed?.[0]?.after}`
+  );
+
+  // 16. Decision timeline for one subject
+  const tl = await api('GET', '/api/brain/timeline?subject=BK-1042', undefined, token);
+  const kinds = [...new Set((tl.json?.events ?? []).map((e: any) => e.kind))];
+  record(
+    'decision timeline replays one subject from the graph',
+    tl.status === 200 && (tl.json?.events ?? []).length > 0 && tl.json?.statement?.length > 10,
+    `${(tl.json?.events ?? []).length} event(s) across ${kinds.join(', ')} · ${String(tl.json?.statement ?? '').slice(0, 90)}`
+  );
+
+  // 17. Cross-agent handoff board (existing HANDED_OFF_TO edges)
+  const hb = await api('GET', '/api/brain/handoffs', undefined, token);
+  record(
+    'handoff board reads HANDED_OFF_TO edges',
+    hb.status === 200 && (hb.json?.handoffs ?? []).length >= 1 && (hb.json?.agents ?? []).length >= 1,
+    `${(hb.json?.handoffs ?? []).length} handoff(s) over ${(hb.json?.agents ?? []).length} agent(s): ${(hb.json?.handoffs ?? []).slice(0, 3).map((h: any) => `${h.fromName || 'task'}→${h.toName}`).join(', ')}`
+  );
+
+  // 18. Explain a node (one-click drill)
+  const policyNode = gnodes.find((n) => n.label === 'Policy' || n.properties?.policyName) ?? gnodes[0];
+  const ex = await api('GET', `/api/brain/explain/${encodeURIComponent(String(policyNode?.id ?? ''))}`, undefined, token);
+  record(
+    'node explanation assembles neighbourhood + SOP + provenance',
+    ex.status === 200 && ex.json?.explanation?.node?.id === policyNode?.id && (ex.json?.explanation?.neighbours ?? []).length > 0,
+    `${ex.json?.explanation?.node?.label} "${ex.json?.explanation?.node?.name}": ${(ex.json?.explanation?.neighbours ?? []).length} neighbour(s), ${(ex.json?.explanation?.provenance ?? []).length} source chunk(s), ${(ex.json?.explanation?.decisions ?? []).length} decision(s)`
+  );
+
+  // 19. Freshness digest
+  const dg = await api('GET', '/api/brain/freshness-digest?days=60', undefined, token);
+  record(
+    'freshness digest aggregates version + staleness events',
+    dg.status === 200 && typeof dg.json?.digest?.counts?.supersededRules === 'number' && dg.json.digest.counts.supersededRules >= 1,
+    `supersededDocs=${dg.json?.digest?.counts?.supersededDocuments} supersededRules=${dg.json?.digest?.counts?.supersededRules} stale=${dg.json?.digest?.counts?.staleRules} pending=${dg.json?.digest?.counts?.pendingReviewPolicies}`
+  );
+
+  // 20. Graph export in three formats, straight from the tenant graph
+  const expJson = await fetch(`${BASE}/api/brain/graph/export?format=json`, { headers: { Authorization: `Bearer ${token}` } });
+  const expJsonText = await expJson.text();
+  let expJsonObj: any = null;
+  try {
+    expJsonObj = JSON.parse(expJsonText);
+  } catch {
+    /* recorded as a failure below */
+  }
+  const expXml = await fetch(`${BASE}/api/brain/graph/export?format=graphml`, { headers: { Authorization: `Bearer ${token}` } });
+  const expXmlText = await expXml.text();
+  const expCsv = await fetch(`${BASE}/api/brain/graph/export?format=csv`, { headers: { Authorization: `Bearer ${token}` } });
+  const expCsvText = await expCsv.text();
+  record(
+    'graph export emits JSON, GraphML and CSV from real counts',
+    expJsonObj?.nodes?.length > 0 &&
+      expXmlText.startsWith('<?xml') &&
+      expXmlText.includes('<graphml') &&
+      (expXmlText.match(/<node /g) || []).length === expJsonObj.nodes.length &&
+      expCsvText.split('\r\n')[0].startsWith('source_id,'),
+    `json nodes=${expJsonObj?.nodes?.length} edges=${expJsonObj?.edges?.length}; graphml ${expXmlText.length} chars with ${(expXmlText.match(/<edge /g) || []).length} <edge>; csv ${expCsvText.split('\r\n').length - 1} rows; disposition=${expJson.headers.get('content-disposition')}`
+  );
+
+  // 21. Answer feedback (👎) becomes a Knowledge Health finding on the cited chunk
+  const cited = (ans?.citations ?? [])[0];
+  const fb = await api('POST', '/api/brain/feedback', { question: 'Who owns the denied-party screening policy?', verdict: 'DOWN', chunkIds: [cited?.chunkId], comment: 'stale threshold quoted', traceId: ans?.traceId }, token);
+  const healthAfterFb = await api('GET', '/api/brain/health', undefined, token);
+  const fbFindings = (healthAfterFb.json?.findings ?? []).filter((f: any) => f.kind === 'SOURCE_THUMBS_DOWN');
+  record(
+    'thumbs-down feedback lands in Knowledge Health',
+    fb.status === 201 && fbFindings.length >= 1 && fbFindings[0].subjectId === cited?.chunkId,
+    `feedback=${fb.status} citedChunk=${cited?.chunkId} linked=${fb.json?.feedback?.linkedChunks?.length} findings=${fbFindings.length} healthScore=${healthAfterFb.json?.score}`
+  );
+
+  // 22. A rating with no cited chunk is still stored (and does not fake a link)
+  const fbNoChunk = await api('POST', '/api/brain/feedback', { question: 'What is our holiday overtime policy?', verdict: 'UP', chunkIds: ['chunk_does_not_exist'] }, token);
+  const fbList = await api('GET', '/api/brain/feedback', undefined, token);
+  record(
+    'feedback list reads the graph, bogus chunk ids are refused',
+    fbNoChunk.status === 201 && (fbList.json?.items ?? []).length >= 2 && (fbNoChunk.json?.feedback?.linkedChunks ?? []).length === 0,
+    `items=${(fbList.json?.items ?? []).length} counts=${JSON.stringify(fbList.json?.counts)} linkedOnBogusId=${(fbNoChunk.json?.feedback?.linkedChunks ?? []).length}`
+  );
+
+  // 23. Own watchlist entry changes the next screening verdict (graph fact → engine)
+  const customParty = `Globex Restricted-${Date.now().toString().slice(-6)}`;
+  const wlAdd = await api('POST', '/api/watchlist', { name: customParty, note: 'added from the UI during e2e' }, token);
+  const previewAfter = wlAdd.json?.preview;
+  record(
+    'watchlist add writes a WatchlistEntry node and previews impact',
+    wlAdd.status === 201 && wlAdd.json?.entry?.demoSeed === 'false' && typeof previewAfter?.screenedBookings === 'number',
+    `id=${wlAdd.json?.entry?.id} list=${wlAdd.json?.entry?.list} previewStatement="${String(previewAfter?.statement ?? '').slice(0, 90)}"`
+  );
+
+  if (agentId) {
+    const runWithNewEntry = await api(
+      'POST',
+      `/api/agents/${agentId}/freight`,
+      { bookingNumber: `BK-WL-${Date.now().toString().slice(-5)}`, shipper: customParty, consignee: 'Northwind Traders', origin: 'Shenzhen, CN', destination: 'Hamburg, DE', hsCode: '8471.30', value: 100, currency: 'USD' },
+      token
+    );
+    const flaggedByNew = runWithNewEntry.json?.result?.evaluations?.find((e: any) => e.actionType === 'DENIED_PARTY_SCREENING');
+    record(
+      'new watchlist entry actually flips the pure engine',
+      runWithNewEntry.json?.result?.verdict === 'FLAGGED' && flaggedByNew?.fired === true,
+      `verdict=${runWithNewEntry.json?.result?.verdict} reason=${String(flaggedByNew?.reasons?.[0] ?? '').slice(0, 110)}`
+    );
+
+    const wlId = wlAdd.json?.entry?.id;
+    const wlDel = await api('DELETE', `/api/watchlist/${encodeURIComponent(String(wlId))}`, undefined, token);
+    const runAfterDelete = await api(
+      'POST',
+      `/api/agents/${agentId}/freight`,
+      { bookingNumber: `BK-WL2-${Date.now().toString().slice(-5)}`, shipper: customParty, consignee: 'Northwind Traders', origin: 'Shenzhen, CN', destination: 'Hamburg, DE', hsCode: '8471.30', value: 100, currency: 'USD' },
+      token
+    );
+    record(
+      'removing your own entry un-screens it again',
+      wlDel.status === 200 && wlDel.json?.removed === true && runAfterDelete.json?.result?.verdict !== 'FLAGGED',
+      `delete=${wlDel.status} verdict after removal=${runAfterDelete.json?.result?.verdict}`
+    );
+
+    const wlAll = await api('GET', '/api/watchlist', undefined, token);
+    const seededId = (wlAll.json?.entries ?? []).find((e: any) => e.demoSeed === 'true')?.id;
+    const wlDelSeeded = await api('DELETE', `/api/watchlist/${encodeURIComponent(String(seededId))}`, undefined, token);
+    record(
+      'seeded demo entries are refused, not deleted',
+      wlDelSeeded.status === 409 && wlDelSeeded.json?.removed === false,
+      `${wlDelSeeded.status}: ${String(wlDelSeeded.json?.reason ?? '').slice(0, 100)}`
+    );
+  }
+
+  // 24. Pinned brain queries, per tenant
+  const pinQuestion = `Which containers are demurrage exposed? (${Date.now()})`;
+  const pin = await api('POST', '/api/brain/saved-queries', { question: pinQuestion, snippet: 'from e2e', traceId: ans?.traceId }, token);
+  const pinList = await api('GET', '/api/brain/saved-queries', undefined, token);
+  const pinListOther = await api('GET', '/api/brain/saved-queries', undefined, other.token);
+  const pinId = pin.json?.saved?.id;
+  const pinDel = await api('DELETE', `/api/brain/saved-queries/${encodeURIComponent(String(pinId))}`, undefined, token);
+  const pinListAfter = await api('GET', '/api/brain/saved-queries', undefined, token);
+  record(
+    'pinned queries save, isolate and delete in the tenant graph',
+    pin.status === 201 &&
+      (pinList.json?.items ?? []).some((i: any) => i.question === pinQuestion) &&
+      (pinListOther.json?.items ?? []).length === 0 &&
+      pinDel.status === 200 &&
+      !(pinListAfter.json?.items ?? []).some((i: any) => i.question === pinQuestion),
+    `saved=${pin.status} mine=${(pinList.json?.items ?? []).length} otherTenant=${(pinListOther.json?.items ?? []).length} afterDelete=${(pinListAfter.json?.items ?? []).length}`
+  );
+
+  // 25. Ledger absorbed the watchlist writes without breaking the chain
+  const ledgerEnd = await api('GET', '/api/ledger/verify', undefined, token);
+  const ledgerKinds = [...new Set((await api('GET', '/api/ledger?limit=50', undefined, token)).json?.entries?.map((e: any) => e.kind) ?? [])];
+  record(
+    'ledger still verifies after the new write paths',
+    ledgerEnd.json?.ok === true && ledgerKinds.includes('WATCHLIST_ENTRY_ADDED') && ledgerKinds.includes('WATCHLIST_ENTRY_REMOVED'),
+    `entries=${ledgerEnd.json?.entries} kinds=${ledgerKinds.join(', ')}`
+  );
+
   const failed = checks.filter((ch) => !ch.ok);
   console.log(`\n${checks.length - failed.length}/${checks.length} checks passed`);
   if (failed.length) {

@@ -5,9 +5,15 @@ text is copied verbatim from source, including `$params` placeholders and the
 `${...}` template holes that the code itself interpolates. Call sites are
 `path/to/file.ts:functionName` with real line numbers.
 
-Count: **100 numbered statements** across 21 groups (A–U; group P contains no
-Cypher). Three entries (M3, S3, T7) are byte-identical duplicates of an earlier
-entry, so 97 distinct query texts.
+Count: **144 numbered entries across 26 groups** (A–U, plus the Track 04 groups
+Z, AA, AB, AC, AD; group P contains no Cypher, and entry L6 quotes a statement
+the code no longer runs). Three entries (M3, S3, T7) are byte-identical
+duplicates of an earlier entry, so 140 live distinct query texts. Counts are
+reproducible with `grep -c '^### [A-Z][A-Z0-9]* —' docs/cypher-queries.md`.
+
+Groups Z–AD are appended after the analysis sections V–Y rather than slotted in
+alphabetically, so every cross-reference to V/W/X/Y written earlier in this file
+and in the tests keeps pointing at the same letter.
 
 Conventions used below:
 
@@ -803,7 +809,7 @@ MATCH (o:Person)-[:OWNS]->(p) WHERE p.name CONTAINS $entity OR p.policyName CONT
 follows up with U2 (`tools.service.ts:39`) and returns the count sentence as
 `answer`, so the caller gets "0 OWNS edges exist" instead of an empty array.
 
-### L2 — `get_policy_for`, primary (`tools.service.ts:48-52`, `GraphToolsService.getPolicyFor`)
+### L2 — `get_policy_for`, primary (`tools.service.ts:47-53`, `GraphToolsService.getPolicyFor`)
 
 ```cypher
 MATCH (p:Policy)-[:GOVERNS|VALIDATES|REQUIRES]->(s) WHERE s.name CONTAINS $context OR p.category = $cat
@@ -816,7 +822,7 @@ MATCH (p:Policy)-[:GOVERNS|VALIDATES|REQUIRES]->(s) WHERE s.name CONTAINS $conte
 `$cat` is `normalizeName(context).toUpperCase()` (line 53) — the normalised,
 punctuation-stripped context is also tried as a category code.
 
-### L3 — `get_policy_for`, narrower fallback (`tools.service.ts:58-62`, `getPolicyFor`)
+### L3 — `get_policy_for`, narrower fallback (`tools.service.ts:57-65`, `getPolicyFor`)
 
 ```cypher
 MATCH (p:Policy)-[:GOVERNS]->(s) WHERE s.name CONTAINS $context
@@ -831,7 +837,7 @@ no OR in WHERE after RETURN path with UNION-less OPTIONAL". The result also
 carries the U2 absence proof when nothing matched
 (`tools.service.ts:79-80`, `relationship: 'GOVERNS'`, `fromLabel: 'Policy'`).
 
-### L4 — `impact_of_change` id resolution (`tools.service.ts:86`, `GraphToolsService.impactOfChange`)
+### L4 — `impact_of_change` id resolution (`tools.service.ts:87`, `GraphToolsService.impactOfChange`)
 
 ```cypher
 MATCH (r:Rule {id: $id})-[:IMPLEMENTS]->(p:Policy) RETURN p.id AS id LIMIT 1
@@ -840,7 +846,7 @@ MATCH (r:Rule {id: $id})-[:IMPLEMENTS]->(p:Policy) RETURN p.id AS id LIMIT 1
 Lets a caller pass a Rule id where a Policy id is expected; the heavy traversal
 is then delegated to `FreshnessService.impactOfChange` (F1–F8).
 
-### L5 — `who_knows_most`, weighted expertise with UNION (`tools.service.ts:106-113`, `GraphToolsService.whoKnowsMost`)
+### L5 — `who_knows_most`, weighted expertise with UNION (`tools.service.ts:105-116`, `GraphToolsService.whoKnowsMost`)
 
 ```cypher
 MATCH (p:Person)-[k:KNOWS_ABOUT]->(x)
@@ -861,7 +867,15 @@ too, but `Decision` nodes have `summary`, not `title`
 (`northwind.seed.ts:357-363`), so decision-based expertise contributes nothing
 in practice.
 
-### L6 — `shortest_path` (`tools.service.ts:144-146`, `GraphToolsService.shortestPath`)
+### L6 — `shortest_path` (`tools.service.ts:147-164`, `GraphToolsService.shortestPath`)
+
+No query text of its own: it delegates to `InsightsService.connectionPath`
+(`tools.service.ts:148` → Z1/Z2 + A7), which is the directed, twice-tried form
+FalkorDB actually accepts. The statement it reports in its trace is
+`MATCH (a),(b) WITH a, b, shortestPath((a)-[*..5]->(b)) AS p — directed only,
+both orientations tried` (`tools.service.ts:161`).
+
+This replaced a query that **errored on every call**:
 
 ```cypher
 MATCH (a), (b) WHERE a.name CONTAINS $from AND b.name CONTAINS $to
@@ -869,10 +883,16 @@ MATCH (a), (b) WHERE a.name CONTAINS $from AND b.name CONTAINS $to
  RETURN path LIMIT 1
 ```
 
-FalkorDB's built-in `shortestPath()` — not an external algorithm library (see §W).
-`RETURN path` returns the whole path object to the caller verbatim.
+`shortestPath()` in the `MATCH` pattern position and with the undirected
+`-[*..5]-` form are both rejected by FalkorDB, so the MCP/REST `shortest_path`
+tool returned an error envelope for any pair of names. It is listed here because
+the fix was measured, not guessed: the constraints are recorded in
+`graph-data-model.md` §7 and asserted by
+`server/tests/insights-v4.test.ts:57` ("shortest_path tool answers instead of
+erroring"). FalkorDB's built-in `shortestPath()` is still what is used — not an
+external algorithm library (see §W).
 
-### L7 — `central_entities`, degree centrality (`tools.service.ts:165-168`, `GraphToolsService.centralEntities`)
+### L7 — `central_entities`, degree centrality (`tools.service.ts:177-184`, `GraphToolsService.centralEntities`)
 
 ```cypher
 MATCH (n) WHERE (${labelList})
@@ -881,13 +901,15 @@ MATCH (n) WHERE (${labelList})
  ORDER BY degree DESC LIMIT 10
 ```
 
-`labelList` is `allowed.map((l) => \`n:${l}\`).join(' OR ')` (line 161), where
+`labelList` is `allowed.map((l) => \`n:${l}\`).join(' OR ')` (line 175), where
 `allowed = labels.filter(isNodeLabel)` and any label that is not in
-`NODE_LABELS` makes the call throw before the query is built (lines 157-160;
+`NODE_LABELS` makes the call throw before the query is built (lines 171-174;
 asserted by T23 — see §X-3). The result object carries the honesty note
-"Degree centrality (Cypher); FalkorDB algo library not assumed." (line 171).
+"Degree centrality (Cypher); FalkorDB algo library not assumed." (line 185).
+Z2's degree count is the same idea applied to exactly two endpoints instead of
+the whole label set.
 
-### L8 — `recent_decisions` (`tools.service.ts:182-187`, `GraphToolsService.recentDecisions`)
+### L8 — `recent_decisions` (`tools.service.ts:194-201`, `GraphToolsService.recentDecisions`)
 
 ```cypher
 MATCH (d:Decision) WHERE toLower(d.summary) CONTAINS $entity
@@ -1270,12 +1292,14 @@ them through `runQuery` / `graph.query`. A judge grepping `server/src` for
 
 | Capability | Implementation | Status |
 |---|---|---|
-| Shortest path | `shortestPath((a)-[*..5]-(b))` — `server/src/services/brain/tools.service.ts:140` | Built-in Cypher path function, no external algo library |
-| Centrality | Degree counting `OPTIONAL MATCH (n)-[r]-() … count(r) AS degree ORDER BY degree DESC` — `tools.service.ts:155-157` | Degree centrality only, explicitly labelled as such (`tools.service.ts:160`) |
-| Bounded multi-hop expansion | `MATCH path = (f)-[*1..${depth}]-(n)`, depth clamped 1..4 — `server/src/services/brain/graph.service.ts:149` | Fixed-depth traversal |
+| Shortest path | `WITH a, b, shortestPath((a)-[*..${depth}]->(b)) AS p` — `server/src/services/brain/insights.service.ts:142-155` (`directedShortest`), called forward then reversed from `connectionPath` (lines 194-195); `tools.service.ts:147-164` delegates to it | Built-in Cypher path function, no external algo library. FalkorDB accepts it **only** in WITH/RETURN and **only** directed, which is why `direction` is part of the answer (Z1) |
+| Centrality | Degree counting `OPTIONAL MATCH (n)-[r]-() … count(r) AS degree ORDER BY degree DESC` — `tools.service.ts:179-182` | Degree centrality only, explicitly labelled as such (`tools.service.ts:185`) |
+| Endpoint degree, undirected | `OPTIONAL MATCH (a)-[r1]-() WITH count(r1) …` — `insights.service.ts:239-242` | Used to turn "no path" into a proved absence (Z2) |
+| Typed neighbourhood | `MATCH (n {id: $nodeId})-[r]-(m) RETURN type(r), (startNode(r).id = n.id) AS outgoing` — `insights.service.ts:560-563` | Direction computed in Cypher because the pattern itself is undirected (Z14) |
+| Relationship-type disjunction | `[r2:OWNS\|GOVERNS\|REQUIRES\|VALIDATES\|IMPLEMENTS\|DERIVED_FROM\|APPROVES]` (`retrieval.service.ts:141`), `[g:GOVERNS\|VALIDATES\|REQUIRES]` (`retrieval.service.ts:195`, `freshness.service.ts:21`, `tools.service.ts:49`), `[:GOVERNS\|VALIDATES\|REQUIRES]` (`insights.service.ts:569`), `[:AUTHORED\|DECIDED]` (`tools.service.ts:111`) | Type-filtered traversals, all literal in source |
 | Variable-length provenance | `-[:SUPERSEDES*0..3]->` (`freshness.service.ts:133`), `-[:SUPERSEDES*0..1]->` (`graph.service.ts:224`) | Path patterns |
-| Union of relation types | `[r2:OWNS\|GOVERNS\|REQUIRES\|VALIDATES\|IMPLEMENTS\|DERIVED_FROM\|APPROVES]` (`retrieval.service.ts:141`), `[g:GOVERNS\|VALIDATES\|REQUIRES]` (`retrieval.service.ts:195`, `freshness.service.ts:21`, `tools.service.ts:44`), `[:AUTHORED\|DECIDED]` (`tools.service.ts:105`) | Type-filtered traversals |
-| Weighted centrality / PageRank | `sum(coalesce(k.weight, 1))` over `KNOWS_ABOUT` — `tools.service.ts:103` | Hand-rolled weighted edge count, not an algorithm library |
+| Bounded multi-hop expansion | `MATCH path = (f)-[*1..${depth}]-(n)`, depth clamped 1..4 — `server/src/services/brain/graph.service.ts:149` | Fixed-depth traversal, undirected (works: this is not `shortestPath`) |
+| Weighted centrality / PageRank | `sum(coalesce(k.weight, 1))` over `KNOWS_ABOUT` — `tools.service.ts:109` | Hand-rolled weighted edge count, not an algorithm library |
 | `algo.pageRank` | — | **not implemented** |
 | `algo.wcc` (weakly connected components) | — | **not implemented** |
 | `algo.labelPropagation` | — | **not implemented** |
@@ -1284,7 +1308,12 @@ them through `runQuery` / `graph.query`. A judge grepping `server/src` for
 The comment at `tools.service.ts:10-15` states the reason: FalkorDB images vary
 in bundled algorithm libraries, so centrality is done with Cypher degree counts
 and paths with `shortestPath()`, and this is disclosed in the tool descriptions.
-`src/eval/` and `src/test-core-a.ts` contain no algorithm calls either.
+`src/eval/` and `src/test-core-a.ts` contain no algorithm calls either. Track 04
+added no dependency on an algorithm library either: the path finder (Z1), the
+endpoint degrees (Z2), the version-chain walks (Z4–Z6) and the handoff board
+(Z10–Z12) are all plain Cypher patterns, and the "connected?" answer is
+explicitly directed-only rather than quietly computing an undirected closure in
+JavaScript and presenting it as a graph algorithm.
 
 ## X. Parameterisation and injection safety
 
@@ -1299,6 +1328,19 @@ line 18). Examples of untrusted values that stay parameterised: question text
 arrays (U1 `$terms`, list comprehensions only) and the search term of the
 absence query (U2 `$term`).
 
+Track 04 extends the same rule to its own inputs: endpoint names are resolved to
+ids by A7 and then bound as `$fromId`/`$toId` (Z1, Z2), a timeline subject is
+bound as `$needle` in three statements (Z7–Z9), a rule id/name as `$ruleId` /
+`$ruleName` (Z3–Z6, Z13–Z21 also bind `$nodeId`), client-submitted chunk ids as
+`$chunkId` (AA1, after `cleanIds` caps count and length), watchlist names as
+`$name` (AB3) and the digest window only ever reaches Cypher as the *derived*
+`$cutoff` string (Z26). List sizes are never interpolated either: AA2/AC1 bound
+their `LIMIT` as `$cap` from a JS `Math.min(Math.max(…))` clamp over the service
+default (the curation controllers do not read a client `?limit` at all —
+`feedback.service.ts:90`, `saved-query.service.ts:22`), and the fixed caps in
+Z10–Z21 are literals in the query text. No Track 04 handler builds a query string
+out of request text.
+
 **X-2 — structural tokens are interpolated, and are the guarded surface.** The
 template holes below each have a documented guard:
 
@@ -1307,16 +1349,18 @@ template holes below each have a documented guard:
 | `${label}` in A1/A3 | `mergeNode` / `setVectorProp` callers | Callers pass literals (seeds, services) or `isNodeLabel`-validated extraction types (`server/src/services/brain/extraction.service.ts:158`) |
 | `${fromLabel}`/`${toLabel}`/`${relType}` in A2 | `mergeRelation` callers | `isRelationshipType(rel.type)` before write (`extraction.service.ts:173,256`); labels come from the validated entity set |
 | `${e.type}` in E1 | `writeExtractionToGraph` | Same `validateExtraction` gate (`extraction.service.ts:143-196`) |
-| `${depth}` in C1 | `?depth=` query param | Numeric clamp `Math.min(Math.max(depth||2,1),4)` (`server/src/services/brain/graph.service.ts:143`) |
-| `${predicates}` in A7, `${labelList}` in L7, `${nodeFilter}` in C1/C4 | label lists | A7's caller passes a hard-coded list (`retrieval.service.ts:57`); C1/C4 filter with `isNodeLabel` (`graph.service.ts:144,163`); L7 now does too (`tools.service.ts:157-160`) |
+| `${depth}` in C1 | `?depth=` query param | Numeric clamp `Math.min(Math.max(depth\|\|2,1),4)` (`server/src/services/brain/graph.service.ts:143`) |
+| `${depth}` in Z1 | `?hops=` query param (`insights.controller.ts:31`) / fixed `5` (tool, MCP) | `clampInt(maxHops, 1, 6, 5)` — `Number()` + `Number.isFinite` gate, `Math.round`, then `Math.min(Math.max(…))` (`insights.service.ts:131-135`, applied at 166); a non-numeric value yields the literal fallback `5`, so the hole can only ever contain `1`…`6`. The same helper clamps `?days` before it is turned into Z26's `$cutoff` (line 682) and the service default behind Z7–Z9's `$cap` (line 368 — the HTTP timeline endpoint passes no limit, so it is always 40) |
+| `${predicates}` in A7, `${labelList}` in L7, `${nodeFilter}` in C1/C4 | label lists | A7's caller passes a hard-coded list (`retrieval.service.ts:57`) — the Track 04 caller passes `[...NODE_LABELS]` (`insights.service.ts:165`), which is the allow-list itself; C1/C4 filter with `isNodeLabel` (`graph.service.ts:144,163`); L7 now does too (`tools.service.ts:171-175`) |
 | `$fromLabel` / `$relationship` in U2 | call sites inside this repo (`findOwner`, `getPolicyFor`, the `absence_check` tool args) | `isRelationshipType` + `isNodeLabel` checked before `.replace()` (`precedent.service.ts:91-94`); rejected inputs throw and are asserted by T23 |
 | generated `CONTAINS $t<i>` clause series in D2/D3/K2/N1 | token arrays | Only the *count* of clauses is generated; each token is a bound `$t<i>` parameter (`retrieval.service.ts:82,90`; `eval.service.ts:78-82`; `memory.service.ts:100-103,116`) |
+| relationship-type alternation `(p:Policy)-[:GOVERNS\|VALIDATES\|REQUIRES]->` in Z15 | source text | Literal in the query string; no request value participates |
 
 Property-name holes in A1/A2 (`n.${k}` / `r.${k}`) are sanitised to
 `[a-zA-Z0-9_]` before interpolation (`graph.queries.ts:40,44,68,72`).
 
 **X-3 — the identifier holes are closed, and tested.** `GraphToolsService.centralEntities`
-(`server/src/services/brain/tools.service.ts:157-161`) previously joined the
+(`server/src/services/brain/tools.service.ts:171-175`) previously joined the
 caller's `labels` array into `WHERE (n:X OR n:Y)` without filtering; it now
 runs every entry through `isNodeLabel` and throws listing the offenders.
 `PrecedentService.absence` validates both identifiers before substituting them.
@@ -1344,9 +1388,20 @@ of them readers: `find_owner`, `get_policy_for`, `impact_of_change`,
 writer, no `SimulationService.apply`, no `deleteTenantGraph`, no raw-Cypher
 escape hatch — U2's identifiers are chosen server-side and the tenant is pinned
 at process start (lines 16-33). The REST equivalents live in
-`POST /api/brain/tools` (`server/src/routes/brain.routes.ts:47`,
-`server/src/controllers/graph.controller.ts:204-250`), the same nine readers via
-a `switch`, which rejects unknown tool names.
+`POST /api/brain/tools` (`server/src/routes/brain.routes.ts:49`,
+`server/src/controllers/graph.controller.ts` `callTool` switch, cases at lines
+211-242), the same nine readers via a `switch`, which rejects unknown tool names.
+
+Track 04 does not widen that surface. Of the sixteen new endpoints, the six
+`InsightsService` reads plus the export are `GET`s (`brain.routes.ts:67-73`), and
+the writes — `POST /brain/feedback` (AA), `POST`/`DELETE /brain/saved-queries`
+(AC) and `POST`/`DELETE /watchlist` (AB5–AB7) — are REST-only, each behind
+`router.use(authenticateToken)` (line 12). The two the UI calls most
+(`POST /brain/feedback` and `POST /watchlist`) additionally carry
+`apiRateLimiter` (lines 77, 84); the saved-query writes and the two deletes do
+not, which is a known gap rather than a claim of full coverage. No Track 04
+handler is registered as an MCP tool, so an agent connected over MCP can read
+the screening list it is about to be judged by but cannot edit it.
 
 ## Y. Over-fetching and post-filtering
 
@@ -1387,7 +1442,7 @@ counts.
 
 5. **Fan-out rows summed in JS.** D7 and F1…F8 return one row per combination
    and rely on JS de-dup (`freshness.service.ts:61-65` `byId`;
-   `retrieval.service.ts:204-218`; `tools.service.ts:111-121` for L5's `UNION`
+   `retrieval.service.ts:204-218`; `tools.service.ts:117-126` for L5's `UNION`
    branches). `LIMIT 25`/`LIMIT 40`/`LIMIT 15` caps are the guard.
 
 6. **Unbounded reads that are fine only because the label is small.**
@@ -1400,3 +1455,642 @@ counts.
    `ORDER BY toInteger(e.seq)` (G1, G4, G5) versus `ORDER BY b.atMs` (H1) versus
    `ORDER BY toInteger(b.atMs)` (T5), and `d.validFrom < $cutoff` (J5) as a
    string comparison.
+
+8. **New in Track 04.** Z18 is an N+1: `explainNode` runs one `IMPLEMENTS` query
+   per governing policy found in Z15 (loop at
+   `insights.service.ts:588-596`), bounded by Z15's `LIMIT 15`. AB2 (Z-group
+   `watchlist.service.ts:73`) reads every `Booking` node with its `input` JSON
+   and does the substring screening in TypeScript, because the screening rule is
+   the same JS predicate the pure engine uses
+   (`rule-engine.service.ts`, `shipper/consignee/notifyParty` containment) — a
+   `CONTAINS` in Cypher would have been a second, diverging implementation of
+   that rule. AD1/AD2 (`export.service.ts:37-45`) page the whole graph at
+   `LIMIT 5000` / `LIMIT 20000` and then re-filter edges in JS to drop any whose
+   endpoint fell outside the node page (`export.service.ts:81-84`). Z26 compares
+   `d.at >= $cutoff` as strings (ISO-8601, so lexicographic order is date order).
+
+## Z. Graph insights (Track 04) — `server/src/services/brain/insights.service.ts`
+
+Six read-only views behind `GET /api/brain/path`, `/brain/rules/:id/versions`,
+`/brain/timeline`, `/brain/handoffs`, `/brain/explain/:id` and
+`/brain/freshness-digest`. SQL cannot answer any of them in one statement: each
+one is a typed multi-hop traversal over labels Postgres has no columns for.
+Endpoint resolution in Z-group feature 1 reuses A7
+(`findEntityNodesByName`, `graph.queries.ts:168-173`) and
+`rankLinkedNodes` (`graph.queries.ts:179-188`), so no new text-matching query is
+introduced.
+
+### Z1 — directed `shortestPath` between two resolved node ids (`insights.service.ts:145-152`, `directedShortest`)
+
+```cypher
+MATCH (a {id: $fromId}), (b {id: $toId})
+ WITH a, b, shortestPath((a)-[*..${depth}]->(b)) AS p
+ WHERE p IS NOT NULL
+ RETURN [x IN nodes(p) | coalesce(x.id, '')] AS ids,
+        [x IN nodes(p) | labels(x)[0]] AS labels,
+        [x IN nodes(p) | coalesce(x.name, x.title, x.ruleName, x.policyName, x.summary, x.statement, x.id, '')] AS names,
+        [r IN relationships(p) | type(r)] AS rels
+ LIMIT 1
+```
+
+Two hard FalkorDB constraints, both measured rather than assumed:
+`shortestPath()` is only accepted as a WITH/RETURN expression (it fails in
+`MATCH`'s pattern position) and it only traverses in one direction. Hence
+`WITH … shortestPath((a)-…->(b))` and the caller running it twice —
+`connectionPath` tries forward then reverse
+(`insights.service.ts:194-195`) and reports which orientation worked, reversing
+the chain for display when the answer only exists the other way
+(`insights.service.ts:207-218`). The absence branch (no path either way) still
+returns both endpoint degrees from Z2, so "not connected" is a proved statement,
+not an empty 200. `${depth}` is the only hole; it is clamped to an integer 1..6
+by `clampInt(maxHops, 1, 6, 5)` (`insights.service.ts:131-135`, applied at 166).
+
+### Z2 — incident-edge counts for both endpoints (`insights.service.ts:239-242`, `endpointDegrees`)
+
+```cypher
+MATCH (a {id: $fromId}) OPTIONAL MATCH (a)-[r1]-()
+ WITH count(r1) AS fromDeg
+ MATCH (b {id: $toId}) OPTIONAL MATCH (b)-[r2]-()
+ RETURN fromDeg, count(r2) AS toDeg
+```
+
+Two separate `WITH` stages instead of one pattern that mixes `a` and `b`:
+FalkorDB's implicit grouping does not reliably carry an aggregate across a later
+`MATCH` in the same scope. `OPTIONAL MATCH` + `count()` makes a 0-degree node
+return `0` rather than no row. Note this count is *undirected* (`[r1]-()`) even
+though Z1 is directed — that asymmetry is deliberate: the degrees answer "does
+this node exist and have neighbours", the path answer does not.
+
+### Z3 — rule head, by id (`insights.service.ts:255`, `ruleVersionDiff`)
+
+```cypher
+MATCH (r:Rule {id: $ruleId}) RETURN r LIMIT 1
+```
+
+Used only to read `ruleName` (and to return `null` → HTTP 404 for an unknown id).
+`RETURN r` hands back the whole node; `nodeProps` (`graph.queries.ts`) flattens
+it.
+
+### Z4 — every version of one rule name with its supersession edges (`insights.service.ts:261-265`)
+
+```cypher
+MATCH (r:Rule) WHERE r.ruleName = $ruleName
+ OPTIONAL MATCH (r)-[:SUPERSEDES]->(old:Rule)
+ WITH r, collect(old.id) AS supersedes
+ RETURN r.id AS id, r.version AS version, r.status AS status,
+        r.parametersJSON AS params, r.validTo AS validTo, supersedes
+```
+
+The `WITH r, collect(old.id)` step is the explicit-grouping form required by the
+note on Z2. `parametersJSON` is the string the diff is computed from in
+TypeScript (`JSON.parse` with a `{}` fallback, `insights.service.ts:285-290`) —
+Cypher has no JSON-diff primitive, and `Rule.parametersJSON` is stored as a
+string (`graph-data-model.md` §2). Chronology is taken from the `SUPERSEDES`
+edges, not from `version`: the demo seed writes the same number on both nodes, so
+sorting by `version` alone could present the raised limit (`5000 → 10000`) as a
+lowering. `insights.service.ts:316-322` sorts by
+`version | supersedes-something | id`, which puts the superseding node last, and
+`server/tests/insights-v4.test.ts:68-98` asserts that for every
+`(new)-[:SUPERSEDES]->(old)` edge the old node sorts before the new one.
+
+### Z5 — simulations that targeted this rule (`insights.service.ts:271-272`)
+
+```cypher
+MATCH (s:Simulation)-[:ON]->(r:Rule) WHERE r.ruleName = $ruleName
+ RETURN s.id AS id, r.id AS ruleId, s.at AS at, s.status AS status, s.candidateParams AS candidateParams
+```
+
+`ON` is the Time Machine edge (H1/H4 family). Joining on `ruleName` rather than
+id is what lets a v1 and its `_v2` successor both surface their originating
+simulation; the JS then matches `sim.ruleId === version.id`
+(`insights.service.ts:291`).
+
+### Z6 — supersession edges touching any version of the name (`insights.service.ts:278-279`)
+
+```cypher
+MATCH (n:Rule)-[:SUPERSEDES]->(o:Rule) WHERE n.ruleName = $ruleName OR o.ruleName = $ruleName
+ RETURN n.id AS fromId, o.id AS toId
+```
+
+Read in both directions because the version that *was* superseded also carries
+the name; the edge list is what the UI renders as the version chain instead of
+inferring order from the `version` string.
+
+### Z7 — decisions naming or ABOUT the subject (`insights.service.ts:373-380`, `decisionTimeline`)
+
+```cypher
+MATCH (d:Decision)
+ OPTIONAL MATCH (who:Person)-[:DECIDED]->(d)
+ OPTIONAL MATCH (d)-[:ABOUT]->(subj)
+ WITH d, who, [x IN collect(subj) | coalesce(x.name, x.summary, x.kind, x.id, '')] AS subjects
+ WHERE toLower(coalesce(d.summary, '')) CONTAINS $needle OR any(s IN subjects WHERE toLower(s) CONTAINS $needle)
+ RETURN d.id AS id, d.summary AS summary, d.outcome AS outcome, d.at AS at, d.demoSeed AS demoSeed,
+        who.name AS actor, subjects AS subjects
+ LIMIT $cap
+```
+
+The `ABOUT` target is deliberately unlabelled (`(subj)`): a decision can be
+about a `Policy`, a `Task` or anything else (§3 of the data model), so the label
+would have to be an allow-listed identifier in the query text. Collecting the
+subjects into a list comprehension and filtering with `any(… CONTAINS $needle)`
+keeps the user term bound. `${cap}` is not interpolated — `LIMIT $cap`, clamped
+1..200 by `clampInt(limit, 1, 200, 40)` (`insights.service.ts:368`).
+
+### Z8 — rule versions that changed under the subject (`insights.service.ts:386-391`)
+
+```cypher
+MATCH (n:Rule)-[:SUPERSEDES]->(o:Rule)
+ WHERE toLower(coalesce(n.ruleName, '')) CONTAINS $needle OR toLower(coalesce(o.ruleName, '')) CONTAINS $needle
+ OPTIONAL MATCH (sim:Simulation)-[:ON]->(n)
+ RETURN n.id AS newId, o.id AS oldId, n.ruleName AS ruleName, n.version AS version, o.version AS oldVersion,
+        o.validTo AS validTo, sim.id AS simId, sim.at AS at, sim.status AS simStatus
+ LIMIT $cap
+```
+
+### Z9 — ledger entries whose subject id contains the term (`insights.service.ts:397-400`)
+
+```cypher
+MATCH (l:LedgerEntry)
+ WHERE toLower(coalesce(l.subjectId, '')) CONTAINS $needle OR toLower(coalesce(l.kind, '')) CONTAINS $needle
+ RETURN l.seq AS seq, l.at AS at, l.actor AS actor, l.kind AS kind, l.subjectId AS subjectId
+ ORDER BY toInteger(l.seq) DESC LIMIT $cap
+```
+
+Only `seq/at/actor/kind/subjectId/payloadHash/prevHash/hash` exist on
+`LedgerEntry` — there is no payload text in the graph (G2), so the timeline row
+says `ledger seq <n>` and points the reader at the hash, which is honest about
+what the ledger stores. `toInteger(l.seq)` because `seq` is written as a string
+(`ledger.service.ts:89-97`).
+
+The three row sets are concatenated into one `TimelineEvent[]` and sorted in
+TypeScript by `at` descending (`insights.service.ts:404-437`) — Cypher could not
+union three different shapes with one ordering key without a `UNION` of
+pre-shaped subqueries, and the event `kind` labels are UI text.
+
+### Z10 — per-agent task and memory counts (`insights.service.ts:462-467`, `handoffBoard`)
+
+```cypher
+MATCH (a:Agent)
+ OPTIONAL MATCH (a)-[:PERFORMED]->(t:Task)
+ OPTIONAL MATCH (a)-[:REMEMBERS]->(m)
+ RETURN a.id AS id, a.name AS name, a.type AS type,
+        count(DISTINCT t) AS tasks, count(DISTINCT m) AS memories
+ ORDER BY tasks DESC LIMIT 40
+```
+
+Two `OPTIONAL MATCH`es fan out into a cross product per agent, so both counts
+use `count(DISTINCT …)` — without `DISTINCT` an agent with 3 tasks and 4
+memories would report 12/12.
+
+### Z11 — task handoffs with source agent and triggering rule (`insights.service.ts:473-481`)
+
+```cypher
+MATCH (t:Task)-[:HANDED_OFF_TO]->(a:Agent)
+ OPTIONAL MATCH (src:Agent)-[:PERFORMED]->(t)
+ OPTIONAL MATCH (t)-[:TRIGGERED]->(r:Rule)
+ RETURN t.id AS taskId, coalesce(t.summary, t.kind, t.id) AS title, t.status AS status,
+        t.createdAt AS at, coalesce(t.demoSeed, 'false') AS demoSeed,
+        src.id AS fromId, src.name AS fromName,
+        a.id AS toId, a.name AS toName, a.type AS toType,
+        r.ruleName AS ruleName, r.version AS ruleVersion
+ LIMIT 100
+```
+
+The `fromAgent` is not stored on the edge — it is derived by walking
+`PERFORMED` backwards, which is why `fromId` can be `null` for a task no agent
+performed. No parameter here: this board is whole-graph, tenant isolation comes
+from the graph name.
+
+### Z12 — direct agent-to-agent handoff edges (`insights.service.ts:487-488`)
+
+```cypher
+MATCH (x:Agent)-[:HANDED_OFF_TO]->(y:Agent)
+ RETURN x.id AS fromId, x.name AS fromName, y.id AS toId, y.name AS toName, y.type AS toType
+ LIMIT 100
+```
+
+`HANDED_OFF_TO` is written in both shapes: `Task → Agent` by the workflow
+handoff (`agent-workflows.service.ts:281`) and `Agent → Agent` by the demo seed
+(`northwind.seed.ts:386`). Z11 and Z12 are reported as separate row kinds
+(`directAgentToAgent: false/true`, `insights.service.ts:493-524`) rather than
+blended, so a seeded edge cannot look like a live one.
+
+### Z13 — node head for the drill-down (`insights.service.ts:552`, `explainNode`)
+
+```cypher
+MATCH (n {id: $nodeId}) RETURN n, labels(n)[0] AS label LIMIT 1
+```
+
+Unlabelled match on `id` because "explain this node" accepts any label; ids are
+unique per label by constraint (§5 of the data model), so this can return more
+than one node in principle and `LIMIT 1` picks one deterministically only within
+the store's order. Known limitation, stated here rather than hidden — in practice
+the ids the UI offers are prefixed (`pol_`, `rule_`, `chunk_`, `doc_`).
+
+### Z14 — typed neighbourhood with direction (`insights.service.ts:560-563`)
+
+```cypher
+MATCH (n {id: $nodeId})-[r]-(m)
+ RETURN type(r) AS relation, (startNode(r).id = n.id) AS outgoing, m.id AS id, labels(m)[0] AS label,
+        coalesce(m.name, m.title, m.ruleName, m.policyName, m.summary, m.statement, m.id) AS name
+ ORDER BY relation LIMIT 80
+```
+
+Direction is computed in Cypher (`startNode(r).id = n.id`) because the pattern is
+undirected on purpose: an explanation that only showed outgoing edges would hide
+the `MENTIONS`/`DERIVED_FROM` evidence pointing *in*.
+
+### Z15 — policies governing this node (`insights.service.ts:569-571`)
+
+```cypher
+MATCH (p:Policy)-[:GOVERNS|VALIDATES|REQUIRES]->(n {id: $nodeId})
+ RETURN DISTINCT p.id AS policyId, p.name AS policyName, p.status AS status
+ LIMIT 15
+```
+
+A relationship-type disjunction in the query text — the three types are literal
+tokens in the source, not caller input. `RETURN DISTINCT` (not
+`collect(DISTINCT)`) because only the policy identity is wanted.
+
+### Z16 — rules implementing this node when the node *is* the policy (`insights.service.ts:576-577`)
+
+```cypher
+MATCH (r:Rule)-[:IMPLEMENTS]->(p:Policy {id: $nodeId})
+ RETURN r.id AS id, r.ruleName AS ruleName, r.version AS version, r.status AS status LIMIT 25
+```
+
+### Z17 — the human who owns this node (`insights.service.ts:582`)
+
+```cypher
+MATCH (o:Person)-[:OWNS]->(n {id: $nodeId}) RETURN o.id AS id, o.name AS name LIMIT 10
+```
+
+`OWNS` is written by the seeded SOP owners (`northwind.seed.ts:233`), extraction
+(`extraction.service.ts:251-258`) and, new in Track 04, tenant watchlist entries
+(Z-AB5).
+
+### Z18 — implemented rules per governing policy (`insights.service.ts:591-592`)
+
+```cypher
+MATCH (r:Rule)-[:IMPLEMENTS]->(p:Policy {id: $pid})
+ RETURN r.id AS id, r.ruleName AS ruleName, r.version AS version, r.status AS status LIMIT 15
+```
+
+One call per policy id from Z15 (see §Y-8). `$pid` is a graph id that came from
+Z15's own result, never from the request.
+
+### Z19 — document provenance of this node (`insights.service.ts:600-601`)
+
+```cypher
+MATCH (n {id: $nodeId})-[:DERIVED_FROM]->(c:Chunk)-[:PART_OF]->(d:Document)
+ RETURN c.id AS chunkId, c.text AS text, d.id AS documentId, d.title AS documentTitle LIMIT 10
+```
+
+The same two-hop provenance shape as C8, from the node side instead of the
+document side. This is the query that makes "explain" a citation: it returns the
+chunk text, so the drill-down quotes the source rather than summarising it.
+
+### Z20 — decisions mentioning this node (`insights.service.ts:607-613`)
+
+```cypher
+MATCH (d:Decision)
+ OPTIONAL MATCH (d)-[:ABOUT]->(subj)
+ WITH d, collect(subj) AS subjects
+ WHERE toLower(coalesce(d.summary, '')) CONTAINS toLower($name) OR any(s IN subjects WHERE s IS NOT NULL AND s.id = $nodeId)
+ OPTIONAL MATCH (who:Person)-[:DECIDED]->(d)
+ RETURN d.id AS id, d.summary AS summary, d.outcome AS outcome, d.at AS at, who.name AS decidedBy
+ ORDER BY d.at DESC LIMIT 15
+```
+
+Both a name-containment match (catches prose decisions that only *say* the
+entity) and an exact `subjects.id = $nodeId` match (catches the structured edge).
+`OPTIONAL MATCH` after the `WHERE` is fine here: it only decorates rows already
+kept.
+
+### Z21 — answer feedback on this node (`insights.service.ts:619-621`)
+
+```cypher
+MATCH (f:Feedback)-[:ABOUT]->(n {id: $nodeId})
+ RETURN sum(CASE WHEN f.verdict = 'UP' THEN 1 ELSE 0 END) AS up,
+        sum(CASE WHEN f.verdict = 'DOWN' THEN 1 ELSE 0 END) AS down
+```
+
+`sum(CASE …)` over `count()` so an all-downs node returns `up = 0` instead of a
+missing key. This edge points at the *chunk* a rating was about
+(`feedback.service.ts:81`), so for a `Chunk` node it is the same rows
+`FeedbackService.dislikedSources` (AA5) feeds into the health report.
+
+### Z22 — superseded document versions (`insights.service.ts:688-690`, `freshnessDigest`)
+
+```cypher
+MATCH (n:Document)-[:SUPERSEDES]->(o:Document)
+ RETURN n.id AS newId, n.title AS title, o.id AS oldId, o.validTo AS supersededAt
+ ORDER BY supersededAt DESC LIMIT 50
+```
+
+### Z23 — superseded rule versions with their simulation (`insights.service.ts:695-699`)
+
+```cypher
+MATCH (n:Rule)-[:SUPERSEDES]->(o:Rule)
+ OPTIONAL MATCH (sim:Simulation)-[:ON]->(n)
+ RETURN n.id AS newId, n.ruleName AS title, n.version AS version, o.id AS oldId, o.version AS oldVersion,
+        o.validTo AS supersededAt, sim.at AS at
+ LIMIT 50
+```
+
+`o.version` is read specifically so the digest cannot invent a version bump: the
+demo seed writes `version: 1` on both the ACTIVE and the SUPERSEDED node
+(`northwind.seed.ts:286-296`), so `insights.service.ts:719-731` detects
+`version === oldVersion` and drops the `v1 → v1` arrow, explaining that the two
+nodes are distinguished by id. Time Machine applies do bump the number
+(`simulation.service.ts:165-175`), so real changes still render as
+`v1 → v2`. Same guard in the version-diff statement builder
+(`insights.service.ts` `verLabel`).
+
+### Z24 — STALE rules (`insights.service.ts:702`)
+
+```cypher
+MATCH (r:Rule {status: 'STALE'}) RETURN r.id AS id, r.ruleName AS title, r.staleReason AS reason LIMIT 50
+```
+
+Staleness is a property + status, not the allow-listed-but-unused
+`STALE_BECAUSE` type (`graph-data-model.md` §3). Distinct from F9, which is the
+paginated revalidation queue.
+
+### Z25 — policies awaiting review (`insights.service.ts:705`)
+
+```cypher
+MATCH (p:Policy {status: 'REVIEW_PENDING'}) RETURN p.id AS id, p.name AS title, p.category AS category LIMIT 50
+```
+
+### Z26 — decisions inside the window (`insights.service.ts:708`)
+
+```cypher
+MATCH (d:Decision) WHERE d.at >= $cutoff RETURN count(d) AS c
+```
+
+`cutoff` is `Date.now() - days * 86400000` in ISO form
+(`insights.service.ts:682-683`), `days` clamped 1..365 from the `?days`
+query param (`insights.controller.ts:89`). String comparison on ISO-8601
+timestamps — see §Y-7/§Y-8. Note the digest's window
+only constrains this one count; the supersession rows
+(Z22/Z23) have no date filter and are capped by `LIMIT 50`, so "what changed"
+is "most recent 50 of each kind" rather than strictly "in the last 30 days".
+The statement text says "in the last N day(s)" only for the decision count.
+
+### Z27 — thumbs-down on cited sources (`insights.service.ts:709`)
+
+```cypher
+MATCH (f:Feedback {verdict: 'DOWN'}) RETURN count(f) AS c
+```
+
+Whole-graph count, no window: a complaint about a source stays a complaint.
+Reported as `counts.citedThumbsDown`, which is why the key is not called
+`downsInWindow`.
+
+## AA. Answer feedback as graph data — `server/src/services/brain/feedback.service.ts`
+
+Feature 5. A rating is a `Feedback` node with `ABOUT` edges to the exact
+`Chunk` nodes the answer cited, so the deduction lands on the source that earned
+it. Written through A1/A2 (`mergeNode`/`mergeRelation`), so the node and edge
+upserts are A1/A2 rather than new statements here.
+
+### AA1 — chunk existence gate (`feedback.service.ts:79`, `record`)
+
+```cypher
+MATCH (c:Chunk {id: $chunkId}) RETURN c.id AS id LIMIT 1
+```
+
+Every submitted chunk id is checked before an edge is written
+(`feedback.service.ts:78-83`), so a client cannot attach `ABOUT` edges to arbitrary
+ids or to another tenant's id — the id simply does not exist in this graph. Ids
+are only ever parameter values, capped and length-bounded in JS
+(`cleanIds`, `feedback.service.ts:40-43`: 25 ids, ≤200 chars each).
+
+### AA2 — feedback list with linked chunks (`feedback.service.ts:93-98`, `list`)
+
+```cypher
+MATCH (f:Feedback)
+ OPTIONAL MATCH (f)-[:ABOUT]->(c:Chunk)
+ WITH f, collect(c.id) AS chunkIds
+ RETURN f.id AS id, f.at AS at, f.verdict AS verdict, f.question AS question,
+        f.comment AS comment, f.givenBy AS givenBy, chunkIds
+ ORDER BY f.at DESC LIMIT $cap
+```
+
+`ORDER BY f.at DESC` is a plain string sort on an ISO timestamp written by this
+service (`at: new Date().toISOString()`, line 61) — every `Feedback.at` is
+machine-written, so unlike `Decision.at` (which the seeder backdates) it does not
+need `toInteger`/`toFloat` help.
+
+### AA3 — verdict totals (`feedback.service.ts:116-119`, `counts`)
+
+```cypher
+MATCH (f:Feedback)
+ RETURN sum(CASE WHEN f.verdict = 'UP' THEN 1 ELSE 0 END) AS up,
+        sum(CASE WHEN f.verdict = 'DOWN' THEN 1 ELSE 0 END) AS down,
+        count(f) AS total
+```
+
+### AA4 — how many ratings reached a source (`feedback.service.ts:122`, `counts`)
+
+```cypher
+MATCH (f:Feedback)-[:ABOUT]->(c:Chunk) RETURN count(f) AS c
+```
+
+`linked` is deliberately smaller than `total` when a rating was recorded with no
+matching chunk — that gap is the honest signal that the citation ids were stale.
+
+### AA5 — sources with a downvote and no upvote (`feedback.service.ts:139-145`, `dislikedSources`)
+
+```cypher
+MATCH (f:Feedback)-[:ABOUT]->(c:Chunk)
+ WITH c, sum(CASE WHEN f.verdict = 'DOWN' THEN 1 ELSE 0 END) AS downs,
+          sum(CASE WHEN f.verdict = 'UP' THEN 1 ELSE 0 END) AS ups
+ WHERE downs > 0 AND ups = 0
+ OPTIONAL MATCH (c)-[:PART_OF]->(d:Document)
+ RETURN c.id AS chunkId, d.title AS documentTitle, downs, ups, c.text AS text
+ ORDER BY downs DESC LIMIT 25
+```
+
+This is the query that couples feature 5 to Knowledge Health:
+`HealthService.report` imports it and pushes one `SOURCE_THUMBS_DOWN` finding per
+row with `subjectId` = the chunk id
+(`health.service.ts:87-99`, i.e. after J5 in §J). An upvote on the same chunk
+flips `ups = 0` false and the finding disappears — asserted inside the test
+"a thumbs-down on a cited chunk becomes a finding on that exact chunk"
+(`server/tests/insights-v4.test.ts:175-204`, upvote case at 200-203). `text` is
+truncated to 220 chars in JS
+(`feedback.service.ts:153`), not in Cypher.
+
+## AB. Tenant screening list — `server/src/services/brain/watchlist.service.ts`
+
+Feature 6, and the only *write* path in Track 04 that changes a computation: the
+denied-party rule already reads every `WatchlistEntry` node as engine facts
+(M2), so adding a node changes the next verdict. `loadFactsFromGraph` itself is
+unchanged.
+
+### AB1 — list entries with provenance flags (`watchlist.service.ts:52-55`)
+
+```cypher
+MATCH (w:WatchlistEntry)
+ RETURN w.id AS id, w.name AS name, w.list AS list, w.note AS note,
+        w.addedBy AS addedBy, w.at AS at, coalesce(w.demoSeed, 'false') AS demoSeed
+ ORDER BY at DESC, name ASC
+```
+
+No `LIMIT`: the list is the screening input and truncating it would silently
+change what is screened. Whole-label read, same shape as M2/M3. `demoSeed` is
+coalesced because the seeded entries set it explicitly
+(`northwind.seed.ts:175-177`) while a hand-written node might not.
+
+### AB2 — every stored booking, for the preview match (`watchlist.service.ts:73`, `previewScreening`)
+
+```cypher
+MATCH (b:Booking) RETURN b.id AS id, b.bookingNumber AS bookingNumber, b.input AS input
+```
+
+`b.input` is the JSON string of the `BookingInput` recorded at screening time
+(`seed-v3.ts:171-180`, `agent-workflows.service.ts:83-90`); the party fields are
+inside it, so the match cannot be a property predicate in Cypher without
+duplicating the engine's substring rule in query text. The JS re-implements the
+*engine's* rule by calling the same three fields it reads
+(`shipper`/`consignee`/`notifyParty`, `watchlist.service.ts:82-84`) and is capped
+to 25 preview rows.
+
+### AB3 — case-insensitive duplicate check (`watchlist.service.ts:107-109`, `add`)
+
+```cypher
+MATCH (w:WatchlistEntry) WHERE toLower(w.name) = toLower($name)
+ RETURN w.id AS id, w.name AS name, w.list AS list, w.note AS note, w.addedBy AS addedBy, w.at AS at, coalesce(w.demoSeed, 'false') AS demoSeed
+ LIMIT 1
+```
+
+`WatchlistEntry` has a unique constraint on `id` but none on `name`
+(`graph.schema.ts:93-139,143-183`), so idempotency is this exact-match query
+rather than a merge on name: the response carries `alreadyPresent: true` and no
+second node is written.
+
+### AB4 — find the Person matching the actor (`watchlist.service.ts:146`, `add`)
+
+```cypher
+MATCH (p:Person) WHERE toLower($actor) CONTAINS toLower(p.name) RETURN p.id AS id LIMIT 1
+```
+
+`actor` is `req.user`'s display text, which may be an email; containment of the
+Person's name is the join. Deliberately not a `searchKey` equality — the person
+the JWT names may have been seeded with a slightly different display name, and a
+missing owner edge is cosmetic, not wrong.
+
+### AB5 — attach the human owner (`watchlist.service.ts:150`, `add`)
+
+```cypher
+MATCH (p:Person {id: $pid}), (w:WatchlistEntry {id: $wid}) MERGE (p)-[:OWNS]->(w)
+```
+
+A raw `MERGE` on the relationship rather than A2's `mergeRelation`, because both
+endpoints were just resolved by id and there is nothing to set on the edge.
+`OWNS` here keeps a tenant entry reachable from the explorer instead of floating
+as an orphan; it is the same relationship type the seeded SOP owners use (Z17).
+
+### AB6 — read the demo flag before deleting (`watchlist.service.ts:166`, `remove`)
+
+```cypher
+MATCH (w:WatchlistEntry {id: $id}) RETURN coalesce(w.demoSeed, 'false') AS demoSeed LIMIT 1
+```
+
+Two-step on purpose: the row is read first so the API can distinguish "no such
+entry" (404-shaped reason) from "seeded demo entry, refusing" (409). The refusal
+is `watchlist.service.ts:170-172` and is asserted by
+`server/tests/insights-v4.test.ts:246` ("seeded demo entries are refused, never
+deleted") — the demo company's screening list cannot be
+deleted out from under the demo story.
+
+### AB7 — detach-delete the tenant entry (`watchlist.service.ts:173`)
+
+```cypher
+MATCH (w:WatchlistEntry {id: $id}) DETACH DELETE w
+```
+
+The only `DETACH DELETE` in Track 04; `DETACH` because AB5 may have added an
+`OWNS` edge. Ids are bound, so this cannot fan out: the graph is the tenant's
+own (`forTenant(tenantId)` from the JWT), and the same statement run against a
+seeded id is unreachable because AB6 refused first.
+
+## AC. Pinned brain queries — `server/src/services/brain/saved-query.service.ts`
+
+Feature 7. Stored as `SavedQuery` nodes in the tenant graph, so isolation is the
+graph's (`tenant_<userId>`), not an extra `WHERE` clause someone can forget.
+`SavedQuery` has no edges by design — see `graph-data-model.md` §6.
+
+### AC1 — list pins (`saved-query.service.ts:25-27`)
+
+```cypher
+MATCH (s:SavedQuery)
+ RETURN s.id AS id, s.question AS question, s.snippet AS snippet, s.traceId AS traceId, s.createdAt AS createdAt
+ ORDER BY s.createdAt DESC LIMIT $cap
+```
+
+### AC2 — duplicate question check (`saved-query.service.ts:48`, `save`)
+
+```cypher
+MATCH (s:SavedQuery {question: $question}) RETURN s.id AS id LIMIT 1
+```
+
+Exact equality on the cleaned question (no `toLower`), because "who owns X" and
+"Who owns X?" are different strings a reader may genuinely want as two pins;
+re-pinning the identical question returns the existing row instead of writing a
+second node (`saved-query.service.ts:49-53`).
+
+### AC3 — unpin (`saved-query.service.ts:70`, `remove`)
+
+```cypher
+MATCH (s:SavedQuery {id: $id}) DETACH DELETE s RETURN s.id AS id
+```
+
+`DETACH DELETE … RETURN` returns the deleted node's properties in FalkorDB, and
+the code uses `rows.length` as the "was there something to delete" signal
+(`saved-query.service.ts:71`) — a convenience that should not be read as
+portable Cypher.
+
+## AD. Whole-graph export — `server/src/services/brain/export.service.ts`
+
+Feature 8. Two reads; every format is rendered from the same rows, so the JSON,
+GraphML and CSV counts cannot disagree.
+
+### AD1 — every node (`export.service.ts:37-41`, `NODE_SELECT`)
+
+```cypher
+MATCH (n)
+ RETURN n.id AS id, labels(n)[0] AS label,
+        coalesce(n.name, n.title, n.ruleName, n.policyName, n.summary, n.statement, n.bookingNumber, n.id, '') AS name,
+        n.status AS status, coalesce(n.demoSeed, 'false') AS demoSeed
+ LIMIT 5000
+```
+
+### AD2 — every directed edge (`export.service.ts:43-45`, `EDGE_SELECT`)
+
+```cypher
+MATCH (a)-[r]->(b)
+ RETURN a.id AS source, b.id AS target, type(r) AS relationType
+ LIMIT 20000
+```
+
+Both are property-projected (`n.id`, not `n`) for two reasons: the response size
+and the privacy note in `README` — the export carries ids, display names, status
+and the demo flag, not embeddings or chunk payloads. `Chunk.text` is therefore
+*not* in the export even though chunks are; the JSON's `meta.note` says what
+`demoSeed="true"` means (`export.service.ts:99-109`). Edges whose endpoint
+missed the 5000-node page are dropped in JS
+(`export.service.ts:81-84`) so a GraphML file is always internally consistent
+(`yEd`/GraphML rejects an edge pointing at a missing node id).
+
+Serialisation is not Cypher but is where the one real bug in this track was:
+GraphML needs *two* different transforms — ids must be single XML tokens, text
+must be escaped — and a single helper doing both silently mangled any name
+containing `<`, `&` or a quote. Hence `xmlText()` and `xmlId()`
+(`export.service.ts:47-61`), with the regression test that names a node
+`A <b> & "c"` and asserts the entity-escaped form comes back
+(`server/tests/insights-v4.test.ts`, export group).
+
+---

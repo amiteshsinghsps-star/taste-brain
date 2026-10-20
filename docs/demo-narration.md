@@ -115,12 +115,42 @@ product" — but it's the strongest honesty beat, keep it if time allows.)*
 > Memory here isn't a shared vector store every agent reads — it's typed and
 > scoped, agent-private or tenant-shared, and it lives in the same graph.
 
+## Scene 7 — the graph answers what a vector store can't (~50 s)
+
+> Now the things an embedding index structurally cannot answer. **Graph
+> Insights** — "how is *Maya Rao* connected to *Operations*?" — one hop, and it
+> shows me the actual chain: person → member-of → team. Ask about two things that
+> *aren't* linked and it doesn't hand me an empty list either: it says no path
+> within five hops **in either direction**, and gives each endpoint's edge count,
+> because there are some. One caveat I'll say plainly: FalkorDB's `shortestPath`
+> is **directed**, so this is the real shape of the data, not a symmetric lookup.
+>
+> Version history: after that Apply, the credit rule has **three versions**, and
+> this panel diffs the parameters for me — `maxCreditLimit 5000 → 10,000`, then
+> `10,000 → 5,000` — each new one tied to the simulation that produced it.
+> Nothing was deleted to make the change. *(If time is short, cut the versions,
+> timeline and handoff board here and keep the next two.)*
+>
+> And this is the loop I like: I give Scene 2's answer a **thumbs down**. That
+> rating isn't a counter in a table — it's a **`Feedback` node linked `ABOUT` the
+> exact chunk the answer cited**. Refresh **Knowledge Health**: **67 dropped to
+> 63**, with one finding naming that chunk. Thumbs it back up and the finding
+> disappears. Humans curating the sources, in the graph.
+>
+> Last one, because it's a *write* that changes what the engine does: I add
+> "Globex Restricted" to my own screening list, and it previews which stored
+> bookings would match before I save it. Save → run that shipper through the
+> Freight Desk → **FLAGGED**. Delete my entry → **PASSED** again. The seeded demo
+> entries refuse deletion — I can't break the demo company's history. And every
+> one of these screens is the same graph: I can export it as JSON, GraphML or CSV
+> and the counts match what the explorer drew.
+
 ## Close (~25 s)
 
 > To be clear about what's real: no LLM key, so every answer you saw was a
 > **cited graph fact**, not generated prose; and it's all **synthetic demo
 > data**, not a sanctions feed. And it's all re-runnable. *(Terminal: `npm run
-> e2e:v3` → 26 passed, `npm run test:ci` → 17 passed, 0 failed, 0 skipped.)* The
+> e2e:v3` → 42 passed, `npm run test:ci` → 35 passed, 0 failed, 0 skipped.)* The
 > graph tests **refuse to skip** when FalkorDB is down, so a green run means the
 > graph really served every one. That's Neutronz — a company brain where every
 > answer traces back to the SOP, the decision, and the person behind it.
@@ -129,12 +159,17 @@ product" — but it's the strongest honesty beat, keep it if time allows.)*
 
 ## Timings
 
-- **Full:** Scenes cold-open→6→close ≈ **5–6 min**. If you must land ~3–4 min,
+- **Full:** Scenes cold-open→7→close ≈ **6–7 min**. If you must land ~3–4 min,
   keep Cold open (compress to 15 s), Scene 2 (trace + absence), **Scene 4 (Time
-  Machine — the hero, never cut)**, and the Close with the two test runs. Drop or
-  merge Scenes 1/3/5/6 into quick cuts.
+  Machine — the hero, never cut)**, two beats of Scene 7 (connection path + the
+  👎→Knowledge-Health loop, and the watchlist flip if there is room), and the Close
+  with the two test runs. Drop or merge Scenes 1/3/5/6 into quick cuts.
 - Keep the Browser UI on screen for Scenes 1 and 4; keep the terminal in shot for
   the removal test (cold open) and the final test runs (close).
+- If you cut the rest of Scene 7, the version-diff, timeline, handoff board,
+  node-explain and digest are still **built, endpoint-tested and asserted in
+  `server/tests/insights-v4.test.ts`** — say "in the repo, not in this video"
+  rather than implying you showed them.
 
 ## Say-it-out-loud honesty list (check off in the recording)
 
@@ -144,6 +179,11 @@ product" — but it's the strongest honesty beat, keep it if time allows.)*
 - [ ] "Stopping the graph makes it fail loudly — 503, no silent fallback."
 - [ ] "Apply versions the rule; it never deletes history."
 - [ ] "Each account gets its own isolated graph; a second tenant recalls zero."
+- [ ] "The path finder is directed-only (`shortestPath` in FalkorDB), and the UI
+  says which direction it found."
+- [ ] "A 👍/👎 is a `Feedback` node about the cited chunk, not a counter table."
+- [ ] "My own screening entry changes the next verdict; seeded demo entries
+  refuse deletion."
 - [ ] Commit history is **consolidated from a working copy on Oct 18** — do not
   narrate the commit list as if it were a build timeline.
 
@@ -156,10 +196,16 @@ product" — but it's the strongest honesty beat, keep it if time allows.)*
   a flag; the graph holds only synthetic seed + your uploads.
 - Not "graph algorithms like PageRank" — there are none; centrality is degree
   counting in Cypher, paths use `shortestPath()`.
+- Not "any-direction connectivity" — `shortestPath` here is directed; the digest
+  counts are per-kind caps, not a full history scan.
+- Not "the UI was click-tested by a human" — the panels are endpoint-verified over
+  HTTP and the production build is clean; nobody clicked them in a browser before
+  recording. Say what you are *doing* on screen, not what was tested.
 
 ## Caption / SRT note
 
 Burn subtitles with `ffmpeg -vf subtitles=narration.srt`. Keep the measured
-on-screen numbers (135 nodes / 156 edges, 31 verdicts / 5 change / 100% fidelity,
-67/100) in sync with whatever the live run actually prints — if the graph total
-moved because you seeded more tenants, narrate the on-screen number.
+on-screen numbers (133 nodes / 150 edges freshly seeded, 31 verdicts / 5 change /
+100% fidelity, 67 → 63 health on a thumbs-down, 42 e2e / 35 unit checks) in sync
+with whatever the live run actually prints — if the graph total moved because you
+seeded more tenants, narrate the on-screen number.
