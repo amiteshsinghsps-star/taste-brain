@@ -4,8 +4,9 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Chips, Empty, ModeBadge, Note, Panel, pct } from '@/components/common';
-import { NEEDS_RUN, useApp } from '@/lib/state';
+import { Chips, Empty, ModeBadge, Note, Panel } from '@/components/common';
+import { pct } from '@/lib/format';
+import { NEEDS_RUN, useApp } from '@/lib/app-context';
 import { api } from '@/lib/api';
 import type { AblationResult } from '@/lib/types';
 
@@ -18,10 +19,10 @@ export default function AblationScreen() {
   const id = proposal?.proposal_id ?? '';
   const load = () => {
     if (!id) return;
-    setBusy(true); setError(null);
-    api.ablation(id).then(setData).catch((e) => setError(String(e?.message ?? e))).finally(() => setBusy(false));
+    api.ablation(id).then((r) => { setData(r); setError(null); }).catch((e) => setError(String(e?.message ?? e))).finally(() => setBusy(false));
   };
   useEffect(load, [id]);
+  const reload = () => { setBusy(true); load(); };
 
   return (
     <div className="space-y-5">
@@ -29,7 +30,7 @@ export default function AblationScreen() {
         title="Ablation Lab — how much of this list depends on Qloo"
         description="Four alternative rankings built from the same stored rows: without the room, without the taste seeds, without Qloo at all, and with Qloo's order deliberately destroyed."
         mode={data?.ablation.source_mode}
-        actions={<Button size="sm" variant="outline" onClick={load} disabled={busy || !id}>{busy ? 'Computing…' : 'Recompute'}</Button>}
+        actions={<Button size="sm" variant="outline" onClick={reload} disabled={busy || !id}>{busy ? 'Computing…' : 'Recompute'}</Button>}
       >
         {!id ? <Empty>{NEEDS_RUN}</Empty> : error ? <Note tone="bad" title="No ablation">{error}</Note> : !data ? <Empty>Computing arms from the stored run…</Empty> : (
           <>

@@ -4,48 +4,53 @@
 // verify/verifier.ts on the server, and the CLI runs that identical file.
 // No Qloo call and no external request is made by any path on this screen.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Empty, Hash, Note, Panel, StatusPill, Time } from '@/components/common';
 import { api } from '@/lib/api';
-import { useApp } from '@/lib/state';
+import { useApp } from '@/lib/app-context';
 import type { DecisionExport, VerifyReport } from '@/lib/types';
 
 export default function VerifyScreen() {
   const { proposal } = useApp();
-  const [exp, setExp] = useState<DecisionExport | null>(null);
-  const [report, setReport] = useState<VerifyReport | null>(null);
+  // One record per verification, tagged with what was verified: a run on this
+  // server, or a file chosen from disk. Switching runs retires that run's
+  // verdict without discarding a file the operator loaded themselves, which has
+  // nothing to do with whichever run is active.
+  const runId = proposal?.proposal_id ?? null;
+  const [verified, setVerified] = useState<{ subject: string; exp: DecisionExport; report: VerifyReport | null } | null>(null);
+  const shown = verified && (verified.subject.startsWith('file:') || verified.subject === `run:${runId}`) ? verified : null;
+  const exp = shown?.exp ?? null;
+  const report = shown?.report ?? null;
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const verifyCurrent = useCallback(async () => {
     if (!proposal) return;
+    const subject = `run:${proposal.proposal_id}`;
     setBusy(true); setError(null);
     try {
       const fetched = await api.exportDecision(proposal.proposal_id);
-      setExp(fetched);
       const r = await api.verifyDecision(fetched);
-      setReport(r.report);
+      setVerified({ subject, exp: fetched, report: r.report });
     } catch (e) {
-      setExp(null); setReport(null);
+      setVerified(null);
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
   }, [proposal]);
 
-  useEffect(() => { setReport(null); setExp(null); setError(null); }, [proposal?.proposal_id]);
-
   const onFile = async (file: File | undefined) => {
     if (!file) return;
+    const subject = `file:${file.name}`;
     setBusy(true); setError(null);
     try {
       const parsed = JSON.parse(await file.text()) as DecisionExport;
-      setExp(parsed);
       const r = await api.verifyDecision(parsed);
-      setReport(r.report);
+      setVerified({ subject, exp: parsed, report: r.report });
     } catch (e) {
-      setReport(null);
+      setVerified(null);
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);

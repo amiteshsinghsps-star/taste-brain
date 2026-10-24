@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Empty, ModeBadge, ModeMixLine, Note, Panel, Time } from '@/components/common';
-import { NEEDS_RUN, useApp } from '@/lib/state';
+import { NEEDS_RUN, useApp } from '@/lib/app-context';
 import type { TraceStep } from '@/lib/types';
 
 const DOT: Record<string, string> = {

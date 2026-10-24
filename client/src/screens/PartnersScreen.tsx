@@ -2,29 +2,33 @@
 // and places instead of artists. This is audience overlap only — it is not
 // evidence that any company has agreed to anything.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Chips, Empty, FetchedAt, ModeBadge, Note, Panel, num } from '@/components/common';
-import { NEEDS_RUN, useApp } from '@/lib/state';
+import { Chips, Empty, FetchedAt, ModeBadge, Note, Panel } from '@/components/common';
+import { num } from '@/lib/format';
+import { NEEDS_RUN, useApp } from '@/lib/app-context';
 import { api } from '@/lib/api';
 import type { PartnerResult, TasteMode } from '@/lib/types';
 
 export default function PartnersScreen() {
   const { proposal, mode } = useApp();
-  const [data, setData] = useState<{ partners: PartnerResult; mode: TasteMode; degrade_reason?: string | null } | null>(null);
+  // Answered against the run it was asked for, so changing runs retires the
+  // answer without an effect that clears state after the render.
+  const [asked, setAsked] = useState<{ id: string; result: { partners: PartnerResult; mode: TasteMode; degrade_reason?: string | null } } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const data = asked && asked.id === proposal?.proposal_id ? asked.result : null;
 
   const ask = () => {
     if (!proposal) return;
     setBusy(true); setError(null);
-    api.partners({ pack: proposal.pack, location: proposal.location, proposal_id: proposal.proposal_id, mode })
-      .then(setData)
+    const id = proposal.proposal_id;
+    api.partners({ pack: proposal.pack, location: proposal.location, proposal_id: id, mode })
+      .then((r) => setAsked({ id, result: { partners: r.partners, mode: r.mode, degrade_reason: r.degrade_reason } }))
       .catch((e) => setError(String(e?.message ?? e)))
       .finally(() => setBusy(false));
   };
-
-  useEffect(() => { setData(null); }, [proposal?.proposal_id]);
 
   const rows = data?.partners.rows ?? [];
 

@@ -5,9 +5,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Empty, ModeBadge, Note, Panel, Time, num } from '@/components/common';
+import { Empty, ModeBadge, Note, Panel, Time } from '@/components/common';
+import { num } from '@/lib/format';
 import { api } from '@/lib/api';
-import { useApp } from '@/lib/state';
+import { useApp } from '@/lib/app-context';
 import type { SnapshotRow, TasteMode } from '@/lib/types';
 
 function count(n: number | null | undefined): string {
@@ -22,15 +23,15 @@ export default function FinalsScreen() {
   const [served, setServed] = useState<string | null>(null);
 
   const load = useCallback(() => {
-    setLoading(true);
-    setError(null);
     api.snapshots()
-      .then((r) => setRows(r.snapshots))
+      .then((r) => { setRows(r.snapshots); setError(null); })
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
   }, [setError]);
 
   useEffect(() => { load(); }, [load]);
+
+  const reload = () => { setLoading(true); load(); };
 
   const serve = useCallback(async (row: SnapshotRow) => {
     setServingId(row.proposal_id); setServed(null); setError(null);
@@ -72,7 +73,7 @@ export default function FinalsScreen() {
       <Panel
         title="Stored runs"
         description="Runs captured on this server. Serving one makes it the active proposal without touching the network."
-        actions={<Button size="sm" variant="outline" onClick={load} disabled={loading}>{loading ? 'Loading…' : 'Reload'}</Button>}
+        actions={<Button size="sm" variant="outline" onClick={reload} disabled={loading}>{loading ? 'Loading…' : 'Reload'}</Button>}
       >
         {loading && <p className="text-sm text-slate-500">Loading the stored runs…</p>}
 

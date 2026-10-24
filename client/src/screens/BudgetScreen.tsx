@@ -33,8 +33,9 @@ export default function BudgetScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const load = () => {
-    setError(null);
-    api.health().then(setHealth).catch((e) => setError(String(e)));
+    // No state is written before the awaits: an effect that reset these first
+    // would render the panel twice on every mount.
+    api.health().then((r) => { setHealth(r); setError(null); }).catch((e) => setError(String(e)));
     api.restLog().then((r) => setRest(r.log)).catch((e) => setError(String(e)));
     api.qlooLog().then((r) => setQloo(r.log)).catch((e) => setError(String(e)));
   };

@@ -1,52 +1,11 @@
 // Shared app state. One run at a time, kept in memory, so every screen describes
-// the same proposal and no screen can quietly disagree with another.
+// the same proposal and no screen can quietly disagree with another. The types,
+// the context object and the reader hook are in ./app-context.
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { api } from './api';
+import { AppCtx, type AppState, type RunOptions } from './app-context';
 import type { ModeInfo, PackLocation, PackSummary, Proposal, TasteMode } from './types';
-
-export interface RunOptions {
-  mode?: TasteMode;
-  goal?: string;
-  recent_plays?: string[];
-  rule_overrides?: Record<string, number>;
-  offer_terms?: Record<string, Record<string, number>>;
-  chosen_seeds?: Record<string, string>;
-  snapshot_id?: string;
-}
-
-interface AppState {
-  modeInfo: ModeInfo | null;
-  packs: PackSummary[];
-  pack: string;
-  setPack: (p: string) => void;
-  locations: PackLocation[];
-  location: string;
-  setLocation: (l: string) => void;
-  currentPack: PackSummary | undefined;
-  currentLocation: PackLocation | undefined;
-  goal: string;
-  setGoal: (g: string) => void;
-  mode: TasteMode;
-  setMode: (m: TasteMode) => void;
-  approver: string;
-  setApprover: (a: string) => void;
-  recentPlays: string[];
-  setRecentPlays: (r: string[]) => void;
-  proposal: Proposal | null;
-  setProposal: (p: Proposal | null) => void;
-  /** Make an existing run the active one, moving the pack and room selectors with it. */
-  adoptRun: (p: Proposal) => void;
-  /** How the active run got here: re-served from a snapshot, or restored after a reload. */
-  servedFrom: 'snapshot' | 'restored' | null;
-  busy: boolean;
-  error: string | null;
-  setError: (e: string | null) => void;
-  run: (opts?: RunOptions) => Promise<Proposal | null>;
-  decide: (outcome: 'approved' | 'rejected', entity_ids?: string[], terms?: Record<string, Record<string, number>>) => Promise<string | null>;
-}
-
-const Ctx = createContext<AppState | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [modeInfo, setModeInfo] = useState<ModeInfo | null>(null);
@@ -74,6 +33,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // its own room, and the selectors follow it instead of fighting it.
   const adopt = useRef<{ pack: string; location: string } | null>(null);
 
+  // restoreRoom runs from a callback whose closure predates the fetch it is
+  // reacting to, so it reads the freshly loaded rooms through a ref rather than
+  // taking locations as a dependency — that would re-create the callback on every
+  // pack load and re-trigger the effect that calls it.
+  const locationsRef = useRef<PackLocation[]>([]);
+
   // A browser reload wipes the in-memory run, but the server still holds it. The
   // room selector moves to the newest stored run's room and the effect below
   // re-serves that room's run — one path, so the two cannot race.
@@ -81,7 +46,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     api.latestProposal({ pack: packId })
       .then((r) => {
         const stored = r.proposal;
-        if (stored && stored.pack === packId) setLocation(stored.location);
+        if (stored && stored.pack === packId) {
+          setLocation(stored.location);
+          setRecentPlays(locationsRef.current.find((l) => l.id === stored.location)?.recent_plays ?? []);
+        }
       })
       .catch(() => {});
   }, []);
@@ -90,6 +58,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!pack) return;
     const keep = adopt.current && adopt.current.pack === pack ? adopt.current : null;
     api.locations(pack).then((r) => {
+      locationsRef.current = r.locations;
       setLocations(r.locations);
       const wanted = keep && r.locations.some((l) => l.id === keep.location) ? keep.location : (r.locations[0]?.id ?? '');
       setLocation(wanted);
@@ -122,10 +91,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => { cancelled = true; };
   }, [pack, location, busy, proposal]);
 
-  useEffect(() => {
-    const loc = locations.find((l) => l.id === location);
-    if (loc) setRecentPlays(loc.recent_plays ?? []);
-  }, [location, locations]);
+  // A room and its recent plays move together. Doing it here, in the setter, is
+  // what replaces the effect that used to re-sync one after the other changed.
+  const selectLocation = useCallback((id: string) => {
+    setLocation(id);
+    setRecentPlays(locations.find((l) => l.id === id)?.recent_plays ?? []);
+  }, [locations]);
 
   const run = useCallback(async (opts: RunOptions = {}) => {
     if (!pack || !location || !goal) { setError('pick a pack, a room and a goal first'); return null; }
@@ -142,8 +113,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setProposal(r.proposal);
       setServedFrom(r.served_from ?? null);
       return r.proposal;
-    } catch (e: any) {
-      setError(e?.message ? String(e.message) : String(e));
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : String(e));
       return null;
     } finally { setBusy(false); }
   }, [pack, location, goal, mode, recentPlays]);
@@ -159,8 +130,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const r = await api.decide(proposal.proposal_id, { outcome, approver: approver.trim(), entity_ids, terms });
       setProposal(r.proposal);
       return null;
-    } catch (e: any) {
-      return e?.message ? String(e.message) : String(e);
+    } catch (e) {
+      return e instanceof Error && e.message ? e.message : String(e);
     }
   }, [proposal, approver]);
 
@@ -169,31 +140,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setProposal(p);
     setServedFrom('snapshot');
     if (p.pack === pack) {
-      setLocation(p.location);
-      setRecentPlays(locations.find((l) => l.id === p.location)?.recent_plays ?? []);
+      selectLocation(p.location);
     } else {
       adopt.current = { pack: p.pack, location: p.location };
       setLocation('');
       setPack(p.pack);
     }
-  }, [pack, locations]);
+  }, [pack, selectLocation]);
 
   const value = useMemo<AppState>(() => ({
-    modeInfo, packs, pack, setPack, locations, location, setLocation,
+    modeInfo, packs, pack, setPack, locations, location, setLocation: selectLocation,
     currentPack: packs.find((p) => p.pack === pack),
     currentLocation: locations.find((l) => l.id === location),
     goal, setGoal, mode, setMode, approver, setApprover,
     recentPlays, setRecentPlays,
     proposal, setProposal, adoptRun, servedFrom, busy, error, setError, run, decide,
-  }), [modeInfo, packs, pack, locations, location, goal, mode, approver, recentPlays, proposal, servedFrom, busy, error, run, decide, adoptRun]);
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  }), [modeInfo, packs, pack, locations, location, selectLocation, goal, mode, approver, recentPlays, proposal, servedFrom, busy, error, run, decide, adoptRun]);
+  return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;
 }
-
-export function useApp(): AppState {
-  const v = useContext(Ctx);
-  if (!v) throw new Error('useApp must be used inside AppProvider');
-  return v;
-}
-
-/** Screens that only make sense once a run exists say so instead of showing zeros. */
-export const NEEDS_RUN = 'No run yet. Plan a proposal first — every figure on this screen is computed from a stored run, and none of it is invented here.';

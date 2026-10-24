@@ -20,15 +20,17 @@ export default function TrustScreen() {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
-    setBusy(true);
-    setError(null);
     api.trust()
-      .then((r) => setReport(r.report))
+      .then((r) => { setReport(r.report); setError(null); })
       .catch((e) => setError(String(e)))
       .finally(() => setBusy(false));
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // The busy flag is set by the click, not by the effect: on mount there is
+  // nothing to wait for yet, and setting it there re-renders the panel twice.
+  const reload = () => { setBusy(true); load(); };
 
   return (
     <div className="space-y-5">
@@ -38,7 +40,7 @@ export default function TrustScreen() {
         <Panel
           title="Trust Center (F47)"
           description={<span className="flex items-center gap-2">Report generated at <Time iso={report.generated_at} /></span>}
-          actions={<Button size="sm" variant="outline" onClick={load} disabled={busy}>{busy ? 'Reloading…' : 'Reload'}</Button>}
+          actions={<Button size="sm" variant="outline" onClick={reload} disabled={busy}>{busy ? 'Reloading…' : 'Reload'}</Button>}
         >
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <span className="rounded bg-emerald-50 px-2 py-1 text-emerald-800">pass · {report.passed}</span>

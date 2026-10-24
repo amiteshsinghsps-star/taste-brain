@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Empty, Note, Panel } from '@/components/common';
-import { NEEDS_RUN, useApp } from '@/lib/state';
+import { NEEDS_RUN, useApp } from '@/lib/app-context';
 import { api } from '@/lib/api';
 import type { WhyNotAnswer } from '@/lib/types';
 
@@ -37,7 +37,7 @@ export default function WhyNotScreen() {
       const r = await api.whyNot({ pack: proposal.pack, location: proposal.location, query: query.trim(), proposal_id: proposal.proposal_id, check_entity: checkEntity });
       setAnswer(r.answer);
       setLiveState({ used: r.live_check_used, declined: r.live_check_declined === true });
-    } catch (e: any) { setError(String(e?.message ?? e)); }
+    } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
     finally { setBusy(false); }
   };
 

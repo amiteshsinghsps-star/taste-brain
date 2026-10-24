@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Empty, ModeBadge, Note, Panel } from '@/components/common';
-import { NEEDS_RUN, useApp } from '@/lib/state';
+import { NEEDS_RUN, useApp } from '@/lib/app-context';
 import { api } from '@/lib/api';
 import type { WhatIfResult } from '@/lib/types';
 
@@ -49,7 +49,7 @@ export default function WhatIfScreen() {
         band,
       });
       setResult(r.whatif);
-    } catch (e: any) { setError(String(e?.message ?? e)); setResult(null); }
+    } catch (e) { setError(e instanceof Error ? e.message : String(e)); setResult(null); }
     finally { setBusy(false); }
   };
 

@@ -2,27 +2,33 @@
 // the server's own text — this screen lays it out, adds a mode stamp and a
 // download, and never summarises it into a new number.
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Empty, ModeBadge, Note, Panel, Time } from '@/components/common';
-import { NEEDS_RUN, useApp } from '@/lib/state';
+import { NEEDS_RUN, useApp } from '@/lib/app-context';
 import { api } from '@/lib/api';
 import type { ApprovalBrief } from '@/lib/types';
 
 export default function BriefScreen() {
   const { proposal, approver, setApprover } = useApp();
-  const [brief, setBrief] = useState<ApprovalBrief | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // The brief is stored against the run it was written for, so switching runs
+  // retires it without an effect that resets state after the fact.
+  const [written, setWritten] = useState<{ id: string; brief: ApprovalBrief } | null>(null);
 
   const id = proposal?.proposal_id ?? '';
+  const brief = written && written.id === id ? written.brief : null;
+
   const load = () => {
     if (!id) return;
     setBusy(true); setError(null);
-    api.brief(id, approver.trim() || 'the approver on file').then((r) => setBrief(r.brief)).catch((e) => setError(String(e?.message ?? e))).finally(() => setBusy(false));
+    api.brief(id, approver.trim() || 'the approver on file')
+      .then((r) => { setWritten({ id, brief: r.brief }); setError(null); })
+      .catch((e) => setError(String(e?.message ?? e)))
+      .finally(() => setBusy(false));
   };
-  useEffect(load, [id]);
 
   const download = () => {
     if (!brief) return;

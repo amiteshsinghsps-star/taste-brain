@@ -4,7 +4,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Chips, Empty, KV, ModeBadge, Note, Panel, Time, num, pct } from '@/components/common';
+import { Chips, Empty, KV, ModeBadge, Note, Panel, Time } from '@/components/common';
+import { num, pct } from '@/lib/format';
 import { api } from '@/lib/api';
 import type { ArmMetrics, TasteLiftResult } from '@/lib/types';
 

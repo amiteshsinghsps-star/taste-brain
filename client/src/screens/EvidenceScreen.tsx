@@ -2,8 +2,9 @@
 // claim rests on, where it came from, when it was fetched, and which part is
 // ours rather than Qloo's.
 
-import { Chips, Empty, FetchedAt, KV, ModeBadge, Note, Panel, StatusPill, num } from '@/components/common';
-import { NEEDS_RUN, useApp } from '@/lib/state';
+import { Chips, Empty, FetchedAt, KV, ModeBadge, Note, Panel, StatusPill } from '@/components/common';
+import { num } from '@/lib/format';
+import { NEEDS_RUN, useApp } from '@/lib/app-context';
 import type { ProposalItem } from '@/lib/types';
 
 export default function EvidenceScreen() {

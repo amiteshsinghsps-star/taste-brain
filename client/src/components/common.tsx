@@ -129,16 +129,7 @@ export function Chips({ items, title }: { items: string[]; title?: string }) {
   );
 }
 
-/** Display formatting only — the value itself always comes from the API. */
-export function num(n: number | undefined | null, digits = 3): string {
-  if (n === undefined || n === null || !Number.isFinite(n)) return 'not returned';
-  return Number.isInteger(n) ? n.toLocaleString('en-US') : n.toFixed(digits);
-}
-
-export function pct(x: number | null | undefined): string {
-  return x === null || x === undefined || !Number.isFinite(x) ? '—' : `${Math.round(x * 100)}%`;
-}
-
+/** A hash, shortened for reading. The full value stays in the title attribute. */
 export function Hash({ value }: { value: string }) {
   return <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-700" title={value}>{value.slice(0, 16)}…</code>;
 }

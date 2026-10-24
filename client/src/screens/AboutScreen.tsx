@@ -2,7 +2,7 @@
 // not make. Read alongside /api/trust and /api/coverage, which are the evidence.
 
 import { ModeBadge, Note, Panel } from '@/components/common';
-import { useApp } from '@/lib/state';
+import { useApp } from '@/lib/app-context';
 
 export default function AboutScreen() {
   const { packs, modeInfo } = useApp();

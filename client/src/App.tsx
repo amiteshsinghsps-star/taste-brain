@@ -4,7 +4,8 @@
 
 import { Component, useEffect, useState, type FC, type ReactNode } from 'react';
 import { ModeBadge, ModeMixLine } from '@/components/common';
-import { AppProvider, useApp } from '@/lib/state';
+import { AppProvider } from '@/lib/state';
+import { useApp } from '@/lib/app-context';
 import type { TasteMode } from '@/lib/types';
 import PlanScreen from '@/screens/PlanScreen';
 import EvidenceScreen from '@/screens/EvidenceScreen';

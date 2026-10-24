@@ -5,8 +5,9 @@
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Chips, Empty, FetchedAt, KV, ModeBadge, ModeMixLine, Note, Panel, StatusPill, num } from '@/components/common';
-import { useApp } from '@/lib/state';
+import { Chips, Empty, FetchedAt, KV, ModeBadge, ModeMixLine, Note, Panel, StatusPill } from '@/components/common';
+import { num } from '@/lib/format';
+import { useApp } from '@/lib/app-context';
 import type { NeedsTerm, ProposalItem } from '@/lib/types';
 
 export default function PlanScreen() {

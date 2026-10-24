@@ -36,15 +36,17 @@ export default function LedgerScreen() {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
-    setBusy(true);
-    setError(null);
     Promise.all([api.ledger(), api.verify()])
-      .then(([l, v]) => { setEntries(l.entries); setVerify(v); })
+      .then(([l, v]) => { setEntries(l.entries); setVerify(v); setError(null); })
       .catch((e) => setError(String(e)))
       .finally(() => setBusy(false));
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Set by the click rather than by the effect — on mount the panel has nothing
+  // to wait for, and writing the flag there costs a second render.
+  const reload = () => { setBusy(true); load(); };
 
   return (
     <div className="space-y-5">
@@ -53,7 +55,7 @@ export default function LedgerScreen() {
       <Panel
         title="Decision ledger (F15)"
         description="Every proposal, decision, term and rule change is written here once, chained by hash to the entry before it."
-        actions={<Button size="sm" variant="outline" onClick={load} disabled={busy}>{busy ? 'Reloading…' : 'Reload'}</Button>}
+        actions={<Button size="sm" variant="outline" onClick={reload} disabled={busy}>{busy ? 'Reloading…' : 'Reload'}</Button>}
       >
         {verify && (
           verify.ok

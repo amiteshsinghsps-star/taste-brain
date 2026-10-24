@@ -21,8 +21,7 @@ export default function CoverageScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const load = () => {
-    setError(null);
-    api.coverage().then((r) => setBoard(r.board)).catch((e) => setError(String(e)));
+    api.coverage().then((r) => { setBoard(r.board); setError(null); }).catch((e) => setError(String(e)));
   };
   useEffect(() => { load(); }, []);
 
