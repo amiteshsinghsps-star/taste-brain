@@ -15,6 +15,14 @@ coverage/
 .env.*
 !.env.example
 
+# private cache & local databases (never commit real Qloo data)
+server/.private-cache/
+.private-cache/
+*.sqlite
+*.sqlite-journal
+*.db
+*.db-journal
+
 # logs and local test artifacts
 *.log
 npm-debug.log*

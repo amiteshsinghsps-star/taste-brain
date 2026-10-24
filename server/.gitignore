@@ -13,12 +13,18 @@ build/
 .env.production.local
 *.env
 
-# Prisma Database / SQLite / Logs
+# SQLite / Logs / Private cache
 *.db
 *.db-journal
+*.sqlite
+*.sqlite-journal
 dev.db
 dev.db-journal
 *.log
+.private-cache/
+.private-cache/*
+.private-cache-test/
+.private-cache-test/*
 
 # OS Junk
 .DS_Store
