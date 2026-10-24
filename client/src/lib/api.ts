@@ -1,222 +1,93 @@
-const API_BASE = '/api';
+// Thin typed client for the Taste Brain API. Every screen reads the engine's
+// own words from here — the UI adds no numbers, no labels of its own invention
+// and never a second ranking.
 
-let accessToken: string | null = null;
-let onUnauthenticatedCallback: (() => void) | null = null;
+import type {
+  AblationResult, ApprovalBrief, CapabilityRow, CoverageBoard, DecisionTrace,
+  HealthInfo, LedgerEntry, ModeInfo, PackLocation, PackSummary, PartnerResult, Proposal,
+  RestCallLogEntry, SnapshotRow, TasteMode, TasteLiftResult, TrustReport, WhatIfResult,
+  WhyNotAnswer, QlooCallLogEntry,
+} from './types';
 
-export function setAccessToken(token: string | null) {
-  accessToken = token;
-  if (token) {
-    try { localStorage.setItem('accessToken', token); } catch {}
-  } else {
-    try { localStorage.removeItem('accessToken'); } catch {}
-  }
-}
+export type { TasteMode, Proposal } from './types';
 
-export function getAccessToken(): string | null {
-  if (!accessToken) {
-    try { accessToken = localStorage.getItem('accessToken'); } catch {}
-  }
-  return accessToken;
-}
+const BASE = '';
 
-export function setOnUnauthenticated(cb: () => void) {
-  onUnauthenticatedCallback = cb;
-}
-
-export async function fetchApi<T>(endpoint: string, options: RequestInit = {}, isRetry = false): Promise<T> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...((options.headers as Record<string, string>) || {}),
-  };
-
-  const activeToken = getAccessToken();
-  if (activeToken) {
-    headers['Authorization'] = `Bearer ${activeToken}`;
-  }
-
-  const res = await fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers,
-    credentials: 'include',
-  });
-
-  // Handle 401 Unauthorized -> Attempt token refresh via HTTP-only refreshToken cookie
-  if (res.status === 401 && !isRetry && endpoint !== '/auth/login' && endpoint !== '/auth/register' && endpoint !== '/auth/refresh') {
-    try {
-      const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-
-      if (refreshRes.ok) {
-        const refreshData = await refreshRes.json();
-        if (refreshData.accessToken) {
-          setAccessToken(refreshData.accessToken);
-          return fetchApi<T>(endpoint, options, true); // Retry original API call with new token
-        }
-      }
-    } catch (e) {
-      console.warn('Token refresh failed:', e);
-    }
-
-    // If refresh fails or token invalid -> clear credentials and trigger logout
-    setAccessToken(null);
-    if (onUnauthenticatedCallback) {
-      onUnauthenticatedCallback();
-    }
-    throw new Error('Session expired. Please log in again.');
-  }
-
-  const data = await res.json();
+async function j<T>(res: Response): Promise<T> {
   if (!res.ok) {
-    throw new Error(data.message || 'API request failed');
+    let msg = `${res.status}`;
+    try { const b = await res.json(); if (b?.message) msg = String(b.message); } catch { /* not JSON */ }
+    throw new Error(msg);
   }
+  return res.json() as Promise<T>;
+}
 
-  return data as T;
+const post = (p: string, body: unknown) =>
+  fetch(`${BASE}${p}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+
+export interface RunInput {
+  pack: string; location: string; goal: string; mode?: TasteMode;
+  chosen_seeds?: Record<string, string>;
+  offer_terms?: Record<string, Record<string, number>>;
+  recent_plays?: string[];
+  rule_overrides?: Record<string, number>;
+  snapshot_id?: string;
 }
 
 export const api = {
-  // Auth & Session Steer
-  setOnUnauthenticated: (cb: () => void) => setOnUnauthenticated(cb),
-  register: async (body: any) => {
-    const res = await fetchApi<{ user: any; accessToken: string }>('/auth/register', { method: 'POST', body: JSON.stringify(body) });
-    if (res.accessToken) setAccessToken(res.accessToken);
-    return res;
+  mode: () => fetch(`${BASE}/api/mode`).then((r) => j<ModeInfo>(r)),
+  health: () => fetch(`${BASE}/api/health`).then((r) => j<HealthInfo>(r)),
+
+  packs: () => fetch(`${BASE}/api/packs`).then((r) => j<{ success: boolean; packs: PackSummary[] }>(r)),
+  locations: (pack: string) =>
+    fetch(`${BASE}/api/packs/${encodeURIComponent(pack)}/locations`).then((r) => j<{ success: boolean; locations: PackLocation[] }>(r)),
+  location: (pack: string, loc: string) =>
+    fetch(`${BASE}/api/packs/${encodeURIComponent(pack)}/locations/${encodeURIComponent(loc)}`)
+      .then((r) => j<{ success: boolean; location: PackLocation; catalog_size: number }>(r)),
+
+  createProposal: (body: RunInput) => post('/api/proposals', body).then((r) => j<{ success: boolean; proposal: Proposal; served_from?: 'snapshot' }>(r)),
+  proposal: (id: string) => fetch(`${BASE}/api/proposals/${encodeURIComponent(id)}`).then((r) => j<{ success: boolean; proposal: Proposal }>(r)),
+  latestProposal: (room?: { pack?: string; location?: string }) => {
+    const q = new URLSearchParams();
+    if (room?.pack) q.set('pack', room.pack);
+    if (room?.location) q.set('location', room.location);
+    const qs = q.toString();
+    return fetch(`${BASE}/api/proposals/latest${qs ? `?${qs}` : ''}`).then((r) => j<{ success: boolean; proposal: Proposal | null }>(r));
   },
-  login: async (body: any) => {
-    const res = await fetchApi<{ user: any; accessToken: string }>('/auth/login', { method: 'POST', body: JSON.stringify(body) });
-    if (res.accessToken) setAccessToken(res.accessToken);
-    return res;
-  },
-  me: async () => {
-    const res = await fetchApi<{ user: any }>('/auth/me');
-    return res;
-  },
-  logout: async () => {
-    try {
-      await fetchApi('/auth/logout', { method: 'POST' });
-    } finally {
-      setAccessToken(null);
-    }
-  },
+  trace: (id: string) => fetch(`${BASE}/api/proposals/${encodeURIComponent(id)}/trace`).then((r) => j<DecisionTrace>(r)),
 
-  // Ingestion & Connectors
-  connectorStatus: () => fetchApi('/status/connectors'),
-  graphStatus: () => fetchApi('/status/graph'),
-  listSources: () => fetchApi('/ingestion/sources'),
-  createSource: (body: any) => fetchApi('/ingestion/sources', { method: 'POST', body: JSON.stringify(body) }),
-  syncSource: (id: string) => fetchApi(`/ingestion/sources/${id}/sync`, { method: 'POST' }),
-  deleteSource: (id: string) => fetchApi(`/ingestion/sources/${id}`, { method: 'DELETE' }),
-  listDocuments: (query?: string) => fetchApi(`/ingestion/documents${query ? `?q=${encodeURIComponent(query)}` : ''}`),
-  uploadDocument: (body: { title: string; content: string }) => fetchApi('/ingestion/upload', { method: 'POST', body: JSON.stringify(body) }),
+  decide: (id: string, body: { outcome: 'approved' | 'rejected'; approver: string; entity_ids?: string[]; terms?: Record<string, Record<string, number>> }) =>
+    post(`/api/proposals/${encodeURIComponent(id)}/decision`, body).then((r) => j<{ success: boolean; proposal: Proposal }>(r)),
 
-  // Brain & Knowledge Graph (per-tenant FalkorDB)
-  queryBrain: (query: string) => fetchApi('/brain/query', { method: 'POST', body: JSON.stringify({ query }) }),
-  getGraph: () => fetchApi('/brain/graph'),
-  extractGraph: () => fetchApi('/brain/graph/extract', { method: 'POST' }),
-  seedDemo: () => fetchApi('/brain/seed-demo', { method: 'POST' }),
-  getTrace: (traceId: string) => fetchApi(`/brain/trace/${traceId}`),
-  getStale: () => fetchApi('/brain/stale'),
-  revalidateStale: (id: string) => fetchApi(`/brain/stale/${id}/revalidate`, { method: 'POST' }),
-  impactOfChange: (policyId: string) => fetchApi('/brain/impact', { method: 'POST', body: JSON.stringify({ policyId }) }),
-  whoKnows: (topic: string) => fetchApi(`/brain/who-knows?topic=${encodeURIComponent(topic)}`),
+  ablation: (id: string) =>
+    fetch(`${BASE}/api/proposals/${encodeURIComponent(id)}/ablation`).then((r) => j<{ success: boolean; ablation: AblationResult; headline: string }>(r)),
+  brief: (id: string, approver: string) =>
+    fetch(`${BASE}/api/proposals/${encodeURIComponent(id)}/brief?approver=${encodeURIComponent(approver)}`)
+      .then((r) => j<{ success: boolean; brief: ApprovalBrief }>(r)),
+  snapshots: () => fetch(`${BASE}/api/snapshots`).then((r) => j<{ success: boolean; snapshots: SnapshotRow[] }>(r)),
 
-  // Policy Time Machine, Why-Not, Ledger, Health, Compare (v3)
-  listGraphRules: () => fetchApi('/brain/rules'),
-  simulateRule: (body: { ruleId: string; candidateParams: Record<string, any> }) =>
-    fetchApi('/brain/simulate', { method: 'POST', body: JSON.stringify(body) }),
-  applySimulation: (id: string, body?: { approver?: string; approverNote?: string }) =>
-    fetchApi(`/brain/simulate/${id}/apply`, { method: 'POST', body: JSON.stringify(body || {}) }),
-  discardSimulation: (id: string) => fetchApi(`/brain/simulate/${id}/discard`, { method: 'POST' }),
-  whyNot: (booking: string) => fetchApi(`/brain/why-not?booking=${encodeURIComponent(booking)}`),
-  listLedger: (limit?: number) => fetchApi(`/ledger${limit ? `?limit=${limit}` : ''}`),
-  healthReport: () => fetchApi('/brain/health'),
-  compareAnswer: (question: string) => fetchApi('/brain/compare', { method: 'POST', body: JSON.stringify({ question }) }),
+  whyNot: (body: { pack: string; location: string; query: string; proposal_id?: string; check_entity?: boolean; recent_plays?: string[] }) =>
+    post('/api/whynot', body).then((r) => j<{ success: boolean; answer: WhyNotAnswer; live_check_used: boolean; live_check_declined?: boolean }>(r)),
+  whatIf: (body: {
+    pack: string; location: string; proposal_id?: string;
+    rule_overrides?: Record<string, number>; offer_terms?: Record<string, Record<string, number>>;
+    recent_plays?: string[]; band?: { min?: number; max?: number };
+  }) => post('/api/whatif', body).then((r) => j<{ success: boolean; whatif: WhatIfResult }>(r)),
+  partners: (body: { pack: string; location: string; proposal_id?: string; mode?: TasteMode }) =>
+    post('/api/partners', body).then((r) => j<{ success: boolean; partners: PartnerResult; mode: TasteMode; degrade_reason?: string | null }>(r)),
 
-  // Agent memory (Track 02)
-  memoryStats: () => fetchApi('/memory/stats'),
-  recallMemory: (q: string, agentId?: string) => fetchApi(`/memory/recall?q=${encodeURIComponent(q)}${agentId ? `&agentId=${agentId}` : ''}`),
-  writeEpisode: (body: { summary: string; outcome?: string; agentId?: string; shared?: boolean }) =>
-    fetchApi('/memory/episodes', { method: 'POST', body: JSON.stringify(body) }),
+  ledger: () => fetch(`${BASE}/api/ledger`).then((r) => j<{ success: boolean; entries: LedgerEntry[]; head_hash: string; length: number }>(r)),
+  verify: () => fetch(`${BASE}/api/ledger/verify`)
+    .then((r) => j<{ success: boolean; ok: boolean; length: number; head_hash: string | null; first_broken_seq: number | null; reason: string | null; note: string }>(r)),
 
-  // Graph insights (v4) — all read-only views over the tenant FalkorDB graph
-  connectionPath: (from: string, to: string, hops?: number) =>
-    fetchApi(`/brain/path?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}${hops ? `&hops=${hops}` : ''}`),
-  ruleVersions: (ruleId: string) => fetchApi(`/brain/rules/${encodeURIComponent(ruleId)}/versions`),
-  decisionTimeline: (subject: string) => fetchApi(`/brain/timeline?subject=${encodeURIComponent(subject)}`),
-  handoffBoard: () => fetchApi('/brain/handoffs'),
-  explainNode: (id: string) => fetchApi(`/brain/explain/${encodeURIComponent(id)}`),
-  freshnessDigest: (days?: number) => fetchApi(`/brain/freshness-digest${days ? `?days=${days}` : ''}`),
+  coverage: () => fetch(`${BASE}/api/coverage`).then((r) => j<{ success: boolean; board: CoverageBoard }>(r)),
+  trust: () => fetch(`${BASE}/api/trust`).then((r) => j<{ success: boolean; report: TrustReport; allowlist: Record<string, string[]> }>(r)),
 
-  // Tenant curation (v4) — feedback, own watchlist entries, pinned queries
-  recordFeedback: (body: { question: string; verdict: 'UP' | 'DOWN'; comment?: string; traceId?: string; chunkIds?: string[]; answerSnippet?: string }) =>
-    fetchApi('/brain/feedback', { method: 'POST', body: JSON.stringify(body) }),
-  listFeedback: () => fetchApi('/brain/feedback'),
-  listSavedQueries: () => fetchApi('/brain/saved-queries'),
-  saveQuery: (body: { question: string; snippet?: string; traceId?: string }) =>
-    fetchApi('/brain/saved-queries', { method: 'POST', body: JSON.stringify(body) }),
-  deleteSavedQuery: (id: string) => fetchApi(`/brain/saved-queries/${encodeURIComponent(id)}`, { method: 'DELETE' }),
-  listWatchlist: () => fetchApi('/watchlist'),
-  addWatchlistEntry: (body: { name: string; list?: string; note?: string }) => fetchApi('/watchlist', { method: 'POST', body: JSON.stringify(body) }),
-  removeWatchlistEntry: (id: string) => fetchApi(`/watchlist/${encodeURIComponent(id)}`, { method: 'DELETE' }),
-  previewWatchlist: (name: string) => fetchApi(`/watchlist/preview?name=${encodeURIComponent(name)}`),
+  evalRun: () => post('/api/eval/run', {}).then((r) => j<{ success: boolean; results: TasteLiftResult }>(r)),
+  evalResults: () => fetch(`${BASE}/api/eval/results`).then((r) => j<{ success: boolean; results: TasteLiftResult | null }>(r)),
 
-  // Skills
-  listSkills: () => fetchApi('/skills'),
-  extractSkills: () => fetchApi('/skills/extract', { method: 'POST' }),
-  createSkill: (body: any) => fetchApi('/skills/create', { method: 'POST', body: JSON.stringify(body) }),
-  updateSkill: (body: any) => fetchApi('/skills/update', { method: 'POST', body: JSON.stringify(body) }),
-  deleteSkill: (id: string) => fetchApi(`/skills/${id}`, { method: 'DELETE' }),
-  executeSkill: (body: any) => fetchApi('/skills/execute', { method: 'POST', body: JSON.stringify(body) }),
-
-  // Agents & Autopilot
-  listAgents: () => fetchApi('/agents'),
-  createAgent: (body: any) => fetchApi('/agents', { method: 'POST', body: JSON.stringify(body) }),
-  updateAgentStatus: (id: string, status: string) => fetchApi(`/agents/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
-  updateAgentMode: (id: string, mode: string) => fetchApi(`/agents/${id}/mode`, { method: 'PATCH', body: JSON.stringify({ mode }) }),
-  deleteAgent: (id: string) => fetchApi(`/agents/${id}`, { method: 'DELETE' }),
-  runFreight: (id: string, body: any) => fetchApi(`/agents/${id}/freight`, { method: 'POST', body: JSON.stringify(body) }),
-  runWorkflow: (id: string, body: any) => fetchApi(`/agents/${id}/workflow`, { method: 'POST', body: JSON.stringify(body) }),
-  listTasks: (status?: string) => fetchApi(`/agents/tasks${status ? `?status=${status}` : ''}`),
-  approveTask: (taskId: string) => fetchApi(`/agents/tasks/${taskId}/approve`, { method: 'POST' }),
-  getAuditLogs: () => fetchApi('/agents/audit'),
-
-  // Control Plane & Team
-  listTeam: () => fetchApi('/control/team'),
-  createTeamMember: (body: any) => fetchApi('/control/team', { method: 'POST', body: JSON.stringify(body) }),
-  grantScope: (body: any) => fetchApi('/control/access/grant', { method: 'POST', body: JSON.stringify(body) }),
-  revokeScope: (body: any) => fetchApi('/control/access/revoke', { method: 'POST', body: JSON.stringify(body) }),
-  deleteTeamMember: (id: string) => fetchApi(`/control/team/${id}`, { method: 'DELETE' }),
-
-  // Email Desk
-  triageEmail: (body: any) => fetchApi('/email-desk/triage', { method: 'POST', body: JSON.stringify(body) }),
-  listEmails: () => fetchApi('/email-desk/messages'),
-  approveEmail: (id: string) => fetchApi(`/email-desk/${id}/approve`, { method: 'POST' }),
+  qlooLog: () => fetch(`${BASE}/api/qloo/log`).then((r) => j<{ success: boolean; log: QlooCallLogEntry[] }>(r)),
+  restLog: () => fetch(`${BASE}/api/qloo/rest-log`).then((r) => j<{ success: boolean; log: RestCallLogEntry[] }>(r)),
 };
 
-/**
- * Graph export downloads a serialized subgraph as a file, so it cannot go
- * through fetchApi (which parses JSON). Auth is a header, hence the manual fetch.
- */
-export async function downloadGraphExport(format: 'json' | 'graphml' | 'csv' | 'nodes'): Promise<{ blob: Blob; filename: string }> {
-  const token = getAccessToken();
-  const res = await fetch(`${API_BASE}/brain/graph/export?format=${encodeURIComponent(format)}`, {
-    method: 'GET',
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    credentials: 'include',
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    let message = 'Graph export failed';
-    try {
-      message = JSON.parse(text)?.message || message;
-    } catch {
-      /* non-JSON error body */
-    }
-    throw new Error(message);
-  }
-  const disposition = res.headers.get('content-disposition') || '';
-  const filename = disposition.match(/filename="?([^";]+)"?/)?.[1] || `tenant-graph.${format === 'graphml' ? 'graphml' : format === 'nodes' ? 'csv' : format}`;
-  return { blob: await res.blob(), filename };
-}
+export type { CapabilityRow };

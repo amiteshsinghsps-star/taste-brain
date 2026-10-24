@@ -1,398 +1,153 @@
-import React, { useState, useEffect } from 'react';
-import { Header } from '@/components/layout/Header';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { OverviewPage } from '@/pages/OverviewPage';
-import { AskBrainPage } from '@/pages/AskBrainPage';
-import { ConnectorsPage } from '@/pages/ConnectorsPage';
-import { KnowledgeGraphPage } from '@/pages/KnowledgeGraphPage';
-import { InsightsPage } from '@/pages/InsightsPage';
-import { WatchlistPage } from '@/pages/WatchlistPage';
-import { NeedsReviewPage } from '@/pages/NeedsReviewPage';
-import { ExecutableSkillsPage } from '@/pages/ExecutableSkillsPage';
-import { FreightDeskPage } from '@/pages/FreightDeskPage';
-import { EmailDeskPage } from '@/pages/EmailDeskPage';
-import { AgentsPage } from '@/pages/AgentsPage';
-import { MemoryPage } from '@/pages/MemoryPage';
-import { ControlPlanePage } from '@/pages/ControlPlanePage';
-import { AuditLogsPage } from '@/pages/AuditLogsPage';
-import { TaskApprovalsPage } from '@/pages/TaskApprovalsPage';
-import { ProfilePage } from '@/pages/ProfilePage';
-import { LoginPage } from '@/pages/LoginPage';
-import { api } from '@/lib/api';
+// Taste Brain — the shell. One run in memory, twelve screens over it, and a
+// header that always tells you which mode the data came in and what is left of
+// the budget. Screens never hold state of their own beyond their inputs.
 
-export function App() {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  // True until the first /api/auth/me round-trip settles, so a reload with a
-  // valid session does not flash the login screen.
-  const [booting, setBooting] = useState(true);
+import { Component, useEffect, useState, type FC, type ReactNode } from 'react';
+import { ModeBadge, ModeMixLine } from '@/components/common';
+import { AppProvider, useApp } from '@/lib/state';
+import type { TasteMode } from '@/lib/types';
+import PlanScreen from '@/screens/PlanScreen';
+import EvidenceScreen from '@/screens/EvidenceScreen';
+import TraceScreen from '@/screens/TraceScreen';
+import WhyNotScreen from '@/screens/WhyNotScreen';
+import WhatIfScreen from '@/screens/WhatIfScreen';
+import PartnersScreen from '@/screens/PartnersScreen';
+import AblationScreen from '@/screens/AblationScreen';
+import TrustScreen from '@/screens/TrustScreen';
+import CoverageScreen from '@/screens/CoverageScreen';
+import LedgerScreen from '@/screens/LedgerScreen';
+import BudgetScreen from '@/screens/BudgetScreen';
+import FinalsScreen from '@/screens/FinalsScreen';
+import TasteLiftScreen from '@/screens/TasteLiftScreen';
+import AboutScreen from '@/screens/AboutScreen';
 
-  // User Auth State — null until /api/auth/me resolves or somebody logs in.
-  const [currentUser, setCurrentUser] = useState<any>(null);
+/**
+ * One screen's render error must not take the header, the nav and the other
+ * twelve screens down with it — and with the tab restored from the URL hash, a
+ * reload would otherwise drop straight back into the same crash.
+ */
+class ScreenBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null };
 
-  // Core Data States
-  const [sources, setSources] = useState<any[]>([]);
-  const [skills, setSkills] = useState<any[]>([]);
-  const [agents, setAgents] = useState<any[]>([]);
-  const [team, setTeam] = useState<any[]>([]);
-  const [emails, setEmails] = useState<any[]>([]);
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
-  const [graphData, setGraphData] = useState<any>({ nodes: [], links: [] });
+  static getDerivedStateFromError(error: Error) { return { error }; }
 
-  // Brain Search State
-  const [searchQuery, setSearchQuery] = useState('');
-  const [brainResult, setBrainResult] = useState<any>(null);
-
-  // Modals & Active Selections
-  const [editingSkill, setEditingSkill] = useState<any>(null);
-  const [freightForm, setFreightForm] = useState({
-    bookingNumber: '',
-    shipper: '',
-    consignee: '',
-    origin: '',
-    destination: '',
-    hsCode: '',
-  });
-  // Graph explorer → path finder hand-off: two entity names picked from an edge.
-  const [pathPair, setPathPair] = useState<{ from: string; to: string }>({ from: '', to: '' });
-
-  const [freightResult, setFreightResult] = useState<any>(null);
-
-  useEffect(() => {
-    api.setOnUnauthenticated(() => {
-      setCurrentUser(null);
-      setActiveTab('login');
-    });
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const isOAuthSuccess =
-      urlParams.get('status') === 'success' ||
-      urlParams.has('connected_account_id') ||
-      urlParams.get('tab') === 'sources' ||
-      window.location.pathname.includes('/connectors');
-
-    if (isOAuthSuccess) {
-      setActiveTab('sources');
-    }
-
-    // Check existing auth session via HTTP-only refresh cookie / access token
-    api
-      .me()
-      .then((res: any) => {
-        if (res.user) {
-          setCurrentUser(res.user);
-          loadAllData();
-          if (isOAuthSuccess) {
-            window.history.replaceState({}, document.title, window.location.pathname);
-          }
-        } else {
-          setActiveTab('login');
-        }
-      })
-      .catch(() => {
-        // No session: show the login screen. There is deliberately no
-        // auto-login with a hard-coded account — a credential baked into the
-        // bundle is readable by anyone who views source.
-        setCurrentUser(null);
-        setActiveTab('login');
-      })
-      .finally(() => setBooting(false));
-  }, []);
-
-  const loadAllData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const [sourcesRes, skillsRes, agentsRes, teamRes, emailsRes, auditRes, graphRes] = await Promise.allSettled([
-        api.listSources(),
-        api.listSkills(),
-        api.listAgents(),
-        api.listTeam(),
-        api.listEmails(),
-        api.getAuditLogs(),
-        api.getGraph(),
-      ]);
-
-      if (sourcesRes.status === 'fulfilled' && (sourcesRes.value as any)?.sources) setSources((sourcesRes.value as any).sources);
-      if (skillsRes.status === 'fulfilled' && (skillsRes.value as any)?.skills) setSkills((skillsRes.value as any).skills);
-      if (agentsRes.status === 'fulfilled' && (agentsRes.value as any)?.agents) setAgents((agentsRes.value as any).agents);
-      if (teamRes.status === 'fulfilled' && (teamRes.value as any)?.members) setTeam((teamRes.value as any).members);
-      if (emailsRes.status === 'fulfilled' && (emailsRes.value as any)?.emails) setEmails((emailsRes.value as any).emails);
-      if (auditRes.status === 'fulfilled' && (auditRes.value as any)?.logs) setAuditLogs((auditRes.value as any).logs);
-      if (graphRes.status === 'fulfilled' && (graphRes.value as any)?.graph) setGraphData((graphRes.value as any).graph);
-    } catch (err: any) {
-      console.error(err);
-      setError('Failed to sync backend state. Make sure server is running on port 5000.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await api.logout();
-    } catch (e) {
-      console.warn('Logout notice:', e);
-    }
-    setCurrentUser(null);
-    setActiveTab('login');
-  };
-
-  const handleLoginSuccess = (user: any) => {
-    setCurrentUser(user);
-    setActiveTab('overview');
-    loadAllData();
-  };
-
-  const handleAskBrain = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-    setActiveTab('ask');
-    setLoading(true);
-    try {
-      const res: any = await api.queryBrain(searchQuery);
-      setBrainResult(res);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleConnectSource = async (type: string, name: string, config: Record<string, any> = {}) => {
-    try {
-      const res: any = await api.createSource({ type, name, config });
-      if (res.redirectUrl) {
-        window.open(res.redirectUrl, '_blank');
-      }
-      loadAllData();
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  const handleSyncSource = async (id: string) => {
-    try {
-      await api.syncSource(id);
-      loadAllData();
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  const handleUpdateSkill = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingSkill) return;
-    try {
-      await api.updateSkill({
-        skillId: editingSkill.id,
-        ruleName: editingSkill.ruleName,
-        description: editingSkill.description,
-        triggerCondition: editingSkill.triggerCondition,
-        parameters: editingSkill.parameters,
-      });
-      setEditingSkill(null);
-      loadAllData();
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  const handleRunFreight = async (agentId: string) => {
-    setLoading(true);
-    try {
-      const res: any = await api.runFreight(agentId, freightForm);
-      setFreightResult(res);
-      loadAllData();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const [seeding, setSeeding] = useState(false);
-  const handleSeedDemo = async () => {
-    setSeeding(true);
-    setError(null);
-    try {
-      await api.seedDemo();
-      await loadAllData();
-    } catch (err: any) {
-      setError(err?.message || 'Demo seeding failed');
-    } finally {
-      setSeeding(false);
-    }
-  };
-
-  const handleToggleAgentMode = async (agentId: string, currentMode: string) => {
-    const nextMode = currentMode === 'COPILOT' ? 'AUTOPILOT' : 'COPILOT';
-    try {
-      await api.updateAgentMode(agentId, nextMode);
-      loadAllData();
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  const handleToggleScope = async (memberId: string, scope: string, currentlyGranted: boolean) => {
-    try {
-      if (currentlyGranted) {
-        await api.revokeScope({ memberId, scope });
-      } else {
-        await api.grantScope({ memberId, scope });
-      }
-      loadAllData();
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  const handleApproveEmail = async (id: string) => {
-    try {
-      await api.approveEmail(id);
-      loadAllData();
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  if (booting) {
+  render() {
+    if (!this.state.error) return this.props.children;
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50 font-sans text-xs text-slate-400">
-        Restoring your session…
+      <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+        <div className="font-semibold">This screen threw and was stopped: {this.state.error.message}</div>
+        <p className="mt-1 text-xs leading-relaxed">
+          The rest of the app is intact — pick another tab. Nothing was written, approved or sent to Qloo by this failure.
+        </p>
+        <button className="mt-2 cursor-pointer rounded border border-red-300 bg-white px-2 py-1 text-xs" onClick={() => this.setState({ error: null })}>
+          Retry this screen
+        </button>
       </div>
     );
   }
+}
 
-  if (!currentUser || activeTab === 'login') {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
-  }
+const NAV: { group: string; items: [string, string, FC][] }[] = [
+  { group: 'Decide', items: [['plan', 'Plan', PlanScreen], ['evidence', 'Evidence', EvidenceScreen], ['trace', 'Trace', TraceScreen]] },
+  { group: 'Question', items: [['whynot', 'Why not?', WhyNotScreen], ['whatif', 'What if?', WhatIfScreen], ['partners', 'Partners', PartnersScreen]] },
+  { group: 'Prove it', items: [['ablation', 'Ablation', AblationScreen], ['trust', 'Trust', TrustScreen], ['coverage', 'Coverage', CoverageScreen], ['ledger', 'Ledger', LedgerScreen]] },
+  { group: 'Operate', items: [['budget', 'Budget', BudgetScreen], ['finals', 'Finals', FinalsScreen], ['lift', 'Taste Lift', TasteLiftScreen], ['about', 'About', AboutScreen]] },
+];
+
+const MODE_HINT: Record<TasteMode, string> = {
+  live: 'Ask Qloo now, inside the call budget. Falls back to Cached, then Replay, and says so.',
+  cached: 'Use the private stored answer; the live call is not repeated.',
+  replay: 'Synthetic fixtures only. Runs with no key and never claims to be live.',
+};
+
+function Shell() {
+  const app = useApp();
+  const [tab, setTab] = useState(() => (typeof window === 'undefined' ? 'plan' : window.location.hash.replace('#', '') || 'plan'));
+
+  useEffect(() => { window.location.hash = tab; }, [tab]);
+
+  // Back and Forward change the hash on their own. Following it keeps the URL and
+  // the screen in agreement — otherwise a reload after pressing Back jumps to a
+  // screen the operator is not looking at.
+  useEffect(() => {
+    const follow = () => setTab(window.location.hash.replace('#', '') || 'plan');
+    window.addEventListener('hashchange', follow);
+    return () => window.removeEventListener('hashchange', follow);
+  }, []);
+
+  const Screen = NAV.flatMap((g) => g.items).find(([id]) => id === tab)?.[2] ?? PlanScreen;
+  const info = app.modeInfo;
 
   return (
-    <div className="flex h-screen bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onRefresh={loadAllData} />
-
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header
-          activeTab={activeTab}
-          user={currentUser}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          onSearchSubmit={(e) => (setActiveTab('ask'), handleAskBrain(e))}
-          onProfileClick={() => setActiveTab('profile')}
-          onLogout={handleLogout}
-        />
-
-        {error && (
-          <div className="bg-red-50 border-b border-red-200 text-red-700 px-6 py-2.5 text-xs flex justify-between items-center shrink-0">
-            <span>{error}</span>
-            <button onClick={() => setError(null)} className="font-bold underline text-red-800">Dismiss</button>
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
+          <div className="mr-auto">
+            <h1 className="text-lg font-bold tracking-tight">Taste Brain</h1>
+            <p className="text-xs text-slate-500">decision governance for taste-driven rooms — rules from the business, taste from Qloo, a trace for every call</p>
           </div>
-        )}
 
-        <main className="flex-1 overflow-y-auto p-8 space-y-6">
-          {activeTab === 'overview' && (
-            <OverviewPage
-              user={currentUser}
-              sources={sources}
-              skills={skills}
-              agents={agents}
-              auditLogs={auditLogs}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              handleAskBrain={handleAskBrain}
-              loading={loading}
-              brainResult={brainResult}
-              onNavigateTab={setActiveTab}
-              handleSeedDemo={handleSeedDemo}
-              seeding={seeding}
-            />
+          {app.proposal && (
+            <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] text-slate-600">
+              <span>active run</span>
+              <code className="font-mono">{app.proposal.proposal_id}</code>
+              <ModeBadge mode={app.proposal.mode} />
+              <ModeMixLine mix={app.proposal.trace.mode_mix} compact />
+              <span>{app.proposal.items.length} item(s) · {app.proposal.status}</span>
+              {app.servedFrom === 'snapshot' && <span className="rounded bg-indigo-100 px-1.5 py-0.5 font-semibold text-indigo-700">FINALS MODE</span>}
+              {app.servedFrom === 'restored' && <span className="rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-800" title="Re-served from the store — this room's newest stored run, nothing new was computed">restored from the store</span>}
+            </div>
           )}
 
-          {activeTab === 'ask' && (
-            <AskBrainPage
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              handleAskBrain={handleAskBrain}
-              loading={loading}
-              brainResult={brainResult}
-            />
-          )}
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-slate-500">request mode</span>
+            {(['replay', 'cached', 'live'] as TasteMode[]).map((m) => (
+              <button key={m} onClick={() => app.setMode(m)} className="cursor-pointer" title={MODE_HINT[m]}>
+                <span className={app.mode === m ? '' : 'opacity-45'}><ModeBadge mode={m} /></span>
+              </button>
+            ))}
+          </div>
 
-          {activeTab === 'sources' && (
-            <ConnectorsPage
-              sources={sources}
-              handleConnectSource={handleConnectSource}
-              handleSyncSource={handleSyncSource}
-              loadAllData={loadAllData}
-            />
-          )}
+          <div className="flex items-center gap-2 text-[11px] text-slate-500">
+            <span title="The key lives in the server environment and is never sent to this browser">qloo key: <strong>{info?.qloo_key ?? '—'}</strong></span>
+            {info?.finals_mode && <span className="rounded bg-indigo-600 px-1.5 py-0.5 font-semibold text-white">FINALS MODE ON</span>}
+          </div>
+        </div>
 
-          {activeTab === 'graph' && (
-            <KnowledgeGraphPage
-              graphData={graphData}
-              loadAllData={loadAllData}
-              onPathRequest={(from, to) => {
-                setPathPair({ from, to });
-                setActiveTab('insights');
-              }}
-            />
-          )}
+        <nav className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-1 px-5 pb-2">
+          {NAV.map((g) => (
+            <div key={g.group} className="flex items-center gap-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{g.group}</span>
+              {g.items.map(([id, label]) => (
+                <button
+                  key={id} onClick={() => setTab(id)}
+                  className={`cursor-pointer rounded-md px-2.5 py-1 text-xs ${tab === id ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                >{label}</button>
+              ))}
+            </div>
+          ))}
+        </nav>
+      </header>
 
-          {activeTab === 'insights' && <InsightsPage initialFrom={pathPair.from} initialTo={pathPair.to} />}
+      <main className="mx-auto max-w-7xl px-5 py-6">
+        <ScreenBoundary key={tab}>
+          <Screen />
+        </ScreenBoundary>
+      </main>
 
-          {activeTab === 'watchlist' && <WatchlistPage />}
-
-          {activeTab === 'review' && <NeedsReviewPage />}
-
-          {activeTab === 'skills' && (
-            <ExecutableSkillsPage
-              skills={skills}
-              editingSkill={editingSkill}
-              setEditingSkill={setEditingSkill}
-              handleUpdateSkill={handleUpdateSkill}
-              loadAllData={loadAllData}
-            />
-          )}
-
-          {activeTab === 'freight' && (
-            <FreightDeskPage
-              freightForm={freightForm}
-              setFreightForm={setFreightForm}
-              handleRunFreight={handleRunFreight}
-              agents={agents}
-              loading={loading}
-              freightResult={freightResult}
-            />
-          )}
-
-          {activeTab === 'email' && (
-            <EmailDeskPage emails={emails} handleApproveEmail={handleApproveEmail} loadAllData={loadAllData} />
-          )}
-
-          {activeTab === 'approvals' && <TaskApprovalsPage loadAllData={loadAllData} />}
-
-          {activeTab === 'agents' && (
-            <AgentsPage agents={agents} handleToggleAgentMode={handleToggleAgentMode} loadAllData={loadAllData} />
-          )}
-
-          {activeTab === 'memory' && <MemoryPage />}
-
-          {activeTab === 'control' && (
-            <ControlPlanePage team={team} handleToggleScope={handleToggleScope} loadAllData={loadAllData} />
-          )}
-
-          {activeTab === 'audit' && <AuditLogsPage auditLogs={auditLogs} />}
-
-          {activeTab === 'profile' && (
-            <ProfilePage user={currentUser} setUser={setCurrentUser} onLogout={handleLogout} />
-          )}
-        </main>
-      </div>
+      <footer className="mx-auto max-w-7xl px-5 pb-8 text-[11px] leading-relaxed text-slate-500">
+        Taste Brain · Qloo Agentic Hackathon. Live Qloo for taste, the venue’s own SOP for rules, a named person for the
+        decision, and a hash-chained ledger for everything in between. Replay data is synthetic and labelled; nothing is
+        presented as live that is not.
+      </footer>
     </div>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <AppProvider>
+      <Shell />
+    </AppProvider>
+  );
+}

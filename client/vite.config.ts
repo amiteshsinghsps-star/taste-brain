@@ -15,7 +15,11 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: `${process.env.BACKEND_URL || 'http://localhost:5000'}`,
+        target: `${process.env.BACKEND_URL || 'http://localhost:4000'}`,
+        changeOrigin: true,
+      },
+      '/healthz': {
+        target: `${process.env.BACKEND_URL || 'http://localhost:4000'}`,
         changeOrigin: true,
       },
     },
