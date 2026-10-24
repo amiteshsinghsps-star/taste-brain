@@ -3,7 +3,7 @@
 // and never a second ranking.
 
 import type {
-  AblationResult, ApprovalBrief, CapabilityRow, CoverageBoard, DecisionExport, DecisionTrace,
+  AblationResult, ApprovalBrief, AttackOutcome, BreakItReport, CapabilityRow, CoverageBoard, DecisionExport, DecisionTrace,
   HealthInfo, LedgerEntry, ModeInfo, PackLocation, PackSummary, PartnerResult, Proposal,
   RestCallLogEntry, SnapshotRow, TasteMode, TasteLiftResult, TrustReport, VerifyReport, WhatIfResult,
   WhyNotAnswer, QlooCallLogEntry,
@@ -86,6 +86,12 @@ export const api = {
     fetch(`${BASE}/api/proposals/${encodeURIComponent(id)}/export`).then((r) => j<DecisionExport>(r)),
   verifyDecision: (exp: unknown) =>
     post('/api/verify', exp).then((r) => j<{ success: boolean; report: VerifyReport }>(r)),
+
+  // W6 — the Break-it Challenge. Each call runs the engine's real defences over
+  // the synthetic Replay sample; the server decides what was blocked, not the page.
+  breakItAll: () => fetch(`${BASE}/api/breakit`).then((r) => j<{ success: boolean; report: BreakItReport }>(r)),
+  breakIt: (attack: string) =>
+    post('/api/breakit', { attack }).then((r) => j<{ success: boolean; attack: AttackOutcome }>(r)),
 
   coverage: () => fetch(`${BASE}/api/coverage`).then((r) => j<{ success: boolean; board: CoverageBoard }>(r)),
   trust: () => fetch(`${BASE}/api/trust`).then((r) => j<{ success: boolean; report: TrustReport; allowlist: Record<string, string[]> }>(r)),

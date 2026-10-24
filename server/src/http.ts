@@ -27,6 +27,7 @@ import { withModeMix, stampProposal } from './trace/builder';
 import { exportFromStore, ExportSourceError } from './verify/buildFromStore';
 import { ExportRefused } from './verify/export';
 import { verifyExport } from './verify/verifier';
+import { runAllAttacks, runAttack, ATTACK_IDS } from './breakit/attacks';
 import type { Proposal, TasteMode, RunSnapshot } from './types';
 
 // ── per-IP token bucket (PRD §14 controls) ───────────────────────────────────
@@ -290,6 +291,24 @@ export function createApp() {
   // the report carries the outcome. The same verifyExport() backs the CLI.
   app.post('/api/verify', (req, res) => {
     res.json({ success: true, report: verifyExport(req.body) });
+  });
+
+  // ── Break-it Challenge (W6) ────────────────────────────────────────────────
+  // Both routes run the real defences over the committed synthetic sample, so a
+  // visitor can try to break the engine without a chance of breaking the store.
+  // A blocked attack and a successful one are both 200: the verdict is data.
+  app.get('/api/breakit', rateLimit, (_req, res) => {
+    res.json({ success: true, report: runAllAttacks() });
+  });
+
+  app.post('/api/breakit', rateLimit, (req, res) => {
+    const id = safeString(req.body?.attack, 40);
+    if (!id || !ATTACK_IDS.includes(id)) {
+      return res.status(400).json({ success: false, message: `attack must be one of ${ATTACK_IDS.join(', ')}` });
+    }
+    const outcome = runAttack(id);
+    if (!outcome) return res.status(404).json({ success: false, message: 'unknown attack' });
+    res.json({ success: true, attack: outcome });
   });
 
   // ── human decision (F7 + F15) ──────────────────────────────────────────────

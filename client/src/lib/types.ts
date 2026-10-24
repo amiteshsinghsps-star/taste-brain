@@ -327,3 +327,31 @@ export interface DecisionExport {
   ledger: LedgerEntry[];
   ledger_head_hash: string | null;
 }
+
+/** Mirrors server/src/breakit/attacks.ts. Every field is the engine's own
+ *  account of a defence it ran, not text written for this page. */
+export interface AttackOutcome {
+  id: string;
+  name: string;
+  attempted: string;
+  defence: { check: string; where: string };
+  blocked: boolean;
+  detail: string;
+  log_entry: Record<string, unknown>;
+}
+
+export interface BreakItReport {
+  ran_at: string;
+  sandbox: {
+    basis: string;
+    mode: TasteMode;
+    real_ledger_written: false;
+    real_ledger_still_intact: boolean | null;
+    network_calls_before: number;
+    network_calls_after: number;
+  };
+  blocked: number;
+  total: number;
+  ok: boolean;
+  attacks: AttackOutcome[];
+}
