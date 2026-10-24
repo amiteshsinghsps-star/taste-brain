@@ -24,6 +24,9 @@ import { quotaState, healthBuckets, qlooKeyAvailable } from './agents/quota';
 import { ALLOWED_PARAMS } from './qloo/allowlist';
 import { sanitizeName } from './agents/auditor';
 import { withModeMix, stampProposal } from './trace/builder';
+import { exportFromStore, ExportSourceError } from './verify/buildFromStore';
+import { ExportRefused } from './verify/export';
+import { verifyExport } from './verify/verifier';
 import type { Proposal, TasteMode, RunSnapshot } from './types';
 
 // ── per-IP token bucket (PRD §14 controls) ───────────────────────────────────
@@ -264,6 +267,29 @@ export function createApp() {
     const p = isId(req.params.id, 40) ? graph.getProposal<Proposal>(req.params.id) : null;
     if (!p) return res.status(404).json({ success: false, message: 'not found' });
     res.json(withModeMix(p.trace));
+  });
+
+  // ── W1 Verifier ────────────────────────────────────────────────────────────
+  // The export is the whole evidence set for one decision, in one file. It is
+  // refused for live runs until Qloo confirms what may be shared.
+  app.get('/api/proposals/:id/export', (req, res) => {
+    const id = isId(req.params.id, 40) ? req.params.id : '';
+    if (!id) return res.status(400).json({ success: false, message: 'bad proposal id' });
+    try {
+      const exp = exportFromStore(id, env.EXPORT_ALLOW_LIVE);
+      res.setHeader('content-disposition', `attachment; filename="taste-brain-${id}.json"`);
+      res.json(exp);
+    } catch (e) {
+      if (e instanceof ExportRefused) return res.status(409).json({ success: false, message: e.message, refused: true });
+      if (e instanceof ExportSourceError) return res.status(404).json({ success: false, message: e.message });
+      throw e;
+    }
+  });
+
+  // A FAIL here is a valid verdict, not an error, so the HTTP status stays 200 and
+  // the report carries the outcome. The same verifyExport() backs the CLI.
+  app.post('/api/verify', (req, res) => {
+    res.json({ success: true, report: verifyExport(req.body) });
   });
 
   // ── human decision (F7 + F15) ──────────────────────────────────────────────

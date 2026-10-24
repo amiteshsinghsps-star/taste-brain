@@ -72,6 +72,11 @@ const schema = z.object({
 
   // Finals Mode (F48): set in the host environment, never from the UI.
   FINALS_OVERRIDE: boolish.default(false),
+
+  // Exports and receipts carry Qloo-returned names and tags, so they are refused
+  // for live runs until Qloo confirms what may be shared. Set this only after
+  // that answer arrives.
+  EXPORT_ALLOW_LIVE: boolish.default(false),
 });
 
 export const env = schema.parse({
@@ -97,6 +102,7 @@ export const env = schema.parse({
   QUOTA_GLOBAL_DAY: process.env.QUOTA_GLOBAL_DAY,
   QUOTA_MONTHLY_FLOOR: process.env.QUOTA_MONTHLY_FLOOR,
   FINALS_OVERRIDE: process.env.FINALS_OVERRIDE,
+  EXPORT_ALLOW_LIVE: process.env.EXPORT_ALLOW_LIVE,
 });
 
 /** Redacted key status: "set" or "missing" only, never the value. */

@@ -123,6 +123,9 @@ export interface ProposalItem {
   tags: string[];
   explanation: string;
   rule_results: RuleResult[];
+  /** The exact inputs the Rule Checker saw for this item, kept so a decision can
+   *  be re-evaluated offline by the Verifier without a database or a Qloo key. */
+  rule_inputs?: { fields: Record<string, number>; offer_tags: string[] };
   evidence: EvidenceCard;
   mode: TasteMode;
   // True when a rule could not be proven because the operator has not entered a

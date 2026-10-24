@@ -3,9 +3,9 @@
 // and never a second ranking.
 
 import type {
-  AblationResult, ApprovalBrief, CapabilityRow, CoverageBoard, DecisionTrace,
+  AblationResult, ApprovalBrief, CapabilityRow, CoverageBoard, DecisionExport, DecisionTrace,
   HealthInfo, LedgerEntry, ModeInfo, PackLocation, PackSummary, PartnerResult, Proposal,
-  RestCallLogEntry, SnapshotRow, TasteMode, TasteLiftResult, TrustReport, WhatIfResult,
+  RestCallLogEntry, SnapshotRow, TasteMode, TasteLiftResult, TrustReport, VerifyReport, WhatIfResult,
   WhyNotAnswer, QlooCallLogEntry,
 } from './types';
 
@@ -79,6 +79,13 @@ export const api = {
   ledger: () => fetch(`${BASE}/api/ledger`).then((r) => j<{ success: boolean; entries: LedgerEntry[]; head_hash: string; length: number }>(r)),
   verify: () => fetch(`${BASE}/api/ledger/verify`)
     .then((r) => j<{ success: boolean; ok: boolean; length: number; head_hash: string | null; first_broken_seq: number | null; reason: string | null; note: string }>(r)),
+
+  // W1 — the decision export and the standalone Verifier. `api.verify` above is
+  // the ledger chain only; this re-runs all five checks over an export file.
+  exportDecision: (id: string) =>
+    fetch(`${BASE}/api/proposals/${encodeURIComponent(id)}/export`).then((r) => j<DecisionExport>(r)),
+  verifyDecision: (exp: unknown) =>
+    post('/api/verify', exp).then((r) => j<{ success: boolean; report: VerifyReport }>(r)),
 
   coverage: () => fetch(`${BASE}/api/coverage`).then((r) => j<{ success: boolean; board: CoverageBoard }>(r)),
   trust: () => fetch(`${BASE}/api/trust`).then((r) => j<{ success: boolean; report: TrustReport; allowlist: Record<string, string[]> }>(r)),

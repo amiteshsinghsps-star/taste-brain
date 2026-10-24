@@ -1,4 +1,4 @@
-// Taste Brain — the shell. One run in memory, twelve screens over it, and a
+// Taste Brain — the shell. One run in memory, thirteen screens over it, and a
 // header that always tells you which mode the data came in and what is left of
 // the budget. Screens never hold state of their own beyond their inputs.
 
@@ -16,6 +16,7 @@ import AblationScreen from '@/screens/AblationScreen';
 import TrustScreen from '@/screens/TrustScreen';
 import CoverageScreen from '@/screens/CoverageScreen';
 import LedgerScreen from '@/screens/LedgerScreen';
+import VerifyScreen from '@/screens/VerifyScreen';
 import BudgetScreen from '@/screens/BudgetScreen';
 import FinalsScreen from '@/screens/FinalsScreen';
 import TasteLiftScreen from '@/screens/TasteLiftScreen';
@@ -23,7 +24,7 @@ import AboutScreen from '@/screens/AboutScreen';
 
 /**
  * One screen's render error must not take the header, the nav and the other
- * twelve screens down with it — and with the tab restored from the URL hash, a
+ * thirteen screens down with it — and with the tab restored from the URL hash, a
  * reload would otherwise drop straight back into the same crash.
  */
 class ScreenBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -50,7 +51,7 @@ class ScreenBoundary extends Component<{ children: ReactNode }, { error: Error |
 const NAV: { group: string; items: [string, string, FC][] }[] = [
   { group: 'Decide', items: [['plan', 'Plan', PlanScreen], ['evidence', 'Evidence', EvidenceScreen], ['trace', 'Trace', TraceScreen]] },
   { group: 'Question', items: [['whynot', 'Why not?', WhyNotScreen], ['whatif', 'What if?', WhatIfScreen], ['partners', 'Partners', PartnersScreen]] },
-  { group: 'Prove it', items: [['ablation', 'Ablation', AblationScreen], ['trust', 'Trust', TrustScreen], ['coverage', 'Coverage', CoverageScreen], ['ledger', 'Ledger', LedgerScreen]] },
+  { group: 'Prove it', items: [['ablation', 'Ablation', AblationScreen], ['trust', 'Trust', TrustScreen], ['verify', 'Verify', VerifyScreen], ['coverage', 'Coverage', CoverageScreen], ['ledger', 'Ledger', LedgerScreen]] },
   { group: 'Operate', items: [['budget', 'Budget', BudgetScreen], ['finals', 'Finals', FinalsScreen], ['lift', 'Taste Lift', TasteLiftScreen], ['about', 'About', AboutScreen]] },
 ];
 

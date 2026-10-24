@@ -1,0 +1,1575 @@
+{
+  "schema": "taste-brain-decision-export/1",
+  "exported_at": "2026-10-24T11:25:17.544Z",
+  "honest_scope": {
+    "proves": [
+      "the ledger chain recomputes to the stated head hash, so no record was edited after it was written",
+      "every shown item cites a Qloo entity id that exists in this run's stored evidence",
+      "the order of the proposal is the order Qloo returned, not a re-sort by this app",
+      "each rule verdict re-evaluates to the recorded result under the pinned rule set",
+      "live / cached / replay is recorded on every step, and the run badge does not claim more than its steps show"
+    ],
+    "does_not_prove": [
+      "that Qloo's own data is correct — this checks integrity and internal consistency, not Qloo's accuracy",
+      "that the replay bytes were fetched when the file says they were; timestamps are as recorded by the server that wrote this file",
+      "that a named approver is who they claim to be — the approver is recorded, not authenticated"
+    ]
+  },
+  "provenance": {
+    "proposal_id": "p_mvmbb7tx_001",
+    "pack": "retail",
+    "location": "store_3",
+    "goal": "Add 4 brands for spring",
+    "decision_mode": "replay"
+  },
+  "decision": {
+    "proposal_id": "p_mvmbb7tx_001",
+    "pack": "retail",
+    "location": "store_3",
+    "goal": "Add 4 brands for spring",
+    "mode": "replay",
+    "degrade_reason": null,
+    "created_at": "2026-10-24T11:25:17.541Z",
+    "status": "approved",
+    "items": [
+      {
+        "entity_id": "qloo:brand:cedar_row",
+        "offer_id": "off_cedar",
+        "rank": 1,
+        "name": "Cedar Row",
+        "type": "brand",
+        "fit": 0.9,
+        "qloo_rank": 2,
+        "popularity": 0.41,
+        "obscurity": 6,
+        "followers": 17000,
+        "tags": [
+          "western",
+          "boots"
+        ],
+        "explanation": "Cedar Row is Qloo's rank 2 for this audience. Qloo reports popularity 0.410. Obscurity scale 6 of 10. Fit 90 is derived by Taste Brain from that rank, not returned by Qloo. Recommendation is grounded in the result above and the rule checks.",
+        "rule_results": [
+          {
+            "rule_id": "budget_cap",
+            "status": "pass",
+            "pass": true,
+            "reason": "unit_cost 30 <= 40",
+            "source": "SOP-Buying-Policy.md#L12",
+            "on_missing": "block",
+            "metric": "unit_cost",
+            "observed": 30,
+            "threshold": 40,
+            "direction": "max"
+          },
+          {
+            "rule_id": "min_order",
+            "status": "pass",
+            "pass": true,
+            "reason": "minimum_order 260 <= 500",
+            "source": "SOP-Buying-Policy.md#L20",
+            "on_missing": "block",
+            "metric": "minimum_order",
+            "observed": 260,
+            "threshold": 500,
+            "direction": "max"
+          },
+          {
+            "rule_id": "brand_safety",
+            "status": "pass",
+            "pass": true,
+            "reason": "no excluded tag present",
+            "source": "SOP-Brand-Safety.md#L4",
+            "on_missing": "block"
+          }
+        ],
+        "rule_inputs": {
+          "fields": {
+            "unit_cost": 30,
+            "minimum_order": 260
+          },
+          "offer_tags": [
+            "western",
+            "boots"
+          ]
+        },
+        "evidence": {
+          "entity_id": "qloo:brand:cedar_row",
+          "endpoint": "fixture",
+          "workflow": "recommend",
+          "mode": "replay",
+          "fetched_at": "1970-01-01T00:00:00.000Z",
+          "qloo_rank": 2,
+          "popularity": 0.41,
+          "obscurity": 6,
+          "followers": 17000,
+          "primary_genres": [],
+          "qloo_tags": [
+            {
+              "id": "qlootag:western",
+              "name": "western",
+              "type": "urn:tag"
+            },
+            {
+              "id": "qlootag:boots",
+              "name": "boots",
+              "type": "urn:tag"
+            }
+          ],
+          "explainability": "Fictional brand: boots and westernwear overlap with this audience's place signals.",
+          "fit_note": "fit 90 is derived by Taste Brain from Qloo's result order (rank 2); Qloo returns no affinity score on this endpoint"
+        },
+        "mode": "replay",
+        "approval_blocked": false,
+        "needs_terms": [],
+        "local_lift": null,
+        "rising": null
+      },
+      {
+        "entity_id": "qloo:brand:lumen_threads",
+        "offer_id": "off_lumen",
+        "rank": 2,
+        "name": "Lumen Threads",
+        "type": "brand",
+        "fit": 0.8,
+        "qloo_rank": 3,
+        "popularity": 0.37,
+        "obscurity": 7,
+        "followers": 9800,
+        "tags": [
+          "streetwear",
+          "music"
+        ],
+        "explanation": "Lumen Threads is Qloo's rank 3 for this audience. Qloo reports popularity 0.370. Obscurity scale 7 of 10. Fit 80 is derived by Taste Brain from that rank, not returned by Qloo. Recommendation is grounded in the result above and the rule checks.",
+        "rule_results": [
+          {
+            "rule_id": "budget_cap",
+            "status": "pass",
+            "pass": true,
+            "reason": "unit_cost 22 <= 40",
+            "source": "SOP-Buying-Policy.md#L12",
+            "on_missing": "block",
+            "metric": "unit_cost",
+            "observed": 22,
+            "threshold": 40,
+            "direction": "max"
+          },
+          {
+            "rule_id": "min_order",
+            "status": "pass",
+            "pass": true,
+            "reason": "minimum_order 180 <= 500",
+            "source": "SOP-Buying-Policy.md#L20",
+            "on_missing": "block",
+            "metric": "minimum_order",
+            "observed": 180,
+            "threshold": 500,
+            "direction": "max"
+          },
+          {
+            "rule_id": "brand_safety",
+            "status": "pass",
+            "pass": true,
+            "reason": "no excluded tag present",
+            "source": "SOP-Brand-Safety.md#L4",
+            "on_missing": "block"
+          }
+        ],
+        "rule_inputs": {
+          "fields": {
+            "unit_cost": 22,
+            "minimum_order": 180
+          },
+          "offer_tags": [
+            "streetwear",
+            "music"
+          ]
+        },
+        "evidence": {
+          "entity_id": "qloo:brand:lumen_threads",
+          "endpoint": "fixture",
+          "workflow": "recommend",
+          "mode": "replay",
+          "fetched_at": "1970-01-01T00:00:00.000Z",
+          "qloo_rank": 3,
+          "popularity": 0.37,
+          "obscurity": 7,
+          "followers": 9800,
+          "primary_genres": [],
+          "qloo_tags": [
+            {
+              "id": "qlootag:streetwear",
+              "name": "streetwear",
+              "type": "urn:tag"
+            },
+            {
+              "id": "qlootag:music",
+              "name": "music",
+              "type": "urn:tag"
+            }
+          ],
+          "explainability": "Fictional brand: streetwear tied to live-music affinity in the district.",
+          "fit_note": "fit 80 is derived by Taste Brain from Qloo's result order (rank 3); Qloo returns no affinity score on this endpoint"
+        },
+        "mode": "replay",
+        "approval_blocked": false,
+        "needs_terms": [],
+        "local_lift": null,
+        "rising": null
+      },
+      {
+        "entity_id": "qloo:brand:arbor_and_ledge",
+        "offer_id": "off_a_ledge",
+        "rank": 3,
+        "name": "Arbor & Ledge",
+        "type": "brand",
+        "fit": 0.7,
+        "qloo_rank": 4,
+        "popularity": 0.35,
+        "obscurity": 8,
+        "followers": 6200,
+        "tags": [
+          "outdoors",
+          "sustainable"
+        ],
+        "explanation": "Arbor & Ledge is Qloo's rank 4 for this audience. Qloo reports popularity 0.350. Obscurity scale 8 of 10. Fit 70 is derived by Taste Brain from that rank, not returned by Qloo. Recommendation is grounded in the result above and the rule checks.",
+        "rule_results": [
+          {
+            "rule_id": "budget_cap",
+            "status": "pass",
+            "pass": true,
+            "reason": "unit_cost 28 <= 40",
+            "source": "SOP-Buying-Policy.md#L12",
+            "on_missing": "block",
+            "metric": "unit_cost",
+            "observed": 28,
+            "threshold": 40,
+            "direction": "max"
+          },
+          {
+            "rule_id": "min_order",
+            "status": "pass",
+            "pass": true,
+            "reason": "minimum_order 240 <= 500",
+            "source": "SOP-Buying-Policy.md#L20",
+            "on_missing": "block",
+            "metric": "minimum_order",
+            "observed": 240,
+            "threshold": 500,
+            "direction": "max"
+          },
+          {
+            "rule_id": "brand_safety",
+            "status": "pass",
+            "pass": true,
+            "reason": "no excluded tag present",
+            "source": "SOP-Brand-Safety.md#L4",
+            "on_missing": "block"
+          }
+        ],
+        "rule_inputs": {
+          "fields": {
+            "unit_cost": 28,
+            "minimum_order": 240
+          },
+          "offer_tags": [
+            "outdoors",
+            "sustainable"
+          ]
+        },
+        "evidence": {
+          "entity_id": "qloo:brand:arbor_and_ledge",
+          "endpoint": "fixture",
+          "workflow": "recommend",
+          "mode": "replay",
+          "fetched_at": "1970-01-01T00:00:00.000Z",
+          "qloo_rank": 4,
+          "popularity": 0.35,
+          "obscurity": 8,
+          "followers": 6200,
+          "primary_genres": [],
+          "qloo_tags": [
+            {
+              "id": "qlootag:outdoors",
+              "name": "outdoors",
+              "type": "urn:tag"
+            },
+            {
+              "id": "qlootag:sustainable",
+              "name": "sustainable",
+              "type": "urn:tag"
+            }
+          ],
+          "explainability": "Fictional brand: sustainable outdoors affinity matches trail and park place signals.",
+          "fit_note": "fit 70 is derived by Taste Brain from Qloo's result order (rank 4); Qloo returns no affinity score on this endpoint"
+        },
+        "mode": "replay",
+        "approval_blocked": false,
+        "needs_terms": [],
+        "local_lift": null,
+        "rising": null
+      },
+      {
+        "entity_id": "qloo:brand:northbound_supply",
+        "offer_id": "off_northbound",
+        "rank": 4,
+        "name": "Northbound Supply",
+        "type": "brand",
+        "fit": 0.6,
+        "qloo_rank": 5,
+        "popularity": 0.3,
+        "obscurity": 8,
+        "followers": 5100,
+        "tags": [
+          "workwear",
+          "denim"
+        ],
+        "explanation": "Northbound Supply is Qloo's rank 5 for this audience. Qloo reports popularity 0.300. Obscurity scale 8 of 10. Fit 60 is derived by Taste Brain from that rank, not returned by Qloo. Recommendation is grounded in the result above and the rule checks.",
+        "rule_results": [
+          {
+            "rule_id": "budget_cap",
+            "status": "pass",
+            "pass": true,
+            "reason": "unit_cost 34 <= 40",
+            "source": "SOP-Buying-Policy.md#L12",
+            "on_missing": "block",
+            "metric": "unit_cost",
+            "observed": 34,
+            "threshold": 40,
+            "direction": "max"
+          },
+          {
+            "rule_id": "min_order",
+            "status": "pass",
+            "pass": true,
+            "reason": "minimum_order 300 <= 500",
+            "source": "SOP-Buying-Policy.md#L20",
+            "on_missing": "block",
+            "metric": "minimum_order",
+            "observed": 300,
+            "threshold": 500,
+            "direction": "max"
+          },
+          {
+            "rule_id": "brand_safety",
+            "status": "pass",
+            "pass": true,
+            "reason": "no excluded tag present",
+            "source": "SOP-Brand-Safety.md#L4",
+            "on_missing": "block"
+          }
+        ],
+        "rule_inputs": {
+          "fields": {
+            "unit_cost": 34,
+            "minimum_order": 300
+          },
+          "offer_tags": [
+            "workwear",
+            "denim"
+          ]
+        },
+        "evidence": {
+          "entity_id": "qloo:brand:northbound_supply",
+          "endpoint": "fixture",
+          "workflow": "recommend",
+          "mode": "replay",
+          "fetched_at": "1970-01-01T00:00:00.000Z",
+          "qloo_rank": 5,
+          "popularity": 0.3,
+          "obscurity": 8,
+          "followers": 5100,
+          "primary_genres": [],
+          "qloo_tags": [
+            {
+              "id": "qlootag:workwear",
+              "name": "workwear",
+              "type": "urn:tag"
+            },
+            {
+              "id": "qlootag:denim",
+              "name": "denim",
+              "type": "urn:tag"
+            }
+          ],
+          "explainability": "Fictional brand: denim and workwear align with the audience's brand portrait.",
+          "fit_note": "fit 60 is derived by Taste Brain from Qloo's result order (rank 5); Qloo returns no affinity score on this endpoint"
+        },
+        "mode": "replay",
+        "approval_blocked": false,
+        "needs_terms": [],
+        "local_lift": null,
+        "rising": null
+      },
+      {
+        "entity_id": "qloo:brand:halo_athletics",
+        "offer_id": "off_halo",
+        "rank": 5,
+        "name": "Halo Athletics",
+        "type": "brand",
+        "fit": 0.4,
+        "qloo_rank": 7,
+        "popularity": 0.62,
+        "obscurity": 3,
+        "followers": 128000,
+        "tags": [
+          "athleisure"
+        ],
+        "explanation": "Halo Athletics is Qloo's rank 7 for this audience. Qloo reports popularity 0.620. Obscurity scale 3 of 10. Fit 40 is derived by Taste Brain from that rank, not returned by Qloo. Recommendation is grounded in the result above and the rule checks.",
+        "rule_results": [
+          {
+            "rule_id": "budget_cap",
+            "status": "pass",
+            "pass": true,
+            "reason": "unit_cost 26 <= 40",
+            "source": "SOP-Buying-Policy.md#L12",
+            "on_missing": "block",
+            "metric": "unit_cost",
+            "observed": 26,
+            "threshold": 40,
+            "direction": "max"
+          },
+          {
+            "rule_id": "min_order",
+            "status": "pass",
+            "pass": true,
+            "reason": "minimum_order 320 <= 500",
+            "source": "SOP-Buying-Policy.md#L20",
+            "on_missing": "block",
+            "metric": "minimum_order",
+            "observed": 320,
+            "threshold": 500,
+            "direction": "max"
+          },
+          {
+            "rule_id": "brand_safety",
+            "status": "pass",
+            "pass": true,
+            "reason": "no excluded tag present",
+            "source": "SOP-Brand-Safety.md#L4",
+            "on_missing": "block"
+          }
+        ],
+        "rule_inputs": {
+          "fields": {
+            "unit_cost": 26,
+            "minimum_order": 320
+          },
+          "offer_tags": [
+            "athleisure"
+          ]
+        },
+        "evidence": {
+          "entity_id": "qloo:brand:halo_athletics",
+          "endpoint": "fixture",
+          "workflow": "recommend",
+          "mode": "replay",
+          "fetched_at": "1970-01-01T00:00:00.000Z",
+          "qloo_rank": 7,
+          "popularity": 0.62,
+          "obscurity": 3,
+          "followers": 128000,
+          "primary_genres": [],
+          "qloo_tags": [
+            {
+              "id": "qlootag:athleisure",
+              "name": "athleisure",
+              "type": "urn:tag"
+            }
+          ],
+          "explainability": "Fictional brand: moderate athleisure affinity from fitness place signals.",
+          "fit_note": "fit 40 is derived by Taste Brain from Qloo's result order (rank 7); Qloo returns no affinity score on this endpoint"
+        },
+        "mode": "replay",
+        "approval_blocked": false,
+        "needs_terms": [],
+        "local_lift": null,
+        "rising": null
+      },
+      {
+        "entity_id": "qloo:brand:dusk_records_apparel",
+        "offer_id": "off_dusk",
+        "rank": 6,
+        "name": "Dusk Records Apparel",
+        "type": "brand",
+        "fit": 0.3,
+        "qloo_rank": 8,
+        "popularity": 0.19,
+        "obscurity": 9,
+        "followers": 2400,
+        "tags": [
+          "music",
+          "vinyl"
+        ],
+        "explanation": "Dusk Records Apparel is Qloo's rank 8 for this audience. Qloo reports popularity 0.190. Obscurity scale 9 of 10. Fit 30 is derived by Taste Brain from that rank, not returned by Qloo. Recommendation is grounded in the result above and the rule checks.",
+        "rule_results": [
+          {
+            "rule_id": "budget_cap",
+            "status": "pass",
+            "pass": true,
+            "reason": "unit_cost 24 <= 40",
+            "source": "SOP-Buying-Policy.md#L12",
+            "on_missing": "block",
+            "metric": "unit_cost",
+            "observed": 24,
+            "threshold": 40,
+            "direction": "max"
+          },
+          {
+            "rule_id": "min_order",
+            "status": "pass",
+            "pass": true,
+            "reason": "minimum_order 120 <= 500",
+            "source": "SOP-Buying-Policy.md#L20",
+            "on_missing": "block",
+            "metric": "minimum_order",
+            "observed": 120,
+            "threshold": 500,
+            "direction": "max"
+          },
+          {
+            "rule_id": "brand_safety",
+            "status": "pass",
+            "pass": true,
+            "reason": "no excluded tag present",
+            "source": "SOP-Brand-Safety.md#L4",
+            "on_missing": "block"
+          }
+        ],
+        "rule_inputs": {
+          "fields": {
+            "unit_cost": 24,
+            "minimum_order": 120
+          },
+          "offer_tags": [
+            "music",
+            "vinyl"
+          ]
+        },
+        "evidence": {
+          "entity_id": "qloo:brand:dusk_records_apparel",
+          "endpoint": "fixture",
+          "workflow": "recommend",
+          "mode": "replay",
+          "fetched_at": "1970-01-01T00:00:00.000Z",
+          "qloo_rank": 8,
+          "popularity": 0.19,
+          "obscurity": 9,
+          "followers": 2400,
+          "primary_genres": [],
+          "qloo_tags": [
+            {
+              "id": "qlootag:music",
+              "name": "music",
+              "type": "urn:tag"
+            },
+            {
+              "id": "qlootag:vinyl",
+              "name": "vinyl",
+              "type": "urn:tag"
+            }
+          ],
+          "explainability": "Fictional brand: vinyl and record-store affinity carries to apparel.",
+          "fit_note": "fit 30 is derived by Taste Brain from Qloo's result order (rank 8); Qloo returns no affinity score on this endpoint"
+        },
+        "mode": "replay",
+        "approval_blocked": false,
+        "needs_terms": [],
+        "local_lift": null,
+        "rising": null
+      }
+    ],
+    "unsupported": [
+      {
+        "offer_id": "qloo_only:qloo:brand:unknown_indie",
+        "name": "Unknown Indie Label",
+        "reason": "Qloo ranks it for this audience, but there is no approved offer or entered term to rule-check"
+      }
+    ],
+    "rejections": [
+      {
+        "entity_id": "qloo:brand:riverstone_co",
+        "offer_id": "off_riverstone",
+        "name": "Riverstone Co.",
+        "reason": "rule budget_cap failed: unit_cost 46 exceeds the ceiling 40",
+        "check": 3,
+        "rule_id": "budget_cap",
+        "at": "2026-10-24T11:25:17.538Z"
+      },
+      {
+        "entity_id": "qloo:brand:palmetto_vape_co",
+        "offer_id": "off_palmetto",
+        "name": "Palmetto Vape Co.",
+        "reason": "rule brand_safety failed: carries excluded tag \"qlootag:adult_content\"",
+        "check": 3,
+        "rule_id": "brand_safety",
+        "at": "2026-10-24T11:25:17.539Z"
+      },
+      {
+        "entity_id": "qloo:brand:mesa_and_main",
+        "offer_id": "off_mesa",
+        "name": "Mesa & Main",
+        "reason": "rule min_order failed: minimum_order 620 exceeds the ceiling 500",
+        "check": 3,
+        "rule_id": "min_order",
+        "at": "2026-10-24T11:25:17.540Z"
+      }
+    ],
+    "unresolved_seeds": [
+      {
+        "input": "yeti",
+        "candidates": []
+      },
+      {
+        "input": "tecovas",
+        "candidates": []
+      },
+      {
+        "input": "howler brothers",
+        "candidates": []
+      }
+    ],
+    "relaxations": [],
+    "allowlist_violations": [],
+    "audience_tags": [
+      {
+        "name": "western",
+        "id": "qlootag:western"
+      },
+      {
+        "name": "boots",
+        "id": "qlootag:boots"
+      },
+      {
+        "name": "music",
+        "id": "qlootag:music"
+      },
+      {
+        "name": "streetwear",
+        "id": "qlootag:streetwear"
+      },
+      {
+        "name": "outdoors",
+        "id": "qlootag:outdoors"
+      },
+      {
+        "name": "sustainable",
+        "id": "qlootag:sustainable"
+      },
+      {
+        "name": "denim",
+        "id": "qlootag:denim"
+      },
+      {
+        "name": "leather",
+        "id": "qlootag:leather"
+      }
+    ],
+    "local_lift_note": "local lift unavailable: the no-location comparison returned nothing on this run",
+    "flip_points": [
+      {
+        "entity_id": "qloo:brand:riverstone_co",
+        "name": "Riverstone Co.",
+        "rule_id": "budget_cap",
+        "metric": "unit_cost",
+        "observed": 46,
+        "current_threshold": 40,
+        "required_threshold": 46,
+        "delta": 6,
+        "direction": "max",
+        "note": "raising the unit_cost ceiling from 40 to 46 admits Riverstone Co.; at 45 it still fails"
+      },
+      {
+        "entity_id": "qloo:brand:mesa_and_main",
+        "name": "Mesa & Main",
+        "rule_id": "min_order",
+        "metric": "minimum_order",
+        "observed": 620,
+        "current_threshold": 500,
+        "required_threshold": 620,
+        "delta": 120,
+        "direction": "max",
+        "note": "raising the minimum_order ceiling from 500 to 620 admits Mesa & Main; at 610 it still fails"
+      }
+    ],
+    "trace": {
+      "proposal_id": "p_mvmbb7tx_001",
+      "pack": "retail",
+      "location": "store_3",
+      "goal": "Add 4 brands for spring",
+      "mode": "replay",
+      "steps": [
+        {
+          "type": "Audience",
+          "label": "Replay mode: 3 configured seed(s) not re-resolved against /search",
+          "result": "info",
+          "mode": "replay",
+          "detail": "seeds for this room: yeti, tecovas, howler brothers — the stored result is served as-is, and this run must not be read as a live resolution",
+          "at": "2026-10-24T11:25:17.532Z"
+        },
+        {
+          "type": "Audience",
+          "label": "Store 3 - East Austin, TX audience portrait",
+          "source": "GET /v2/insights filter.type=urn:tag",
+          "mode": "replay",
+          "result": "info",
+          "detail": "western, boots, music, streetwear, outdoors, sustainable, denim, leather",
+          "at": "2026-10-24T11:25:17.534Z"
+        },
+        {
+          "type": "QlooEntity",
+          "label": "Qloo returned 10 candidates for this room",
+          "result": "info",
+          "mode": "replay",
+          "detail": "ordered by Qloo's own relevance; order preserved, no re-ranking by this app",
+          "at": "2026-10-24T11:25:17.537Z"
+        },
+        {
+          "type": "Rule",
+          "label": "budget_cap: fail — unit_cost 46 exceeds the ceiling 40",
+          "source": "SOP-Buying-Policy.md#L12 — Buying Policy L12: No single item may have a unit cost above $40 for the opening assortment.",
+          "result": "fail",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.537Z"
+        },
+        {
+          "type": "Rule",
+          "label": "min_order: pass — minimum_order 200 <= 500",
+          "source": "SOP-Buying-Policy.md#L20 — Buying Policy L20: Minimum supplier order quantity must not exceed 500 units.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.537Z"
+        },
+        {
+          "type": "Rule",
+          "label": "brand_safety: pass — no excluded tag present",
+          "source": "SOP-Brand-Safety.md#L4 — Brand Safety L4: Exclude any brand tagged tobacco or adult_content in the approved-brand list.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.537Z"
+        },
+        {
+          "type": "QlooEntity",
+          "label": "Riverstone Co.",
+          "id": "qloo:brand:riverstone_co",
+          "score": 1,
+          "result": "fail",
+          "mode": "replay",
+          "detail": "Qloo rank 1, popularity 0.490 — Fictional brand: premium leather and western affinity, but its invented unit cost breaches the buying ceiling.",
+          "at": "2026-10-24T11:25:17.537Z"
+        },
+        {
+          "type": "Filter",
+          "label": "Riverstone Co. rejected by the Auditor (check 3)",
+          "id": "qloo:brand:riverstone_co",
+          "result": "fail",
+          "mode": "replay",
+          "detail": "rule budget_cap failed: unit_cost 46 exceeds the ceiling 40",
+          "at": "2026-10-24T11:25:17.538Z"
+        },
+        {
+          "type": "Rule",
+          "label": "budget_cap: pass — unit_cost 30 <= 40",
+          "source": "SOP-Buying-Policy.md#L12 — Buying Policy L12: No single item may have a unit cost above $40 for the opening assortment.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.538Z"
+        },
+        {
+          "type": "Rule",
+          "label": "min_order: pass — minimum_order 260 <= 500",
+          "source": "SOP-Buying-Policy.md#L20 — Buying Policy L20: Minimum supplier order quantity must not exceed 500 units.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.538Z"
+        },
+        {
+          "type": "Rule",
+          "label": "brand_safety: pass — no excluded tag present",
+          "source": "SOP-Brand-Safety.md#L4 — Brand Safety L4: Exclude any brand tagged tobacco or adult_content in the approved-brand list.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.538Z"
+        },
+        {
+          "type": "QlooEntity",
+          "label": "Cedar Row",
+          "id": "qloo:brand:cedar_row",
+          "score": 0.9,
+          "result": "info",
+          "mode": "replay",
+          "detail": "Qloo rank 2, popularity 0.410 — Fictional brand: boots and westernwear overlap with this audience's place signals.",
+          "at": "2026-10-24T11:25:17.538Z"
+        },
+        {
+          "type": "Rule",
+          "label": "budget_cap: pass — unit_cost 22 <= 40",
+          "source": "SOP-Buying-Policy.md#L12 — Buying Policy L12: No single item may have a unit cost above $40 for the opening assortment.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.538Z"
+        },
+        {
+          "type": "Rule",
+          "label": "min_order: pass — minimum_order 180 <= 500",
+          "source": "SOP-Buying-Policy.md#L20 — Buying Policy L20: Minimum supplier order quantity must not exceed 500 units.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.538Z"
+        },
+        {
+          "type": "Rule",
+          "label": "brand_safety: pass — no excluded tag present",
+          "source": "SOP-Brand-Safety.md#L4 — Brand Safety L4: Exclude any brand tagged tobacco or adult_content in the approved-brand list.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.538Z"
+        },
+        {
+          "type": "QlooEntity",
+          "label": "Lumen Threads",
+          "id": "qloo:brand:lumen_threads",
+          "score": 0.8,
+          "result": "info",
+          "mode": "replay",
+          "detail": "Qloo rank 3, popularity 0.370 — Fictional brand: streetwear tied to live-music affinity in the district.",
+          "at": "2026-10-24T11:25:17.538Z"
+        },
+        {
+          "type": "Rule",
+          "label": "budget_cap: pass — unit_cost 28 <= 40",
+          "source": "SOP-Buying-Policy.md#L12 — Buying Policy L12: No single item may have a unit cost above $40 for the opening assortment.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "Rule",
+          "label": "min_order: pass — minimum_order 240 <= 500",
+          "source": "SOP-Buying-Policy.md#L20 — Buying Policy L20: Minimum supplier order quantity must not exceed 500 units.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "Rule",
+          "label": "brand_safety: pass — no excluded tag present",
+          "source": "SOP-Brand-Safety.md#L4 — Brand Safety L4: Exclude any brand tagged tobacco or adult_content in the approved-brand list.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "QlooEntity",
+          "label": "Arbor & Ledge",
+          "id": "qloo:brand:arbor_and_ledge",
+          "score": 0.7,
+          "result": "info",
+          "mode": "replay",
+          "detail": "Qloo rank 4, popularity 0.350 — Fictional brand: sustainable outdoors affinity matches trail and park place signals.",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "Rule",
+          "label": "budget_cap: pass — unit_cost 34 <= 40",
+          "source": "SOP-Buying-Policy.md#L12 — Buying Policy L12: No single item may have a unit cost above $40 for the opening assortment.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "Rule",
+          "label": "min_order: pass — minimum_order 300 <= 500",
+          "source": "SOP-Buying-Policy.md#L20 — Buying Policy L20: Minimum supplier order quantity must not exceed 500 units.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "Rule",
+          "label": "brand_safety: pass — no excluded tag present",
+          "source": "SOP-Brand-Safety.md#L4 — Brand Safety L4: Exclude any brand tagged tobacco or adult_content in the approved-brand list.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "QlooEntity",
+          "label": "Northbound Supply",
+          "id": "qloo:brand:northbound_supply",
+          "score": 0.6,
+          "result": "info",
+          "mode": "replay",
+          "detail": "Qloo rank 5, popularity 0.300 — Fictional brand: denim and workwear align with the audience's brand portrait.",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "Rule",
+          "label": "budget_cap: pass — unit_cost 12 <= 40",
+          "source": "SOP-Buying-Policy.md#L12 — Buying Policy L12: No single item may have a unit cost above $40 for the opening assortment.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "Rule",
+          "label": "min_order: pass — minimum_order 150 <= 500",
+          "source": "SOP-Buying-Policy.md#L20 — Buying Policy L20: Minimum supplier order quantity must not exceed 500 units.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "Rule",
+          "label": "brand_safety: fail — carries excluded tag \"qlootag:adult_content\"",
+          "source": "SOP-Brand-Safety.md#L4 — Brand Safety L4: Exclude any brand tagged tobacco or adult_content in the approved-brand list.",
+          "result": "fail",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "QlooEntity",
+          "label": "Palmetto Vape Co.",
+          "id": "qloo:brand:palmetto_vape_co",
+          "score": 0.5,
+          "result": "fail",
+          "mode": "replay",
+          "detail": "Qloo rank 6, popularity 0.280 — Fictional brand carrying an excluded tag, so brand safety has something to refuse in Replay mode.",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "Filter",
+          "label": "Palmetto Vape Co. rejected by the Auditor (check 3)",
+          "id": "qloo:brand:palmetto_vape_co",
+          "result": "fail",
+          "mode": "replay",
+          "detail": "rule brand_safety failed: carries excluded tag \"qlootag:adult_content\"",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "Rule",
+          "label": "budget_cap: pass — unit_cost 26 <= 40",
+          "source": "SOP-Buying-Policy.md#L12 — Buying Policy L12: No single item may have a unit cost above $40 for the opening assortment.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "Rule",
+          "label": "min_order: pass — minimum_order 320 <= 500",
+          "source": "SOP-Buying-Policy.md#L20 — Buying Policy L20: Minimum supplier order quantity must not exceed 500 units.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "Rule",
+          "label": "brand_safety: pass — no excluded tag present",
+          "source": "SOP-Brand-Safety.md#L4 — Brand Safety L4: Exclude any brand tagged tobacco or adult_content in the approved-brand list.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "QlooEntity",
+          "label": "Halo Athletics",
+          "id": "qloo:brand:halo_athletics",
+          "score": 0.4,
+          "result": "info",
+          "mode": "replay",
+          "detail": "Qloo rank 7, popularity 0.620 — Fictional brand: moderate athleisure affinity from fitness place signals.",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "Rule",
+          "label": "budget_cap: pass — unit_cost 24 <= 40",
+          "source": "SOP-Buying-Policy.md#L12 — Buying Policy L12: No single item may have a unit cost above $40 for the opening assortment.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "Rule",
+          "label": "min_order: pass — minimum_order 120 <= 500",
+          "source": "SOP-Buying-Policy.md#L20 — Buying Policy L20: Minimum supplier order quantity must not exceed 500 units.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "Rule",
+          "label": "brand_safety: pass — no excluded tag present",
+          "source": "SOP-Brand-Safety.md#L4 — Brand Safety L4: Exclude any brand tagged tobacco or adult_content in the approved-brand list.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "QlooEntity",
+          "label": "Dusk Records Apparel",
+          "id": "qloo:brand:dusk_records_apparel",
+          "score": 0.3,
+          "result": "info",
+          "mode": "replay",
+          "detail": "Qloo rank 8, popularity 0.190 — Fictional brand: vinyl and record-store affinity carries to apparel.",
+          "at": "2026-10-24T11:25:17.539Z"
+        },
+        {
+          "type": "Rule",
+          "label": "budget_cap: pass — unit_cost 19 <= 40",
+          "source": "SOP-Buying-Policy.md#L12 — Buying Policy L12: No single item may have a unit cost above $40 for the opening assortment.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.540Z"
+        },
+        {
+          "type": "Rule",
+          "label": "min_order: fail — minimum_order 620 exceeds the ceiling 500",
+          "source": "SOP-Buying-Policy.md#L20 — Buying Policy L20: Minimum supplier order quantity must not exceed 500 units.",
+          "result": "fail",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.540Z"
+        },
+        {
+          "type": "Rule",
+          "label": "brand_safety: pass — no excluded tag present",
+          "source": "SOP-Brand-Safety.md#L4 — Brand Safety L4: Exclude any brand tagged tobacco or adult_content in the approved-brand list.",
+          "result": "pass",
+          "mode": "replay",
+          "at": "2026-10-24T11:25:17.540Z"
+        },
+        {
+          "type": "QlooEntity",
+          "label": "Mesa & Main",
+          "id": "qloo:brand:mesa_and_main",
+          "score": 0.2,
+          "result": "fail",
+          "mode": "replay",
+          "detail": "Qloo rank 9, popularity 0.440 — Fictional brand: broad affinity, but its invented minimum order breaches the policy ceiling.",
+          "at": "2026-10-24T11:25:17.540Z"
+        },
+        {
+          "type": "Filter",
+          "label": "Mesa & Main rejected by the Auditor (check 3)",
+          "id": "qloo:brand:mesa_and_main",
+          "result": "fail",
+          "mode": "replay",
+          "detail": "rule min_order failed: minimum_order 620 exceeds the ceiling 500",
+          "at": "2026-10-24T11:25:17.540Z"
+        },
+        {
+          "type": "Filter",
+          "label": "Unknown Indie Label: no approved offer on file",
+          "id": "qloo:brand:unknown_indie",
+          "result": "fail",
+          "mode": "replay",
+          "detail": "shown as unsupported; never ranked into the proposal",
+          "at": "2026-10-24T11:25:17.540Z"
+        },
+        {
+          "type": "Proposal",
+          "label": "#1 Cedar Row",
+          "id": "qloo:brand:cedar_row",
+          "score": 0.9,
+          "result": "pass",
+          "mode": "replay",
+          "detail": "Qloo rank 2",
+          "at": "2026-10-24T11:25:17.540Z"
+        },
+        {
+          "type": "Proposal",
+          "label": "#2 Lumen Threads",
+          "id": "qloo:brand:lumen_threads",
+          "score": 0.8,
+          "result": "pass",
+          "mode": "replay",
+          "detail": "Qloo rank 3",
+          "at": "2026-10-24T11:25:17.540Z"
+        },
+        {
+          "type": "Proposal",
+          "label": "#3 Arbor & Ledge",
+          "id": "qloo:brand:arbor_and_ledge",
+          "score": 0.7,
+          "result": "pass",
+          "mode": "replay",
+          "detail": "Qloo rank 4",
+          "at": "2026-10-24T11:25:17.540Z"
+        },
+        {
+          "type": "Proposal",
+          "label": "#4 Northbound Supply",
+          "id": "qloo:brand:northbound_supply",
+          "score": 0.6,
+          "result": "pass",
+          "mode": "replay",
+          "detail": "Qloo rank 5",
+          "at": "2026-10-24T11:25:17.540Z"
+        },
+        {
+          "type": "Proposal",
+          "label": "#5 Halo Athletics",
+          "id": "qloo:brand:halo_athletics",
+          "score": 0.4,
+          "result": "pass",
+          "mode": "replay",
+          "detail": "Qloo rank 7",
+          "at": "2026-10-24T11:25:17.540Z"
+        },
+        {
+          "type": "Proposal",
+          "label": "#6 Dusk Records Apparel",
+          "id": "qloo:brand:dusk_records_apparel",
+          "score": 0.3,
+          "result": "pass",
+          "mode": "replay",
+          "detail": "Qloo rank 8",
+          "at": "2026-10-24T11:25:17.540Z"
+        },
+        {
+          "type": "Decision",
+          "mode": "replay",
+          "label": "Approved by Sample Data (synthetic operator)",
+          "source": "Sample Data (synthetic operator)",
+          "result": "pass",
+          "at": "2026-10-24T11:25:17.543Z"
+        },
+        {
+          "type": "Ledger",
+          "mode": "replay",
+          "label": "decision written to the ledger as entry 2",
+          "result": "pass",
+          "detail": "hash d0e0143de9448aaa… linked to b3041c34482f91c4…",
+          "at": "2026-10-24T11:25:17.543Z"
+        }
+      ],
+      "rerun_hash": "67a7c99c6a99f718",
+      "mode_mix": {
+        "live": 0,
+        "cached": 0,
+        "replay": 49
+      }
+    }
+  },
+  "evidence": {
+    "entity_ids": [
+      "qloo:brand:riverstone_co",
+      "qloo:brand:cedar_row",
+      "qloo:brand:lumen_threads",
+      "qloo:brand:arbor_and_ledge",
+      "qloo:brand:northbound_supply",
+      "qloo:brand:palmetto_vape_co",
+      "qloo:brand:halo_athletics",
+      "qloo:brand:dusk_records_apparel",
+      "qloo:brand:mesa_and_main",
+      "qloo:brand:unknown_indie"
+    ],
+    "candidates": [
+      {
+        "entity_id": "qloo:brand:riverstone_co",
+        "name": "Riverstone Co.",
+        "qloo_rank": 1,
+        "popularity": 0.49,
+        "obscurity": 5,
+        "followers": 44000,
+        "tag_names": [
+          "premium",
+          "leather",
+          "western"
+        ],
+        "qloo_tags": [
+          {
+            "id": "qlootag:premium",
+            "name": "premium",
+            "type": "urn:tag"
+          },
+          {
+            "id": "qlootag:leather",
+            "name": "leather",
+            "type": "urn:tag"
+          },
+          {
+            "id": "qlootag:western",
+            "name": "western",
+            "type": "urn:tag"
+          }
+        ]
+      },
+      {
+        "entity_id": "qloo:brand:cedar_row",
+        "name": "Cedar Row",
+        "qloo_rank": 2,
+        "popularity": 0.41,
+        "obscurity": 6,
+        "followers": 17000,
+        "tag_names": [
+          "western",
+          "boots"
+        ],
+        "qloo_tags": [
+          {
+            "id": "qlootag:western",
+            "name": "western",
+            "type": "urn:tag"
+          },
+          {
+            "id": "qlootag:boots",
+            "name": "boots",
+            "type": "urn:tag"
+          }
+        ]
+      },
+      {
+        "entity_id": "qloo:brand:lumen_threads",
+        "name": "Lumen Threads",
+        "qloo_rank": 3,
+        "popularity": 0.37,
+        "obscurity": 7,
+        "followers": 9800,
+        "tag_names": [
+          "streetwear",
+          "music"
+        ],
+        "qloo_tags": [
+          {
+            "id": "qlootag:streetwear",
+            "name": "streetwear",
+            "type": "urn:tag"
+          },
+          {
+            "id": "qlootag:music",
+            "name": "music",
+            "type": "urn:tag"
+          }
+        ]
+      },
+      {
+        "entity_id": "qloo:brand:arbor_and_ledge",
+        "name": "Arbor & Ledge",
+        "qloo_rank": 4,
+        "popularity": 0.35,
+        "obscurity": 8,
+        "followers": 6200,
+        "tag_names": [
+          "outdoors",
+          "sustainable"
+        ],
+        "qloo_tags": [
+          {
+            "id": "qlootag:outdoors",
+            "name": "outdoors",
+            "type": "urn:tag"
+          },
+          {
+            "id": "qlootag:sustainable",
+            "name": "sustainable",
+            "type": "urn:tag"
+          }
+        ]
+      },
+      {
+        "entity_id": "qloo:brand:northbound_supply",
+        "name": "Northbound Supply",
+        "qloo_rank": 5,
+        "popularity": 0.3,
+        "obscurity": 8,
+        "followers": 5100,
+        "tag_names": [
+          "workwear",
+          "denim"
+        ],
+        "qloo_tags": [
+          {
+            "id": "qlootag:workwear",
+            "name": "workwear",
+            "type": "urn:tag"
+          },
+          {
+            "id": "qlootag:denim",
+            "name": "denim",
+            "type": "urn:tag"
+          }
+        ]
+      },
+      {
+        "entity_id": "qloo:brand:palmetto_vape_co",
+        "name": "Palmetto Vape Co.",
+        "qloo_rank": 6,
+        "popularity": 0.28,
+        "obscurity": 7,
+        "followers": 4300,
+        "tag_names": [
+          "accessories",
+          "adult content"
+        ],
+        "qloo_tags": [
+          {
+            "id": "qlootag:accessories",
+            "name": "accessories",
+            "type": "urn:tag"
+          },
+          {
+            "id": "qlootag:adult_content",
+            "name": "adult content",
+            "type": "urn:tag"
+          }
+        ]
+      },
+      {
+        "entity_id": "qloo:brand:halo_athletics",
+        "name": "Halo Athletics",
+        "qloo_rank": 7,
+        "popularity": 0.62,
+        "obscurity": 3,
+        "followers": 128000,
+        "tag_names": [
+          "athleisure"
+        ],
+        "qloo_tags": [
+          {
+            "id": "qlootag:athleisure",
+            "name": "athleisure",
+            "type": "urn:tag"
+          }
+        ]
+      },
+      {
+        "entity_id": "qloo:brand:dusk_records_apparel",
+        "name": "Dusk Records Apparel",
+        "qloo_rank": 8,
+        "popularity": 0.19,
+        "obscurity": 9,
+        "followers": 2400,
+        "tag_names": [
+          "music",
+          "vinyl"
+        ],
+        "qloo_tags": [
+          {
+            "id": "qlootag:music",
+            "name": "music",
+            "type": "urn:tag"
+          },
+          {
+            "id": "qlootag:vinyl",
+            "name": "vinyl",
+            "type": "urn:tag"
+          }
+        ]
+      },
+      {
+        "entity_id": "qloo:brand:mesa_and_main",
+        "name": "Mesa & Main",
+        "qloo_rank": 9,
+        "popularity": 0.44,
+        "obscurity": 5,
+        "followers": 30000,
+        "tag_names": [
+          "basics",
+          "cotton"
+        ],
+        "qloo_tags": [
+          {
+            "id": "qlootag:basics",
+            "name": "basics",
+            "type": "urn:tag"
+          },
+          {
+            "id": "qlootag:cotton",
+            "name": "cotton",
+            "type": "urn:tag"
+          }
+        ]
+      },
+      {
+        "entity_id": "qloo:brand:unknown_indie",
+        "name": "Unknown Indie Label",
+        "qloo_rank": 10,
+        "popularity": 0.12,
+        "obscurity": 10,
+        "followers": 900,
+        "tag_names": [
+          "indie"
+        ],
+        "qloo_tags": [
+          {
+            "id": "qlootag:indie",
+            "name": "indie",
+            "type": "urn:tag"
+          }
+        ]
+      }
+    ]
+  },
+  "rules": {
+    "pinned_version": "672db30342de05d8be4ecc112a4af772687c68036a269f8ac808cd70b202ab08",
+    "rules": [
+      {
+        "id": "budget_cap",
+        "kind": "numeric_max",
+        "field": "unit_cost",
+        "value": 40,
+        "source": "SOP-Buying-Policy.md#L12",
+        "snippet": "unit_cost must be <= 40"
+      },
+      {
+        "id": "min_order",
+        "kind": "numeric_max",
+        "field": "minimum_order",
+        "value": 500,
+        "source": "SOP-Buying-Policy.md#L20",
+        "snippet": "minimum_order must be <= 500"
+      },
+      {
+        "id": "brand_safety",
+        "kind": "exclude_tags",
+        "tags": [
+          "qlootag:tobacco",
+          "qlootag:adult_content"
+        ],
+        "source": "SOP-Brand-Safety.md#L4",
+        "snippet": "exclude tobacco / adult_content tags"
+      }
+    ]
+  },
+  "rule_subjects": [
+    {
+      "entity_id": "qloo:brand:cedar_row",
+      "name": "Cedar Row",
+      "fields": {
+        "unit_cost": 30,
+        "minimum_order": 260
+      },
+      "offer_tags": [
+        "western",
+        "boots"
+      ]
+    },
+    {
+      "entity_id": "qloo:brand:lumen_threads",
+      "name": "Lumen Threads",
+      "fields": {
+        "unit_cost": 22,
+        "minimum_order": 180
+      },
+      "offer_tags": [
+        "streetwear",
+        "music"
+      ]
+    },
+    {
+      "entity_id": "qloo:brand:arbor_and_ledge",
+      "name": "Arbor & Ledge",
+      "fields": {
+        "unit_cost": 28,
+        "minimum_order": 240
+      },
+      "offer_tags": [
+        "outdoors",
+        "sustainable"
+      ]
+    },
+    {
+      "entity_id": "qloo:brand:northbound_supply",
+      "name": "Northbound Supply",
+      "fields": {
+        "unit_cost": 34,
+        "minimum_order": 300
+      },
+      "offer_tags": [
+        "workwear",
+        "denim"
+      ]
+    },
+    {
+      "entity_id": "qloo:brand:halo_athletics",
+      "name": "Halo Athletics",
+      "fields": {
+        "unit_cost": 26,
+        "minimum_order": 320
+      },
+      "offer_tags": [
+        "athleisure"
+      ]
+    },
+    {
+      "entity_id": "qloo:brand:dusk_records_apparel",
+      "name": "Dusk Records Apparel",
+      "fields": {
+        "unit_cost": 24,
+        "minimum_order": 120
+      },
+      "offer_tags": [
+        "music",
+        "vinyl"
+      ]
+    }
+  ],
+  "ledger": [
+    {
+      "seq": 1,
+      "at": "2026-10-24T11:25:17.541Z",
+      "action": "proposed",
+      "proposal_id": "p_mvmbb7tx_001",
+      "pack": "retail",
+      "location": "store_3",
+      "actor": "taste-brain",
+      "detail": {
+        "goal": "Add 4 brands for spring",
+        "mode": "replay",
+        "items": 6,
+        "rejected": 3,
+        "rerun_hash": "67a7c99c6a99f718",
+        "session": {
+          "calls": 5,
+          "live_reads": 0,
+          "relaxations": [],
+          "violations": []
+        }
+      },
+      "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "hash": "b3041c34482f91c445c7e024402c3d9ae3e1625976fab7b84fa022e9582dffe8"
+    },
+    {
+      "seq": 2,
+      "at": "2026-10-24T11:25:17.543Z",
+      "action": "approved",
+      "proposal_id": "p_mvmbb7tx_001",
+      "pack": "retail",
+      "location": "store_3",
+      "actor": "Sample Data (synthetic operator)",
+      "detail": {
+        "approved": [
+          {
+            "name": "Cedar Row",
+            "qloo_rank": 2
+          },
+          {
+            "name": "Lumen Threads",
+            "qloo_rank": 3
+          },
+          {
+            "name": "Arbor & Ledge",
+            "qloo_rank": 4
+          },
+          {
+            "name": "Northbound Supply",
+            "qloo_rank": 5
+          },
+          {
+            "name": "Halo Athletics",
+            "qloo_rank": 7
+          },
+          {
+            "name": "Dusk Records Apparel",
+            "qloo_rank": 8
+          }
+        ],
+        "item_count": 6,
+        "rerun_hash": "67a7c99c6a99f718"
+      },
+      "prev_hash": "b3041c34482f91c445c7e024402c3d9ae3e1625976fab7b84fa022e9582dffe8",
+      "hash": "d0e0143de9448aaa21f7b491b198b0dbeae1ccb79284658c50d5dd53ac40cce1"
+    }
+  ],
+  "ledger_head_hash": "d0e0143de9448aaa21f7b491b198b0dbeae1ccb79284658c50d5dd53ac40cce1"
+}

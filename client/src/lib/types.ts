@@ -288,3 +288,42 @@ export interface TasteLiftResult {
   };
   per_request: { request: { pack: string; location: string; goal: string }; armA: ArmMetrics; armB: ArmMetrics }[];
 }
+
+// ── W1 Verifier ──────────────────────────────────────────────────────────────
+
+export interface VerifyCheck {
+  id: string;
+  name: string;
+  status: 'pass' | 'fail';
+  detail: string;
+  first_failing: string | null;
+}
+
+export interface VerifyReport {
+  ran_at: string;
+  ok: boolean;
+  passed: number;
+  failed: number;
+  checks: VerifyCheck[];
+  proposal_id: string | null;
+  schema: string | null;
+  error: string | null;
+}
+
+/** Mirrors server/src/verify/export.ts. The client only renders it; the checks
+ *  are computed by the same module the CLI runs. */
+export interface DecisionExport {
+  schema: string;
+  exported_at: string;
+  honest_scope: { proves: string[]; does_not_prove: string[] };
+  provenance: { proposal_id: string; pack: string; location: string; goal: string; decision_mode: TasteMode };
+  decision: Proposal;
+  evidence: {
+    entity_ids: string[];
+    candidates: { entity_id: string; name: string; qloo_rank: number; tag_names: string[] }[];
+  };
+  rules: { pinned_version: string; rules: unknown[] };
+  rule_subjects: { entity_id: string; name: string; fields: Record<string, number>; offer_tags: string[] }[];
+  ledger: LedgerEntry[];
+  ledger_head_hash: string | null;
+}

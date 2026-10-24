@@ -217,6 +217,7 @@ function evaluateCandidates(candidates: QlooEntityResult[], ctx: EvalContext): {
       tags: [...new Set([...(offer?.tags ?? []), ...r.qloo_tags.map((t) => t.name)])],
       explanation: structuredExplanation(name, r),
       rule_results,
+      rule_inputs: { fields, offer_tags: offer?.tags ?? [] },
       evidence: evidenceFor(r, ctx.sessionMode),
       mode: r.source.mode,
       approval_blocked: verdict.approval_blocked,
