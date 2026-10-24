@@ -1,0 +1,13 @@
+{
+  "_note": "SYNTHETIC fixture for Replay mode only. NOT a Qloo response. An invented audience portrait for the invented Red Room, so the Audience trace step and the partner overlap are not empty offline. No real audience is described.",
+  "workflow": "audience_tags",
+  "fetched_at": "1970-01-01T00:00:00.000Z",
+  "results": [
+    { "entity_id": "qlootag:house", "name": "house", "type": "urn:tag" },
+    { "entity_id": "qlootag:electronic", "name": "electronic", "type": "urn:tag" },
+    { "entity_id": "qlootag:indie", "name": "indie", "type": "urn:tag" },
+    { "entity_id": "qlootag:techno", "name": "techno", "type": "urn:tag" },
+    { "entity_id": "qlootag:chicago", "name": "chicago", "type": "urn:tag" },
+    { "entity_id": "qlootag:synth", "name": "synth", "type": "urn:tag" }
+  ]
+}

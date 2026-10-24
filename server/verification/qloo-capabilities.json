@@ -1,0 +1,134 @@
+{
+  "verified_at": "2026-10-24T03:54:04.060Z",
+  "base_url": "https://hackathon.api.qloo.com",
+  "method": "scripts/venue-gate.ts + scripts/probe-params4.ts against the hackathon key. Only statuses, row counts and parameter names are recorded here; no response payloads, entity names or entity ids are stored in this repository.",
+  "decision_gate": {
+    "requirement": "3 cities, >=10 distinct artists, >=5 after the popularity band, non-empty explainability",
+    "result": "pass",
+    "note": "Chicago, Austin and Nashville each returned 20 artists with the location signal, 20 after the popularity band, and a non-empty English description on every entity. Venues is therefore the lead pack; retail ships as the proof that a pack is configuration, not code."
+  },
+  "capabilities": [
+    {
+      "id": "Q1",
+      "name": "Entity resolution from a name",
+      "endpoint": "/search",
+      "status": "verified",
+      "params": ["query", "type"],
+      "evidence": "HTTP 200, 3 of 3 artist seeds resolved to an entity id on the first try.",
+      "used_by": "Profiler — the room's own seed list is resolved, never guessed. An ambiguous name is surfaced to the operator instead of being picked automatically."
+    },
+    {
+      "id": "Q2",
+      "name": "Tag lookup",
+      "endpoint": "/v2/tags",
+      "status": "verified",
+      "params": ["filter.query"],
+      "evidence": "HTTP 200, 20 tag rows for \"indie\".",
+      "used_by": "Rule Checker — exclude_tags / require_tags rules are matched against real Qloo tag ids, not string guesses."
+    },
+    {
+      "id": "Q3",
+      "name": "Local audience-driven recommendations",
+      "endpoint": "/v2/insights",
+      "status": "verified",
+      "params": ["filter.type", "signal.interests.entities", "signal.location.query", "take"],
+      "evidence": "HTTP 200, 20 rows in each of the 3 cities. Removing the location changed the order, so the location signal is real and is used for the derived local-lift chip.",
+      "used_by": "Explorer — the candidate list for every room."
+    },
+    {
+      "id": "Q4",
+      "name": "Ranking a fixed shortlist",
+      "endpoint": "/v2/insights",
+      "status": "verified",
+      "params": ["filter.type", "signal.interests.entities", "signal.location.query", "filter.results.entities", "take"],
+      "evidence": "HTTP 200, 5 rows. Contract detail found the hard way: filter.results.entities must name entities inside the result space — passing the taste seeds returns 0 rows.",
+      "used_by": "What-if — rank the owner's own shortlist without re-querying the whole catalogue."
+    },
+    {
+      "id": "Q5",
+      "name": "Explainability text",
+      "endpoint": "/v2/insights",
+      "status": "verified",
+      "params": ["feature.explainability"],
+      "evidence": "HTTP 200; a non-empty English description was present on entities in all 3 cities. Descriptions arrive in several languages inside short_descriptions, so Taste Brain reads the English entry only.",
+      "used_by": "Evidence cards — the sentence shown next to a recommendation comes from Qloo, not from the model."
+    },
+    {
+      "id": "Q6",
+      "name": "Excluding entities and tags at query time",
+      "endpoint": "/v2/insights",
+      "status": "verified",
+      "params": ["filter.exclude.entities", "filter.exclude.tags"],
+      "evidence": "HTTP 200, 10 rows with one entity excluded.",
+      "used_by": "Policy enforcement — a banned tag or a previously played act is removed before ranking, and the removal is written into the trace."
+    },
+    {
+      "id": "Q7",
+      "name": "Popularity band as an API filter",
+      "endpoint": "/v2/insights",
+      "status": "verified",
+      "params": ["filter.popularity.min", "filter.popularity.max"],
+      "evidence": "HTTP 200 with floats in 0..1 (20 rows in each city). Integers are rejected with 400 \"must be a floating point value between 0 and 1\" — the allowlist enforces the float shape before the request leaves the server.",
+      "used_by": "Room fit — a 600-cap room asks Qloo for the size band that actually plays there, rather than filtering afterwards."
+    },
+    {
+      "id": "Q8",
+      "name": "Trend bias on the ranking",
+      "endpoint": "/v2/insights",
+      "status": "verified",
+      "params": ["bias.trends"],
+      "evidence": "HTTP 200 with bias.trends=high. The value is an enum (off, very_low, low, mid, medium, high, very_high); a boolean returns 400.",
+      "used_by": "Rising chip — comparing the biased order against the default order, and labelling the delta as derived by Taste Brain."
+    },
+    {
+      "id": "Q8b",
+      "name": "Dedicated /v2/trending endpoint",
+      "endpoint": "/v2/trending",
+      "status": "accepted_but_empty",
+      "params": ["filter.type", "signal.interests.entities", "filter.start_date", "filter.end_date"],
+      "evidence": "HTTP 200 with 0 rows on this key for the date window we tested. filter.start_date and filter.end_date are required.",
+      "used_by": "Nothing. The rising chip uses bias.trends instead, and the UI says so rather than implying a trend feed."
+    },
+    {
+      "id": "Q9",
+      "name": "Demographics segmentation",
+      "endpoint": "/v2/insights",
+      "status": "accepted_but_empty",
+      "params": ["filter.type=urn:demographics"],
+      "evidence": "HTTP 200 with 0 rows on this key.",
+      "used_by": "Nothing, deliberately. No demographic claim is shown anywhere in the product, so an unavailable demographic feed cannot quietly become an invented one."
+    },
+    {
+      "id": "Q10",
+      "name": "Comparing two audiences",
+      "endpoint": "/v2/analysis/compare",
+      "status": "verified",
+      "params": ["filter.type", "a.signal.interests.entities", "a.signal.location.query", "b.signal.interests.entities", "b.signal.location.query"],
+      "evidence": "HTTP 200, 625 tag rows comparing two cities and 61 comparing two seed audiences in one city. Contract detail: the two sides use a. and b. prefixes; compare.* returns 400.",
+      "used_by": "Co-promotion screen — shared and distinguishing tags between two rooms."
+    },
+    {
+      "id": "Q11",
+      "name": "Geographic heatmap",
+      "endpoint": "/v2/insights",
+      "status": "accepted_but_empty",
+      "params": ["filter.type=urn:heatmap", "filter.location.query"],
+      "evidence": "HTTP 200 with 0 rows on this key. filter.location.query is required; filter.location wants WKT and 400s on a plain city name.",
+      "used_by": "Nothing. No map is drawn, because there is no data to draw."
+    },
+    {
+      "id": "Q12",
+      "name": "Cross-domain audience overlap",
+      "endpoint": "/v2/insights",
+      "status": "verified",
+      "params": ["filter.type=urn:entity:place", "filter.type=urn:entity:brand"],
+      "evidence": "HTTP 200, 10 places and 10 brands for the same taste signal, each with its own explanation text.",
+      "used_by": "Co-promotion partners — a venue's audience also follows these brands and places, straight from Qloo, with the endpoint cited."
+    }
+  ],
+  "field_notes": [
+    "No affinity or score field is returned by /v2/insights for entity results (checked on every row of every verified call). Qloo's contribution is the ORDER plus the popularity, obscurity and audience attributes. Taste Brain therefore shows Qloo's rank as the authoritative signal and labels its 0..1 fit value as derived from that rank.",
+    "Tags arrive as objects {id, name, type}, not plain strings. Rules match on the tag id.",
+    "short_descriptions is a list of {lang, text}; the English entry is used and the rest ignored."
+  ]
+}

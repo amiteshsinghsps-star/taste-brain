@@ -1,0 +1,13 @@
+{
+  "_note": "SYNTHETIC fixture for Replay mode only. NOT a Qloo response. Aggregate audience-level tags for the fictional Wynwood store; no claim about any individual.",
+  "workflow": "audience_tags",
+  "fetched_at": "1970-01-01T00:00:00.000Z",
+  "results": [
+    { "entity_id": "qlootag:art", "name": "art", "type": "urn:tag" },
+    { "entity_id": "qlootag:streetwear", "name": "streetwear", "type": "urn:tag" },
+    { "entity_id": "qlootag:swim", "name": "swim", "type": "urn:tag" },
+    { "entity_id": "qlootag:beach", "name": "beach", "type": "urn:tag" },
+    { "entity_id": "qlootag:resort", "name": "resort", "type": "urn:tag" },
+    { "entity_id": "qlootag:miami", "name": "miami", "type": "urn:tag" }
+  ]
+}

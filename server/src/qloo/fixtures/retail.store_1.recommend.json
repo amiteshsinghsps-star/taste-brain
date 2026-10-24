@@ -1,0 +1,11 @@
+{
+  "_note": "SYNTHETIC fixture for Replay mode only. NOT a Qloo response and never shown as one. Names, ids and every figure below are invented for an offline demo of the retail pack, which exists to prove a vertical is configuration, not code. fit is derived by Taste Brain from qloo_rank and is not stored here.",
+  "workflow": "recommend",
+  "fetched_at": "1970-01-01T00:00:00.000Z",
+  "results": [
+    { "entity_id": "qloo:brand:cascadia_knit", "name": "Cascadia Knit", "type": "brand", "qloo_rank": 1, "popularity": 0.44, "obscurity": 6, "followers": 21000, "primary_genres": [], "qloo_tags": [ { "id": "qlootag:rainwear", "name": "rainwear", "type": "urn:tag" }, { "id": "qlootag:knitwear", "name": "knitwear", "type": "urn:tag" }, { "id": "qlootag:seattle", "name": "seattle", "type": "urn:tag" } ], "explainability": "Fictional brand: rainwear and knit affinity for the Belltown audience." },
+    { "entity_id": "qloo:brand:salish_coffee_goods", "name": "Salish Coffee Goods", "type": "brand", "qloo_rank": 2, "popularity": 0.38, "obscurity": 8, "followers": 8400, "primary_genres": [], "qloo_tags": [ { "id": "qlootag:coffee", "name": "coffee", "type": "urn:tag" }, { "id": "qlootag:cafe", "name": "cafe", "type": "urn:tag" } ], "explainability": "Fictional brand: cafe and coffee affinity near Pike Market." },
+    { "entity_id": "qloo:brand:timberline", "name": "Timberline", "type": "brand", "qloo_rank": 3, "popularity": 0.51, "obscurity": 5, "followers": 34000, "primary_genres": [], "qloo_tags": [ { "id": "qlootag:outdoors", "name": "outdoors", "type": "urn:tag" }, { "id": "qlootag:layers", "name": "layers", "type": "urn:tag" } ], "explainability": "Fictional brand: layering and outdoors affinity." },
+    { "entity_id": "qloo:brand:harbor_light_towels", "name": "Harbor Light Towels", "type": "brand", "qloo_rank": 4, "popularity": 0.22, "obscurity": 9, "followers": 3100, "primary_genres": [], "qloo_tags": [ { "id": "qlootag:tobacco", "name": "tobacco", "type": "urn:tag" }, { "id": "qlootag:accessories", "name": "accessories", "type": "urn:tag" } ], "explainability": "Fictional brand carrying an excluded tag, so the brand-safety rule has something to refuse in Replay mode." }
+  ]
+}

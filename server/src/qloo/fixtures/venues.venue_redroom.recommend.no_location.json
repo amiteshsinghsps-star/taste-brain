@@ -1,0 +1,12 @@
+{
+  "_note": "SYNTHETIC fixture for Replay mode only. NOT a Qloo response. Same four invented acts as venues.venue_redroom.recommend.json, in a different invented order: this file exists so the no-location comparison and Ablation arm C have something to line up against with no key and no network. fit is derived by Taste Brain from qloo_rank.",
+  "workflow": "recommend",
+  "variant": "no_location",
+  "fetched_at": "1970-01-01T00:00:00.000Z",
+  "results": [
+    { "entity_id": "qloo:artist:vex", "name": "Vex", "type": "artist", "qloo_rank": 1, "popularity": 0.63, "obscurity": 4, "followers": 402000, "primary_genres": ["techno"], "qloo_tags": [ { "id": "qlootag:techno", "name": "techno", "type": "urn:tag" }, { "id": "qlootag:electronic", "name": "electronic", "type": "urn:tag" } ], "explainability": "Fictional act. Rises when the city signal is removed, which the local-lift chip reports." },
+    { "entity_id": "qloo:artist:paper_lanterns", "name": "Paper Lanterns", "type": "artist", "qloo_rank": 2, "popularity": 0.421, "obscurity": 7, "followers": 71000, "primary_genres": ["indie", "synth"], "qloo_tags": [ { "id": "qlootag:indie", "name": "indie", "type": "urn:tag" }, { "id": "qlootag:synth", "name": "synth", "type": "urn:tag" } ], "explainability": "Fictional act." },
+    { "entity_id": "qloo:artist:dj_marlow", "name": "DJ Marlow", "type": "artist", "qloo_rank": 3, "popularity": 0.512, "obscurity": 6, "followers": 184000, "primary_genres": ["house", "electronic"], "qloo_tags": [ { "id": "qlootag:house", "name": "house", "type": "urn:tag" }, { "id": "qlootag:electronic", "name": "electronic", "type": "urn:tag" } ], "explainability": "Fictional act. Falls two places without the city signal, so its local lift is positive." },
+    { "entity_id": "qloo:artist:hollow_set", "name": "The Hollow Set", "type": "artist", "qloo_rank": 4, "popularity": 0.286, "obscurity": 9, "followers": 19000, "primary_genres": ["emo", "indie"], "qloo_tags": [ { "id": "qlootag:emo", "name": "emo", "type": "urn:tag" }, { "id": "qlootag:indie", "name": "indie", "type": "urn:tag" } ], "explainability": "Fictional act." }
+  ]
+}

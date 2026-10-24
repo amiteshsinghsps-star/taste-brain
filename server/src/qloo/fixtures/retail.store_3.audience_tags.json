@@ -1,0 +1,15 @@
+{
+  "_note": "SYNTHETIC fixture for Replay mode only. NOT a Qloo response. Aggregate audience-level tags for the fictional East Austin store; no claim about any individual.",
+  "workflow": "audience_tags",
+  "fetched_at": "1970-01-01T00:00:00.000Z",
+  "results": [
+    { "entity_id": "qlootag:western", "name": "western", "type": "urn:tag" },
+    { "entity_id": "qlootag:boots", "name": "boots", "type": "urn:tag" },
+    { "entity_id": "qlootag:music", "name": "music", "type": "urn:tag" },
+    { "entity_id": "qlootag:streetwear", "name": "streetwear", "type": "urn:tag" },
+    { "entity_id": "qlootag:outdoors", "name": "outdoors", "type": "urn:tag" },
+    { "entity_id": "qlootag:sustainable", "name": "sustainable", "type": "urn:tag" },
+    { "entity_id": "qlootag:denim", "name": "denim", "type": "urn:tag" },
+    { "entity_id": "qlootag:leather", "name": "leather", "type": "urn:tag" }
+  ]
+}

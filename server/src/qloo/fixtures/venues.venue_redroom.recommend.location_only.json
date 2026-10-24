@@ -1,0 +1,13 @@
+{
+  "_note": "SYNTHETIC fixture for Replay mode only. NOT a Qloo response. Ablation arm B: an invented ordering produced from the city signal alone, with no taste seeds, so the four ablation arms can be compared offline. Two acts appear here that the taste-seed run never returned, which is the honest point of the comparison.",
+  "workflow": "recommend",
+  "variant": "location_only",
+  "fetched_at": "1970-01-01T00:00:00.000Z",
+  "results": [
+    { "entity_id": "qloo:artist:cobalt_hour", "name": "Cobalt Hour", "type": "artist", "qloo_rank": 1, "popularity": 0.58, "obscurity": 5, "followers": 120000, "primary_genres": ["rock"], "qloo_tags": [ { "id": "qlootag:rock", "name": "rock", "type": "urn:tag" }, { "id": "qlootag:chicago", "name": "chicago", "type": "urn:tag" } ], "explainability": "Fictional act returned by the location-only arm and by no other arm." },
+    { "entity_id": "qloo:artist:dj_marlow", "name": "DJ Marlow", "type": "artist", "qloo_rank": 2, "popularity": 0.512, "obscurity": 6, "followers": 184000, "primary_genres": ["house", "electronic"], "qloo_tags": [ { "id": "qlootag:house", "name": "house", "type": "urn:tag" }, { "id": "qlootag:chicago", "name": "chicago", "type": "urn:tag" } ], "explainability": "Fictional act." },
+    { "entity_id": "qloo:artist:riverbend_youth", "name": "Riverbend Youth", "type": "artist", "qloo_rank": 3, "popularity": 0.344, "obscurity": 8, "followers": 41000, "primary_genres": ["indie"], "qloo_tags": [ { "id": "qlootag:indie", "name": "indie", "type": "urn:tag" }, { "id": "qlootag:chicago", "name": "chicago", "type": "urn:tag" } ], "explainability": "Fictional act, location arm only." },
+    { "entity_id": "qloo:artist:vex", "name": "Vex", "type": "artist", "qloo_rank": 4, "popularity": 0.63, "obscurity": 4, "followers": 402000, "primary_genres": ["techno"], "qloo_tags": [ { "id": "qlootag:techno", "name": "techno", "type": "urn:tag" } ], "explainability": "Fictional act." },
+    { "entity_id": "qloo:artist:paper_lanterns", "name": "Paper Lanterns", "type": "artist", "qloo_rank": 5, "popularity": 0.421, "obscurity": 7, "followers": 71000, "primary_genres": ["indie", "synth"], "qloo_tags": [ { "id": "qlootag:indie", "name": "indie", "type": "urn:tag" } ], "explainability": "Fictional act." }
+  ]
+}

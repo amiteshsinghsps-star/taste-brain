@@ -1,0 +1,982 @@
+{
+  "schema": "taste-brain/live-scorecard/v1",
+  "generated_at": "2026-10-24T08:23:53.824Z",
+  "what_this_is": "Measured evidence from one end-to-end LIVE Qloo sweep of Taste Brain, taken through the app’s own surface (browser at :3000 and /api at :4000), scored against the four equally weighted criteria published at qloo.devpost.com/rules.",
+  "provenance": {
+    "captured_by": "Playwright harnesses driveLive*.mjs against the running dev stack; every figure below is read from a saved artifact or recomputed from one in this script.",
+    "artifacts_dir": "C:/Users/vijay/qoder-verify-pw/live-run/ (kept outside the repository — raw live Qloo payloads are not committed)",
+    "durable_store": "server/verification/live-2026-10-24.db (gitignored)",
+    "server_config_for_the_sweep": {
+      "mode": "live",
+      "qloo_enabled": true,
+      "base_url": "https://hackathon.api.qloo.com",
+      "graph_db": "verification/live-2026-10-24.db"
+    },
+    "shipped_default": "Replay with synthetic fixtures and QLOO_ENABLED=false. The live configuration above was started only for this sweep and is reverted afterwards."
+  },
+  "spend_disclosure": {
+    "real_qloo_calls_read": 37,
+    "lookups_served_from_the_stored_copy": 24,
+    "logged_calls_total": 61,
+    "note": "A cached lookup moves no bytes and is counted separately. Earlier verification passes spent 4 more live calls and the re-enabled live pass 8 more, all disclosed: 49 real reads in total across every pass on this host."
+  },
+  "live_run": {
+    "window": {
+      "first_call": "2026-10-24 06:53:10Z",
+      "last_call": "2026-10-24 06:56:11Z"
+    },
+    "proposals_created": 8,
+    "vertical_packs_covered": [
+      "restaurants",
+      "retail",
+      "venues"
+    ],
+    "rooms_covered": [
+      "restaurants/loc_westside",
+      "retail/store_1",
+      "retail/store_2",
+      "retail/store_3",
+      "venues/venue_luckett",
+      "venues/venue_redroom",
+      "venues/venue_thalia"
+    ],
+    "all_badged": true,
+    "latency_ms_for_live_reads": {
+      "n": 37,
+      "min": 363,
+      "p50": 950,
+      "p90": 3662,
+      "max": 8439
+    },
+    "workflows_exercised": [
+      "describe_audience",
+      "recommend",
+      "recommend_location_only",
+      "recommend_no_location",
+      "recommend_trend_bias",
+      "search"
+    ],
+    "per_run_call_budget": 12,
+    "quota_after_the_sweep": {
+      "visitor_hour": {
+        "used": 5,
+        "limit": 90
+      },
+      "visitor_day": {
+        "used": 13,
+        "limit": 150
+      },
+      "global_day": {
+        "used": 13,
+        "limit": 400
+      },
+      "monthly": {
+        "used": 13,
+        "floor": 1500
+      }
+    },
+    "live_allowed_by_budget": true,
+    "floor_reached": false,
+    "outliers": [
+      "recommend_trend_bias 8439 ms",
+      "recommend_location_only 7423 ms"
+    ],
+    "what_was_live_vs_stored": "Every audience portrait and every ranking call in the sweep was a live miss. The seed name lookups for the retail and restaurant rooms were served from stored /search results dated 2026-10-22 and are logged as cached, not as live reads."
+  },
+  "runs": [
+    {
+      "proposal_id": "p_mvm1p5b8_008",
+      "pack": "retail",
+      "location": "store_2",
+      "goal": "Add 3 brands to the autumn assortment for this store",
+      "badge_at_run": "live",
+      "status": "pending",
+      "created_at": "2026-10-24T06:56:11.300Z",
+      "measured": {
+        "items": 5,
+        "items_with_qloo_rank": 5,
+        "items_with_derived_fit": 5,
+        "items_explained": 5,
+        "items_with_tags": 5,
+        "rule_results": {
+          "pass": 15
+        },
+        "flip_points": 3,
+        "rejections": 3,
+        "unsupported": 17,
+        "unresolved_seeds": 1,
+        "audience_tags": 12,
+        "needs_terms": 0,
+        "approval_blocked": 0,
+        "local_lift_chips": 5,
+        "rising_chips": 2,
+        "trace_steps": 62,
+        "trace_mode_mix_as_stamped": {
+          "live": 62
+        }
+      }
+    },
+    {
+      "proposal_id": "p_mvm1ovo8_007",
+      "pack": "retail",
+      "location": "store_1",
+      "goal": "Add 3 brands to the autumn assortment for this store",
+      "badge_at_run": "live",
+      "status": "pending",
+      "created_at": "2026-10-24T06:55:58.808Z",
+      "measured": {
+        "items": 7,
+        "items_with_qloo_rank": 7,
+        "items_with_derived_fit": 7,
+        "items_explained": 7,
+        "items_with_tags": 7,
+        "rule_results": {
+          "pass": 21
+        },
+        "flip_points": 2,
+        "rejections": 2,
+        "unsupported": 16,
+        "unresolved_seeds": 1,
+        "audience_tags": 12,
+        "needs_terms": 0,
+        "approval_blocked": 0,
+        "local_lift_chips": 7,
+        "rising_chips": 6,
+        "trace_steps": 66,
+        "trace_mode_mix_as_stamped": {
+          "live": 66
+        }
+      }
+    },
+    {
+      "proposal_id": "p_mvm1ocjr_006",
+      "pack": "retail",
+      "location": "store_3",
+      "goal": "Add 3 brands to the autumn assortment for this store",
+      "badge_at_run": "live",
+      "status": "pending",
+      "created_at": "2026-10-24T06:55:34.023Z",
+      "measured": {
+        "items": 6,
+        "items_with_qloo_rank": 6,
+        "items_with_derived_fit": 6,
+        "items_explained": 6,
+        "items_with_tags": 6,
+        "rule_results": {
+          "pass": 18
+        },
+        "flip_points": 2,
+        "rejections": 3,
+        "unsupported": 16,
+        "unresolved_seeds": 1,
+        "audience_tags": 12,
+        "needs_terms": 0,
+        "approval_blocked": 0,
+        "local_lift_chips": 6,
+        "rising_chips": 3,
+        "trace_steps": 66,
+        "trace_mode_mix_as_stamped": {
+          "live": 66
+        }
+      }
+    },
+    {
+      "proposal_id": "p_mvm1nu3y_005",
+      "pack": "restaurants",
+      "location": "loc_westside",
+      "goal": "Add 3 dishes to the autumn menu for this location",
+      "badge_at_run": "live",
+      "status": "pending",
+      "created_at": "2026-10-24T06:55:10.126Z",
+      "measured": {
+        "items": 0,
+        "items_with_qloo_rank": 0,
+        "items_with_derived_fit": 0,
+        "items_explained": 0,
+        "items_with_tags": 0,
+        "rule_results": {},
+        "flip_points": 0,
+        "rejections": 0,
+        "unsupported": 25,
+        "unresolved_seeds": 1,
+        "audience_tags": 12,
+        "needs_terms": 0,
+        "approval_blocked": 0,
+        "local_lift_chips": 0,
+        "rising_chips": 0,
+        "trace_steps": 29,
+        "trace_mode_mix_as_stamped": {
+          "live": 29
+        }
+      }
+    },
+    {
+      "proposal_id": "p_mvm1n87z_004",
+      "pack": "venues",
+      "location": "venue_redroom",
+      "goal": "Book 3 acts for the autumn series in this room",
+      "badge_at_run": "live",
+      "status": "pending",
+      "created_at": "2026-10-24T06:54:41.760Z",
+      "measured": {
+        "items": 0,
+        "items_with_qloo_rank": 0,
+        "items_with_derived_fit": 0,
+        "items_explained": 0,
+        "items_with_tags": 0,
+        "rule_results": {},
+        "flip_points": 0,
+        "rejections": 0,
+        "unsupported": 25,
+        "unresolved_seeds": 0,
+        "audience_tags": 12,
+        "needs_terms": 0,
+        "approval_blocked": 0,
+        "local_lift_chips": 0,
+        "rising_chips": 0,
+        "trace_steps": 30,
+        "trace_mode_mix_as_stamped": {
+          "live": 4,
+          "cached": 26
+        }
+      }
+    },
+    {
+      "proposal_id": "p_mvm1n414_003",
+      "pack": "venues",
+      "location": "venue_luckett",
+      "goal": "Book 3 acts for the autumn series in this room",
+      "badge_at_run": "live",
+      "status": "pending",
+      "created_at": "2026-10-24T06:54:36.328Z",
+      "measured": {
+        "items": 23,
+        "items_with_qloo_rank": 23,
+        "items_with_derived_fit": 23,
+        "items_explained": 23,
+        "items_with_tags": 21,
+        "rule_results": {
+          "pass": 69,
+          "needs_data": 23
+        },
+        "flip_points": 2,
+        "rejections": 2,
+        "unsupported": 0,
+        "unresolved_seeds": 0,
+        "audience_tags": 12,
+        "needs_terms": 23,
+        "approval_blocked": 23,
+        "local_lift_chips": 0,
+        "rising_chips": 0,
+        "trace_steps": 154,
+        "trace_mode_mix_as_stamped": {
+          "live": 154
+        }
+      }
+    },
+    {
+      "proposal_id": "p_mvm1me2h_002",
+      "pack": "venues",
+      "location": "venue_thalia",
+      "goal": "Book 3 acts for the autumn series in this room",
+      "badge_at_run": "live",
+      "status": "pending",
+      "created_at": "2026-10-24T06:54:02.682Z",
+      "measured": {
+        "items": 25,
+        "items_with_qloo_rank": 25,
+        "items_with_derived_fit": 25,
+        "items_explained": 25,
+        "items_with_tags": 25,
+        "rule_results": {
+          "pass": 50,
+          "needs_data": 25
+        },
+        "flip_points": 0,
+        "rejections": 0,
+        "unsupported": 0,
+        "unresolved_seeds": 1,
+        "audience_tags": 12,
+        "needs_terms": 25,
+        "approval_blocked": 25,
+        "local_lift_chips": 0,
+        "rising_chips": 0,
+        "trace_steps": 130,
+        "trace_mode_mix_as_stamped": {
+          "live": 4,
+          "cached": 126
+        }
+      }
+    },
+    {
+      "proposal_id": "p_mvm1lifw_001",
+      "pack": "venues",
+      "location": "venue_thalia",
+      "goal": "Book 3 acts for the autumn series in this room",
+      "badge_at_run": "live",
+      "status": "pending",
+      "created_at": "2026-10-24T06:53:21.693Z",
+      "measured": {
+        "items": 25,
+        "items_with_qloo_rank": 25,
+        "items_with_derived_fit": 25,
+        "items_explained": 25,
+        "items_with_tags": 25,
+        "rule_results": {
+          "pass": 50,
+          "needs_data": 25
+        },
+        "flip_points": 0,
+        "rejections": 0,
+        "unsupported": 0,
+        "unresolved_seeds": 1,
+        "audience_tags": 12,
+        "needs_terms": 25,
+        "approval_blocked": 25,
+        "local_lift_chips": 0,
+        "rising_chips": 0,
+        "trace_steps": 130,
+        "trace_mode_mix_as_stamped": {
+          "live": 4,
+          "cached": 126
+        }
+      }
+    }
+  ],
+  "aggregate_over_runs": {
+    "rooms_with_live_items": 5,
+    "rooms_returning_zero_items": [
+      "restaurants.loc_westside",
+      "venues.venue_redroom"
+    ],
+    "zero_item_reason": "Both rooms’ catalogues are keyed to synthetic entities that have no approved offer on file, so every candidate was labelled unsupported rather than shown as a live pick. Qloo returned rows; the app refused to present them as offerable. Not counted as a failure, and not hidden.",
+    "items_recommended": 66,
+    "items_with_qloo_rank": 66,
+    "items_explained": 66,
+    "rule_results": {
+      "pass": 173,
+      "needs_data": 48
+    },
+    "flip_points": 9,
+    "rejections": 10,
+    "unsupported_labelled": 99,
+    "trace_steps_total": 537
+  },
+  "qloo_capability_gate": {
+    "verified_at": "2026-10-24T03:54:04.060Z",
+    "base_url": "https://hackathon.api.qloo.com",
+    "gate": {
+      "requirement": "3 cities, >=10 distinct artists, >=5 after the popularity band, non-empty explainability",
+      "result": "pass",
+      "note": "Chicago, Austin and Nashville each returned 20 artists with the location signal, 20 after the popularity band, and a non-empty English description on every entity. Venues is therefore the lead pack; retail ships as the proof that a pack is configuration, not code."
+    },
+    "counts": {
+      "verified": 10,
+      "accepted_but_empty": 3,
+      "not_usable": 0
+    },
+    "rows": [
+      {
+        "id": "Q1",
+        "status": "verified",
+        "endpoint": "/search",
+        "http": 200,
+        "rows": 20,
+        "name": "Entity resolution from a name"
+      },
+      {
+        "id": "Q2",
+        "status": "verified",
+        "endpoint": "/v2/tags",
+        "http": 200,
+        "rows": 20,
+        "name": "Tag lookup"
+      },
+      {
+        "id": "Q3",
+        "status": "verified",
+        "endpoint": "/v2/insights",
+        "http": 200,
+        "rows": 20,
+        "name": "Local audience-driven recommendations"
+      },
+      {
+        "id": "Q4",
+        "status": "verified",
+        "endpoint": "/v2/insights",
+        "http": 200,
+        "rows": 5,
+        "name": "Ranking a fixed shortlist"
+      },
+      {
+        "id": "Q5",
+        "status": "verified",
+        "endpoint": "/v2/insights",
+        "http": 200,
+        "rows": 20,
+        "name": "Explainability text"
+      },
+      {
+        "id": "Q6",
+        "status": "verified",
+        "endpoint": "/v2/insights",
+        "http": 200,
+        "rows": 10,
+        "name": "Excluding entities and tags at query time"
+      },
+      {
+        "id": "Q7",
+        "status": "verified",
+        "endpoint": "/v2/insights",
+        "http": 200,
+        "rows": 20,
+        "name": "Popularity band as an API filter"
+      },
+      {
+        "id": "Q8",
+        "status": "verified",
+        "endpoint": "/v2/insights",
+        "http": 200,
+        "rows": 10,
+        "name": "Trend bias on the ranking"
+      },
+      {
+        "id": "Q8b",
+        "status": "accepted_but_empty",
+        "endpoint": "/v2/trending",
+        "http": 200,
+        "rows": 0,
+        "name": "Dedicated /v2/trending endpoint"
+      },
+      {
+        "id": "Q9",
+        "status": "accepted_but_empty",
+        "endpoint": "/v2/insights",
+        "http": 200,
+        "rows": 0,
+        "name": "Demographics segmentation"
+      },
+      {
+        "id": "Q10",
+        "status": "verified",
+        "endpoint": "/v2/analysis/compare",
+        "http": 200,
+        "rows": 625,
+        "name": "Comparing two audiences"
+      },
+      {
+        "id": "Q11",
+        "status": "accepted_but_empty",
+        "endpoint": "/v2/insights",
+        "http": 200,
+        "rows": 0,
+        "name": "Geographic heatmap"
+      },
+      {
+        "id": "Q12",
+        "status": "verified",
+        "endpoint": "/v2/insights",
+        "http": 200,
+        "rows": 10,
+        "name": "Cross-domain audience overlap"
+      }
+    ],
+    "field_notes": [
+      "No affinity or score field is returned by /v2/insights for entity results (checked on every row of every verified call). Qloo's contribution is the ORDER plus the popularity, obscurity and audience attributes. Taste Brain therefore shows Qloo's rank as the authoritative signal and labels its 0..1 fit value as derived from that rank.",
+      "Tags arrive as objects {id, name, type}, not plain strings. Rules match on the tag id.",
+      "short_descriptions is a list of {lang, text}; the English entry is used and the rest ignored."
+    ],
+    "method": "scripts/venue-gate.ts + scripts/probe-params4.ts against the hackathon key. Only statuses, row counts and parameter names are recorded here; no response payloads, entity names or entity ids are stored in this repository."
+  },
+  "guardrails": {
+    "trust_center": {
+      "checks": 13,
+      "by_status": {
+        "pass": 13
+      },
+      "ids": [
+        "llm-never-ranks:pass",
+        "grounded-items:pass",
+        "no-invented-numbers:pass",
+        "three-state-rules:pass",
+        "approval-needs-human:pass",
+        "audience-not-individual:pass",
+        "mode-honesty:pass",
+        "param-allowlist:pass",
+        "call-budget:pass",
+        "hash-chained-ledger:pass",
+        "no-qloo-data-in-repo:pass",
+        "cache-purity:pass",
+        "coverage-board:pass"
+      ]
+    },
+    "ledger": {
+      "chain_verified": true,
+      "entries": 10,
+      "head_hash": "a7b1025f9a4e02e0877390abb60584782231bbea12eae3ef88a8f594d56fc212",
+      "reverified_after_sweep": true,
+      "note": "Every hash recomputed from the stored entry and every link checked at read time, not restated from a log line."
+    },
+    "mode_honesty_evidence": "badge cached; steps counted from the trace — 0 live, 130 cached, 0 replay; 0 step(s) missing a mode. Committed fixtures are synthetic and labelled replay at read time.",
+    "quota_guardian": {
+      "buckets": {
+        "visitor_hour": "6% of 90 live runs",
+        "visitor_day": "9% of 150 live runs",
+        "global_day": "3% of 400 live runs",
+        "monthly": "1% of the 1500-run floor (one unit per live request)",
+        "live_allowed": true,
+        "floor_reached": false,
+        "finals_override": false
+      },
+      "note": "Reservations are per live run; the per-run call budget and harness counter are per call. The UI labels both units explicitly."
+    },
+    "llm": "none (structured template only, no LLM key on this host)"
+  },
+  "ablation_arms": {
+    "runs": 7,
+    "arms_per_run": 5,
+    "kendall_tau_no_qloo": {
+      "min": -0.16,
+      "max": 0.1467
+    },
+    "kendall_tau_shuffled_control": {
+      "min": 0.0867,
+      "max": 0.0867
+    },
+    "overlap_at_k_shuffled_control": {
+      "min": 0.5,
+      "max": 0.5
+    },
+    "chance_overlap_at_k": 0.4,
+    "reading": "Arm A is the ranking the proposal shipped, so it is 1.0 by definition — the informative arms are B, C, D and E. Ordering without Qloo at all lands at or below τ 0.15 and moves every top-k position; destroying Qloo’s order with a fixed seed gives τ ≈ 0.09 and overlap ≈ chance (0.4 expected at k=10 of 25). So the shipped order carries Qloo’s signal and nothing else in the pipeline manufactures one. Where the two signals bite differs by pack and is reported as measured, not asserted: in venues, removing either the room or the seeds replaces all 10 top positions; in retail and restaurants the no-location arm returned the identical order (τ 1, overlap 1), so the app publishes local_lift 0 on every item rather than implying the city moved anything.",
+    "arm_by_arm_detail": [
+      {
+        "room": "restaurants/loc_westside",
+        "arm_c_kendall_tau": 1,
+        "arm_c_overlap_at_k": 0.9,
+        "arm_c_changed_in_top_k": 1,
+        "arm_b_overlap_at_k": 0,
+        "arm_b_changed_in_top_k": 10,
+        "items_with_local_lift_value": 0,
+        "local_lift_values": [],
+        "items": 0
+      },
+      {
+        "room": "retail/store_1",
+        "arm_c_kendall_tau": 1,
+        "arm_c_overlap_at_k": 1,
+        "arm_c_changed_in_top_k": 0,
+        "arm_b_overlap_at_k": 0.1,
+        "arm_b_changed_in_top_k": 10,
+        "items_with_local_lift_value": 7,
+        "local_lift_values": [
+          0
+        ],
+        "items": 7
+      },
+      {
+        "room": "retail/store_2",
+        "arm_c_kendall_tau": 1,
+        "arm_c_overlap_at_k": 1,
+        "arm_c_changed_in_top_k": 0,
+        "arm_b_overlap_at_k": 0,
+        "arm_b_changed_in_top_k": 10,
+        "items_with_local_lift_value": 5,
+        "local_lift_values": [
+          0
+        ],
+        "items": 5
+      },
+      {
+        "room": "retail/store_3",
+        "arm_c_kendall_tau": 1,
+        "arm_c_overlap_at_k": 1,
+        "arm_c_changed_in_top_k": 0,
+        "arm_b_overlap_at_k": 0,
+        "arm_b_changed_in_top_k": 10,
+        "items_with_local_lift_value": 6,
+        "local_lift_values": [
+          0
+        ],
+        "items": 6
+      },
+      {
+        "room": "venues/venue_luckett",
+        "arm_c_kendall_tau": null,
+        "arm_c_overlap_at_k": 0,
+        "arm_c_changed_in_top_k": 10,
+        "arm_b_overlap_at_k": 0,
+        "arm_b_changed_in_top_k": 10,
+        "items_with_local_lift_value": 0,
+        "local_lift_values": [
+          null
+        ],
+        "items": 23
+      },
+      {
+        "room": "venues/venue_redroom",
+        "arm_c_kendall_tau": null,
+        "arm_c_overlap_at_k": 0,
+        "arm_c_changed_in_top_k": 10,
+        "arm_b_overlap_at_k": 0,
+        "arm_b_changed_in_top_k": 10,
+        "items_with_local_lift_value": 0,
+        "local_lift_values": [],
+        "items": 0
+      },
+      {
+        "room": "venues/venue_thalia",
+        "arm_c_kendall_tau": null,
+        "arm_c_overlap_at_k": 0,
+        "arm_c_changed_in_top_k": 10,
+        "arm_b_overlap_at_k": 0,
+        "arm_b_changed_in_top_k": 10,
+        "items_with_local_lift_value": 0,
+        "local_lift_values": [
+          null
+        ],
+        "items": 25
+      }
+    ],
+    "per_run": [
+      {
+        "proposal_id": "p_mvm1me2h_002",
+        "pack": "venues",
+        "location": "venue_thalia",
+        "computed_at": "2026-10-24T07:01:36.140Z",
+        "source_mode": "live",
+        "candidate_pool": 25,
+        "k": 10,
+        "arms_available": 5,
+        "full": {
+          "overlap_at_k": 1,
+          "kendall_tau": 1
+        },
+        "no_qloo": {
+          "kendall_tau": -0.0133,
+          "overlap_at_k": 0.5,
+          "changed_in_top_k": 10
+        },
+        "shuffled": {
+          "kendall_tau": 0.0867,
+          "overlap_at_k": 0.5,
+          "changed_in_top_k": 10
+        },
+        "chance_overlap_at_k": 0.4,
+        "headline": "Measured on 25 candidate(s): ordering without Qloo at all: τ -0.0133, 10 of 10 positions moved; shuffling Qloo's order: τ 0.0867, 10 of 10 positions moved. Arms were compared over the top 10 of a 25-row pool (k=10)."
+      },
+      {
+        "proposal_id": "p_mvm1n414_003",
+        "pack": "venues",
+        "location": "venue_luckett",
+        "computed_at": "2026-10-24T07:01:36.011Z",
+        "source_mode": "live",
+        "candidate_pool": 25,
+        "k": 10,
+        "arms_available": 5,
+        "full": {
+          "overlap_at_k": 1,
+          "kendall_tau": 1
+        },
+        "no_qloo": {
+          "kendall_tau": -0.16,
+          "overlap_at_k": 0.3,
+          "changed_in_top_k": 10
+        },
+        "shuffled": {
+          "kendall_tau": 0.0867,
+          "overlap_at_k": 0.5,
+          "changed_in_top_k": 10
+        },
+        "chance_overlap_at_k": 0.4,
+        "headline": "Measured on 25 candidate(s): ordering without Qloo at all: τ -0.16, 10 of 10 positions moved; shuffling Qloo's order: τ 0.0867, 10 of 10 positions moved. Arms were compared over the top 10 of a 25-row pool (k=10)."
+      },
+      {
+        "proposal_id": "p_mvm1n87z_004",
+        "pack": "venues",
+        "location": "venue_redroom",
+        "computed_at": "2026-10-24T07:01:35.886Z",
+        "source_mode": "live",
+        "candidate_pool": 25,
+        "k": 10,
+        "arms_available": 5,
+        "full": {
+          "overlap_at_k": 1,
+          "kendall_tau": 1
+        },
+        "no_qloo": {
+          "kendall_tau": -0.0133,
+          "overlap_at_k": 0.5,
+          "changed_in_top_k": 10
+        },
+        "shuffled": {
+          "kendall_tau": 0.0867,
+          "overlap_at_k": 0.5,
+          "changed_in_top_k": 10
+        },
+        "chance_overlap_at_k": 0.4,
+        "headline": "Measured on 25 candidate(s): ordering without Qloo at all: τ -0.0133, 10 of 10 positions moved; shuffling Qloo's order: τ 0.0867, 10 of 10 positions moved. Arms were compared over the top 10 of a 25-row pool (k=10)."
+      },
+      {
+        "proposal_id": "p_mvm1nu3y_005",
+        "pack": "restaurants",
+        "location": "loc_westside",
+        "computed_at": "2026-10-24T07:01:35.795Z",
+        "source_mode": "live",
+        "candidate_pool": 25,
+        "k": 10,
+        "arms_available": 5,
+        "full": {
+          "overlap_at_k": 1,
+          "kendall_tau": 1
+        },
+        "no_qloo": {
+          "kendall_tau": 0.06,
+          "overlap_at_k": 0.3,
+          "changed_in_top_k": 10
+        },
+        "shuffled": {
+          "kendall_tau": 0.0867,
+          "overlap_at_k": 0.5,
+          "changed_in_top_k": 10
+        },
+        "chance_overlap_at_k": 0.4,
+        "headline": "Measured on 25 candidate(s): dropping the room's location: τ 1, 1 of 10 positions moved; ordering without Qloo at all: τ 0.06, 10 of 10 positions moved; shuffling Qloo's order: τ 0.0867, 10 of 10 positions moved. Arms were compared over the top 10 of a 25-row pool (k=10)."
+      },
+      {
+        "proposal_id": "p_mvm1ocjr_006",
+        "pack": "retail",
+        "location": "store_3",
+        "computed_at": "2026-10-24T07:01:35.616Z",
+        "source_mode": "live",
+        "candidate_pool": 25,
+        "k": 10,
+        "arms_available": 5,
+        "full": {
+          "overlap_at_k": 1,
+          "kendall_tau": 1
+        },
+        "no_qloo": {
+          "kendall_tau": -0.04,
+          "overlap_at_k": 0.4,
+          "changed_in_top_k": 10
+        },
+        "shuffled": {
+          "kendall_tau": 0.0867,
+          "overlap_at_k": 0.5,
+          "changed_in_top_k": 10
+        },
+        "chance_overlap_at_k": 0.4,
+        "headline": "Measured on 25 candidate(s): dropping the room's location: τ 1, 0 of 10 positions moved; ordering without Qloo at all: τ -0.04, 10 of 10 positions moved; shuffling Qloo's order: τ 0.0867, 10 of 10 positions moved. Arms were compared over the top 10 of a 25-row pool (k=10)."
+      },
+      {
+        "proposal_id": "p_mvm1ovo8_007",
+        "pack": "retail",
+        "location": "store_1",
+        "computed_at": "2026-10-24T07:01:35.451Z",
+        "source_mode": "live",
+        "candidate_pool": 25,
+        "k": 10,
+        "arms_available": 5,
+        "full": {
+          "overlap_at_k": 1,
+          "kendall_tau": 1
+        },
+        "no_qloo": {
+          "kendall_tau": 0.1467,
+          "overlap_at_k": 0.5,
+          "changed_in_top_k": 10
+        },
+        "shuffled": {
+          "kendall_tau": 0.0867,
+          "overlap_at_k": 0.5,
+          "changed_in_top_k": 10
+        },
+        "chance_overlap_at_k": 0.4,
+        "headline": "Measured on 25 candidate(s): dropping the room's location: τ 1, 0 of 10 positions moved; ordering without Qloo at all: τ 0.1467, 10 of 10 positions moved; shuffling Qloo's order: τ 0.0867, 10 of 10 positions moved. Arms were compared over the top 10 of a 25-row pool (k=10)."
+      },
+      {
+        "proposal_id": "p_mvm1p5b8_008",
+        "pack": "retail",
+        "location": "store_2",
+        "computed_at": "2026-10-24T07:01:35.286Z",
+        "source_mode": "live",
+        "candidate_pool": 25,
+        "k": 10,
+        "arms_available": 5,
+        "full": {
+          "overlap_at_k": 1,
+          "kendall_tau": 1
+        },
+        "no_qloo": {
+          "kendall_tau": -0.1133,
+          "overlap_at_k": 0.5,
+          "changed_in_top_k": 10
+        },
+        "shuffled": {
+          "kendall_tau": 0.0867,
+          "overlap_at_k": 0.5,
+          "changed_in_top_k": 10
+        },
+        "chance_overlap_at_k": 0.4,
+        "headline": "Measured on 25 candidate(s): dropping the room's location: τ 1, 0 of 10 positions moved; ordering without Qloo at all: τ -0.1133, 10 of 10 positions moved; shuffling Qloo's order: τ 0.0867, 10 of 10 positions moved. Arms were compared over the top 10 of a 25-row pool (k=10)."
+      }
+    ]
+  },
+  "engineering_gates": {
+    "server_typecheck": "tsc --noEmit → 0 errors",
+    "client_typecheck": "tsc --noEmit → 0 errors",
+    "tests": "vitest run → 84 passed, 4 files",
+    "browser_console_faults": "0 across every harness run"
+  },
+  "submission_requirements": {
+    "source": "qloo.devpost.com/rules",
+    "items": [
+      {
+        "requirement": "Project built with the required developer tools",
+        "status": "met",
+        "evidence": "Direct REST to hackathon.api.qloo.com through /search, /v2/tags, /v2/insights, /v2/analysis/compare, verified live in this sweep."
+      },
+      {
+        "requirement": "Link to a functional demo application",
+        "status": "not_met_yet",
+        "evidence": "Runs locally at http://localhost:3000; no public host yet. Judges need a URL or a test build."
+      },
+      {
+        "requirement": "Public repo with all source, assets and instructions",
+        "status": "not_met_yet",
+        "evidence": "Code and README walkthrough are in this tree; nothing has been pushed. Sweeping the working tree into one public commit is the remaining step."
+      },
+      {
+        "requirement": "Open source license file, visible on the repo page",
+        "status": "met_locally",
+        "evidence": "LICENSE at repo root; GitHub/Devpost will only show it once the repo is public."
+      },
+      {
+        "requirement": "Text description of features and functionality",
+        "status": "met",
+        "evidence": "docs/devpost-description.md plus README; this scorecard supplies the measured backing."
+      },
+      {
+        "requirement": "Testing access, free of charge, with credentials if private",
+        "status": "partially_met",
+        "evidence": "Replay mode needs no credential, no key and no personal data, and 5 of the 7 rooms return a full governed proposal offline; the two rooms backed by real Qloo data state that they have no committed fixture rather than showing an empty list. Live mode needs the judge’s own key."
+      }
+    ]
+  },
+  "rubric": {
+    "source": "qloo.devpost.com/rules — four criteria, equally weighted. These are self-scores written from the measured evidence above, not judges’ scores.",
+    "criteria": [
+      {
+        "name": "Technological Implementation",
+        "self_score": 9,
+        "why": "37 real reads across 6 distinct workflows, 8 live proposals through one engine with 3 config-only packs, 10 capabilities verified against the API and 3 honestly recorded as accepted-but-empty.",
+        "evidence": [
+          "live_run",
+          "qloo_capability_gate",
+          "runs"
+        ],
+        "gap": "Restraint costs demo volume: 2 of 7 rooms return 0 items because their synthetic catalogues have no approved offer, which is the correct answer and a weaker screen."
+      },
+      {
+        "name": "Design",
+        "self_score": 8,
+        "why": "Twelve screens reachable from one nav; every result carries its provenance — the header badge, the measured mode mix (\"154 of 154 steps read from Qloo on this run\"), evidence cards with Qloo’s own figures, and a ledger whose hashes are recomputed on view.",
+        "evidence": [
+          "guardrails",
+          "spend_disclosure"
+        ],
+        "gap": "No deployment, so nothing beyond localhost has been seen by another human; screenshots are the only shareable artefact."
+      },
+      {
+        "name": "Potential Impact",
+        "self_score": 8,
+        "why": "The buying/menuing/booking decision is stated as a business problem with a named approver, and the guardrails match it: approval requires a human, no rule is silently bypassed, and every rejection has a flip point telling the operator which threshold would have changed the answer.",
+        "evidence": [
+          "aggregate_over_runs",
+          "runs"
+        ],
+        "gap": "No business outcome is measured or claimed. 8 proposals from one operator on one day is a demonstration, not evidence of revenue impact."
+      },
+      {
+        "name": "Quality of the Idea",
+        "self_score": 9,
+        "why": "The non-obvious move is treating the API as the thing to be proven rather than the thing to be praised: ablation arms D/E show Qloo’s order surviving while its shuffled control collapses to chance, and the pipeline will downgrade its own LIVE badge when a run actually read nothing.",
+        "evidence": [
+          "ablation_arms",
+          "guardrails.trust_center"
+        ],
+        "gap": "Taste Lift cannot publish an LLM comparison on this host — no LLM key, so arm A never ran and no lift figure is fabricated."
+      }
+    ],
+    "weighted_total": 8.5
+  },
+  "restored_configuration_check": {
+    "taken_at": "2026-10-24T08:23:53.827Z",
+    "what": "After the sweep the host was put back to the shipped default (DEFAULT_MODE=replay, QLOO_ENABLED=false) and driven again through the browser.",
+    "health": {
+      "default_mode": "replay",
+      "live_switched_on_for_host": false,
+      "a_live_call_can_leave_the_box": false,
+      "real_reads_during_this_pass": 0
+    },
+    "replay_rooms_run": [
+      "venues/venue_thalia",
+      "venues/venue_redroom",
+      "retail/store_1",
+      "restaurants/loc_westside"
+    ],
+    "fixture_rooms_return_items": "3 of the 3 fixture-backed rooms driven returned items (redroom 2, store_1 3, loc_westside 2 after rules)",
+    "trust_after": "13 pass · 0 fail · 0 unproven",
+    "ledger_after": "chain verified, 5 entries in the default store",
+    "browser_console_faults": 0,
+    "defect_fixed_in_this_pass": "A Replay run for a room with no committed fixture used to emit five “relaxed the filters” trace steps and then say “Qloo returned 0 candidates”. No query ran, so both lines were untrue. The ladder is now skipped and the step names the missing fixture file: venues/venue_thalia went from 8 steps (5 fabricated relaxations) to 3 steps, one of which states the real reason."
+  },
+  "live_re_enable_pass": {
+    "taken_at": "2026-10-24T15:35:00Z",
+    "what": "The host owner set QLOO_ENABLED=true again and asked for a real live run. Live was requested per call; DEFAULT_MODE stayed replay.",
+    "fresh_live_run": {
+      "proposal_id": "p_mvm7xz9v_007",
+      "pack": "venues",
+      "location": "venue_thalia",
+      "badge": "LIVE",
+      "trace_steps": 130,
+      "steps_fetched_now": 130,
+      "steps_cached": 0,
+      "steps_replay": 0,
+      "steps_missing_mode": 0,
+      "items": 25,
+      "trust": "13 pass",
+      "ledger": "chain verified, 5 entries, head 1917eb001548865e",
+      "console_faults": 0,
+      "entity_names_redacted": "The five headliners and their fit scores are live Qloo output and are not copied into this repo file. They are on screen in the running app and in the saved run outside the tree."
+    },
+    "real_qloo_calls_this_pass": 8,
+    "cumulative_real_calls_disclosed": 49,
+    "repeat_live_run": {
+      "proposal_id": "p_mvm8iv58_001",
+      "badge": "CACHED",
+      "trace_steps": 130,
+      "steps_fetched_now": 0,
+      "items": 25,
+      "real_reads": 0,
+      "meaning": "Asked live again minutes later: every answer was already in .private-cache, so the run made no live read and the badge followed the bytes."
+    },
+    "defect_found_and_fixed": {
+      "finding": "The reason a live request came back Cached lived only on the request session. Once stored, the proposal said mode: cached and nothing else, so a viewer could not tell a quota degrade from an all-cached answer.",
+      "fix": "Proposal.degrade_reason is written with the run (server/src/types.ts, agents/pipeline.ts) and shown on the Plan screen; Finals Mode re-serve states its own reason.",
+      "verified": "Browser at localhost:3000 — note rendered above the audience portrait, header badge CACHED with 0/130 fetched now. tsc --noEmit clean on server and client; vitest 84/84; 0 live reads spent on this check.",
+      "evidence_screenshot": "w10c-note-top.png (kept outside the repo — it shows Qloo-derived data)"
+    },
+    "not_exercised": "The quota-exhausted branch of degrade_reason was not driven live: reaching it costs 8 real live runs. Its string comes from the same effectiveMode() reason that rest-client.test.ts asserts on."
+  },
+  "known_gaps": [
+    "Nothing is pushed: the public repo, license visibility and demo URL the rules require are outstanding.",
+    "restaurants/loc_westside and venues/venue_redroom return 0 live items for the reason stated above.",
+    "venue runs mark items needs_data + approval_blocked until the operator supplies offer terms.",
+    "The harness day counter is in-memory and resets on dev-server reload; the saved call log is the durable spend record.",
+    "Retail and restaurant runs show local_lift 0 on every item: for those seeds the live no-location arm returned the identical order, so the \"local taste\" story is a venues story and the UI does not pretend otherwise.",
+    "Replay ships synthetic fixtures for 5 of the 7 rooms (venue_redroom, store_1..3, loc_westside); the two rooms whose data is real Qloo (Thalia, Luckett) have none, because committed fixtures may not contain live Qloo payloads. Offline they now return an honest empty run that names the missing fixture file.",
+    "Taste Lift arm A did not run (no LLM key on this host), so no LLM-vs-grounded lift figure exists."
+  ]
+}

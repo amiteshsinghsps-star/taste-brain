@@ -1,0 +1,46 @@
+{
+  "pack": "restaurants",
+  "unit": "location",
+  "display_name": "Restaurants and hospitality",
+  "description": "Which dishes and promotions to add per neighborhood, ranked by local Qloo taste and checked against margin, supplier and dietary rules.",
+  "goal_templates": [
+    "Add {n} dishes to the {season} menu for this location",
+    "Add {n} promotions for this neighborhood"
+  ],
+  "qloo": { "target_types": ["place", "brand", "artist"], "seed_types": ["place", "brand"], "location_signal": "city", "max_calls_per_request": 8 },
+  "copy": { "audience_label": "neighborhood audience", "offer_label": "dish" },
+  "sop_documents": [
+    { "id": "SOP-Menu-Margin.md", "title": "Menu Margin", "lines": { "L8": "Every added dish must keep food cost at or below 32 percent (margin_floor)." } },
+    { "id": "SOP-Dietary.md", "title": "Dietary", "lines": { "L3": "Label dishes containing shellfish; do not add them to the default tasting menu." } }
+  ],
+  "rules": [
+    { "id": "margin_floor", "kind": "numeric_max", "field": "food_cost_pct", "value": 32, "source": "SOP-Menu-Margin.md#L8", "snippet": "food_cost_pct must be <= 32" },
+    { "id": "dietary_shellfish", "kind": "exclude_tags", "tags": ["qlootag:shellfish"], "source": "SOP-Dietary.md#L3", "snippet": "exclude shellfish from default menu" }
+  ],
+  "locations": [
+    {
+      "id": "loc_westside",
+      "name": "Westside Kitchen - Austin, TX",
+      "city": "Austin, TX",
+      "seeds": ["qloo:place:franklin_barbecue", "qloo:place:launderette_austin"],
+      "_seed_note": "Seeds use well-known Austin restaurants that resolve via Qloo /search in live mode. Fallback to replay fixtures if offline.",
+      "catalog": "westside",
+      "data_provenance": "SYNTHETIC. The dishes, their food-cost percentages and the Replay fixture are invented for an offline worked example; no real restaurant's margins are represented. Live mode reads real Qloo place and brand entities, and anything without a costed recipe on file is shown as unsupported."
+    }
+  ],
+  "catalogs": {
+    "westside": [
+      { "offer_id": "dish_smash", "name": "Smash Taco", "qloo_entity_id": "qloo:brand:texmex_smash", "fields": { "food_cost_pct": 26 }, "tags": ["texmex", "street"] },
+      { "offer_id": "dish_brat", "name": "Butter Brat", "qloo_entity_id": "qloo:brand:nordic_brat", "fields": { "food_cost_pct": 30 }, "tags": ["scandi", "bakery"] },
+      { "offer_id": "dish_shrimp", "name": "Gulf Shrimp Plate", "qloo_entity_id": "qloo:brand:gulf_shrimp", "fields": { "food_cost_pct": 29 }, "tags": ["seafood", "qlootag:shellfish"] },
+      {
+        "offer_id": "dish_birria",
+        "name": "Birria Bowl",
+        "qloo_entity_id": "qloo:brand:birria_house",
+        "fields": { "food_cost_pct": 35 },
+        "tags": ["mexican", "slowfood"],
+        "_rule_note": "Honest failure scenario: food_cost_pct 35 exceeds margin_floor 32 — Auditor rejects this item regardless of Qloo affinity score."
+      }
+    ]
+  }
+}

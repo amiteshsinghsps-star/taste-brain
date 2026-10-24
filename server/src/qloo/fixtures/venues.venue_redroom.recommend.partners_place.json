@@ -1,0 +1,11 @@
+{
+  "_note": "SYNTHETIC fixture for Replay mode only. NOT a Qloo response. Every place below is invented. Shared tags are an audience-overlap measurement, not a partnership and not a booking.",
+  "workflow": "recommend",
+  "variant": "partners_place",
+  "fetched_at": "1970-01-01T00:00:00.000Z",
+  "results": [
+    { "entity_id": "qloo:place:palmolive_room", "name": "The Palmolive Room", "type": "place", "qloo_rank": 1, "popularity": 0.52, "primary_genres": [], "qloo_tags": [ { "id": "qlootag:live_music_venue", "name": "live music venue", "type": "urn:tag" }, { "id": "qlootag:electronic", "name": "electronic", "type": "urn:tag" }, { "id": "qlootag:chicago", "name": "chicago", "type": "urn:tag" } ], "explainability": "Fictional neighbouring room with an overlapping electronic audience." },
+    { "entity_id": "qloo:place:westside_festival", "name": "Westside Block Party", "type": "place", "qloo_rank": 2, "popularity": 0.61, "primary_genres": [], "qloo_tags": [ { "id": "qlootag:festival", "name": "festival", "type": "urn:tag" }, { "id": "qlootag:house", "name": "house", "type": "urn:tag" } ], "explainability": "Fictional annual block event." },
+    { "entity_id": "qloo:place:elm_lounge", "name": "Elm & Vine Lounge", "type": "place", "qloo_rank": 3, "popularity": 0.29, "primary_genres": [], "qloo_tags": [ { "id": "qlootag:cocktail_bar", "name": "cocktail bar", "type": "urn:tag" }, { "id": "qlootag:indie", "name": "indie", "type": "urn:tag" } ], "explainability": "Fictional lounge." }
+  ]
+}

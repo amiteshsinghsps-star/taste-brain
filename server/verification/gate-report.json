@@ -1,0 +1,457 @@
+{
+  "verified_at": "2026-10-24T03:54:04.060Z",
+  "base_url": "https://hackathon.api.qloo.com",
+  "gate": {
+    "per_city": {
+      "Chicago, IL": {
+        "with_loc": 20,
+        "pop_band": 20,
+        "expl": true,
+        "names": []
+      },
+      "Austin, TX": {
+        "with_loc": 20,
+        "pop_band": 20,
+        "expl": true,
+        "names": []
+      },
+      "Nashville, TN": {
+        "with_loc": 20,
+        "pop_band": 20,
+        "expl": true,
+        "names": []
+      }
+    },
+    "pass": true
+  },
+  "capabilities_verified": [
+    "Q1",
+    "Q3",
+    "Q7",
+    "Q5",
+    "Q6",
+    "Q8",
+    "Q4",
+    "Q2",
+    "Q10",
+    "Q10b",
+    "Q12a",
+    "Q12b"
+  ],
+  "accepted_but_empty": [
+    "Q8b",
+    "Q9",
+    "Q11"
+  ],
+  "not_usable": [],
+  "rows": [
+    {
+      "id": "Q1",
+      "label": "resolve artist \"Vampire Weekend\"",
+      "path": "/search",
+      "params": {
+        "query": "Vampire Weekend",
+        "type": "urn:entity:artist"
+      },
+      "status": 200,
+      "count": 20,
+      "popularity_present": true,
+      "explainability_present": true,
+      "affinity_field": null
+    },
+    {
+      "id": "Q1",
+      "label": "resolve artist \"Bon Iver\"",
+      "path": "/search",
+      "params": {
+        "query": "Bon Iver",
+        "type": "urn:entity:artist"
+      },
+      "status": 200,
+      "count": 20,
+      "popularity_present": true,
+      "explainability_present": true,
+      "affinity_field": null
+    },
+    {
+      "id": "Q1",
+      "label": "resolve artist \"Phoebe Bridgers\"",
+      "path": "/search",
+      "params": {
+        "query": "Phoebe Bridgers",
+        "type": "urn:entity:artist"
+      },
+      "status": 200,
+      "count": 20,
+      "popularity_present": true,
+      "explainability_present": true,
+      "affinity_field": null
+    },
+    {
+      "id": "Q3",
+      "label": "artists for Chicago, IL",
+      "path": "/v2/insights",
+      "params": {
+        "filter.type": "urn:entity:artist",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.location.query": "Chicago, IL",
+        "take": 20
+      },
+      "status": 200,
+      "count": 20,
+      "popularity_present": true,
+      "explainability_present": true,
+      "affinity_field": null
+    },
+    {
+      "id": "Q7",
+      "label": "artists + popularity band chicago",
+      "path": "/v2/insights",
+      "params": {
+        "filter.type": "urn:entity:artist",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.location.query": "Chicago, IL",
+        "take": 20,
+        "filter.popularity.min": 0.05,
+        "filter.popularity.max": 0.85
+      },
+      "status": 200,
+      "count": 20,
+      "popularity_present": true,
+      "explainability_present": true,
+      "affinity_field": null
+    },
+    {
+      "id": "Q5",
+      "label": "artists + explainability chicago",
+      "path": "/v2/insights",
+      "params": {
+        "filter.type": "urn:entity:artist",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.location.query": "Chicago, IL",
+        "take": 20,
+        "feature.explainability": "true"
+      },
+      "status": 200,
+      "count": 20,
+      "popularity_present": true,
+      "explainability_present": true,
+      "affinity_field": null
+    },
+    {
+      "id": "Q3",
+      "label": "artists for Austin, TX",
+      "path": "/v2/insights",
+      "params": {
+        "filter.type": "urn:entity:artist",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.location.query": "Austin, TX",
+        "take": 20
+      },
+      "status": 200,
+      "count": 20,
+      "popularity_present": true,
+      "explainability_present": true,
+      "affinity_field": null
+    },
+    {
+      "id": "Q7",
+      "label": "artists + popularity band austin",
+      "path": "/v2/insights",
+      "params": {
+        "filter.type": "urn:entity:artist",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.location.query": "Austin, TX",
+        "take": 20,
+        "filter.popularity.min": 0.05,
+        "filter.popularity.max": 0.85
+      },
+      "status": 200,
+      "count": 20,
+      "popularity_present": true,
+      "explainability_present": true,
+      "affinity_field": null
+    },
+    {
+      "id": "Q5",
+      "label": "artists + explainability austin",
+      "path": "/v2/insights",
+      "params": {
+        "filter.type": "urn:entity:artist",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.location.query": "Austin, TX",
+        "take": 20,
+        "feature.explainability": "true"
+      },
+      "status": 200,
+      "count": 20,
+      "popularity_present": true,
+      "explainability_present": true,
+      "affinity_field": null
+    },
+    {
+      "id": "Q3",
+      "label": "artists for Nashville, TN",
+      "path": "/v2/insights",
+      "params": {
+        "filter.type": "urn:entity:artist",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.location.query": "Nashville, TN",
+        "take": 20
+      },
+      "status": 200,
+      "count": 20,
+      "popularity_present": true,
+      "explainability_present": true,
+      "affinity_field": null
+    },
+    {
+      "id": "Q7",
+      "label": "artists + popularity band nashville",
+      "path": "/v2/insights",
+      "params": {
+        "filter.type": "urn:entity:artist",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.location.query": "Nashville, TN",
+        "take": 20,
+        "filter.popularity.min": 0.05,
+        "filter.popularity.max": 0.85
+      },
+      "status": 200,
+      "count": 20,
+      "popularity_present": true,
+      "explainability_present": true,
+      "affinity_field": null
+    },
+    {
+      "id": "Q5",
+      "label": "artists + explainability nashville",
+      "path": "/v2/insights",
+      "params": {
+        "filter.type": "urn:entity:artist",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.location.query": "Nashville, TN",
+        "take": 20,
+        "feature.explainability": "true"
+      },
+      "status": 200,
+      "count": 20,
+      "popularity_present": true,
+      "explainability_present": true,
+      "affinity_field": null
+    },
+    {
+      "id": "Q6",
+      "label": "exclude one entity",
+      "path": "/v2/insights",
+      "params": {
+        "filter.type": "urn:entity:artist",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.location.query": "Chicago, IL",
+        "filter.exclude.entities": "6A955457-1D79-41C2-94D2-06683841CD66",
+        "take": 10
+      },
+      "status": 200,
+      "count": 10,
+      "popularity_present": true,
+      "explainability_present": true,
+      "affinity_field": null
+    },
+    {
+      "id": "Q8",
+      "label": "bias.trends=high",
+      "path": "/v2/insights",
+      "params": {
+        "filter.type": "urn:entity:artist",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.location.query": "Chicago, IL",
+        "bias.trends": "high",
+        "take": 10
+      },
+      "status": 200,
+      "count": 10,
+      "popularity_present": true,
+      "explainability_present": true,
+      "affinity_field": null
+    },
+    {
+      "id": "Q8",
+      "label": "bias.trends=bool (expect 400)",
+      "path": "/v2/insights",
+      "params": {
+        "filter.type": "urn:entity:artist",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.location.query": "Chicago, IL",
+        "bias.trends": "true",
+        "take": 10
+      },
+      "status": 400,
+      "count": 0,
+      "popularity_present": false,
+      "explainability_present": false,
+      "affinity_field": null
+    },
+    {
+      "id": "Q8b",
+      "label": "/v2/trending without dates (expect 400)",
+      "path": "/v2/trending",
+      "params": {
+        "filter.type": "urn:entity:artist",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "take": 10
+      },
+      "status": 400,
+      "count": 0,
+      "popularity_present": false,
+      "explainability_present": false,
+      "affinity_field": null
+    },
+    {
+      "id": "Q8b",
+      "label": "/v2/trending (verified shape)",
+      "path": "/v2/trending",
+      "params": {
+        "filter.type": "urn:entity:artist",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66",
+        "filter.start_date": "2026-08-01",
+        "filter.end_date": "2026-10-01",
+        "take": 10
+      },
+      "status": 200,
+      "count": 0,
+      "popularity_present": false,
+      "explainability_present": false,
+      "affinity_field": null
+    },
+    {
+      "id": "Q4",
+      "label": "rank a shortlist",
+      "path": "/v2/insights",
+      "params": {
+        "filter.type": "urn:entity:artist",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.location.query": "Chicago, IL",
+        "filter.results.entities": "92E3DAD5-93AC-4FE9-932F-2F2ABCEA2FCE,17CA60C4-D34B-4D9C-B6BC-E1CD59BDFAA5,09A6AE07-2814-498F-A978-17B59092F9DC,192BB96E-F4BD-4A76-B24E-CD049EC9DFA2,3460E83E-DCD5-4D1B-B3BF-1B6C1D6D2BB8",
+        "take": 5
+      },
+      "status": 200,
+      "count": 5,
+      "popularity_present": true,
+      "explainability_present": true,
+      "affinity_field": null
+    },
+    {
+      "id": "Q2",
+      "label": "tags for \"indie\"",
+      "path": "/v2/tags",
+      "params": {
+        "filter.query": "indie"
+      },
+      "status": 200,
+      "count": 20,
+      "popularity_present": true,
+      "explainability_present": false,
+      "affinity_field": null
+    },
+    {
+      "id": "Q9",
+      "label": "demographics filter",
+      "path": "/v2/insights",
+      "params": {
+        "filter.type": "urn:demographics",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.location.query": "Chicago, IL",
+        "take": 10
+      },
+      "status": 200,
+      "count": 0,
+      "popularity_present": false,
+      "explainability_present": false,
+      "affinity_field": null
+    },
+    {
+      "id": "Q10",
+      "label": "compare two locations (a./b. prefixes)",
+      "path": "/v2/analysis/compare",
+      "params": {
+        "filter.type": "urn:tag",
+        "a.signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "a.signal.location.query": "Chicago, IL",
+        "b.signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "b.signal.location.query": "Austin, TX",
+        "take": 10
+      },
+      "status": 200,
+      "count": 625,
+      "popularity_present": true,
+      "explainability_present": false,
+      "affinity_field": null
+    },
+    {
+      "id": "Q10b",
+      "label": "compare two audiences (same city, different seeds)",
+      "path": "/v2/analysis/compare",
+      "params": {
+        "filter.type": "urn:tag",
+        "a.signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66",
+        "a.signal.location.query": "Chicago, IL",
+        "b.signal.interests.entities": "E51DB8F2-7A93-4746-A283-E55B5216FDE1",
+        "b.signal.location.query": "Chicago, IL",
+        "take": 10
+      },
+      "status": 200,
+      "count": 61,
+      "popularity_present": true,
+      "explainability_present": false,
+      "affinity_field": null
+    },
+    {
+      "id": "Q11",
+      "label": "heatmap (verified shape, expect rows=0)",
+      "path": "/v2/insights",
+      "params": {
+        "filter.type": "urn:heatmap",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "filter.location.query": "Chicago, IL",
+        "take": 10
+      },
+      "status": 200,
+      "count": 0,
+      "popularity_present": false,
+      "explainability_present": false,
+      "affinity_field": null
+    },
+    {
+      "id": "Q12a",
+      "label": "places for the same audience",
+      "path": "/v2/insights",
+      "params": {
+        "filter.type": "urn:entity:place",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.location.query": "Chicago, IL",
+        "take": 10
+      },
+      "status": 200,
+      "count": 10,
+      "popularity_present": true,
+      "explainability_present": true,
+      "affinity_field": null
+    },
+    {
+      "id": "Q12b",
+      "label": "brands for the same audience",
+      "path": "/v2/insights",
+      "params": {
+        "filter.type": "urn:entity:brand",
+        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.location.query": "Chicago, IL",
+        "take": 10
+      },
+      "status": 200,
+      "count": 10,
+      "popularity_present": true,
+      "explainability_present": true,
+      "affinity_field": null
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "_note": "SYNTHETIC fixture for Replay mode only. NOT a Qloo response. Every dish, brand id and figure is invented for an offline demo of the restaurants pack. Two honest failures are kept on purpose: the shrimp plate carries the excluded shellfish tag and the birria bowl breaches the food-cost ceiling. fit is derived by Taste Brain from qloo_rank.",
+  "workflow": "recommend",
+  "fetched_at": "1970-01-01T00:00:00.000Z",
+  "results": [
+    { "entity_id": "qloo:brand:texmex_smash", "name": "Smash Taco", "type": "brand", "qloo_rank": 1, "popularity": 0.58, "obscurity": 4, "primary_genres": [], "qloo_tags": [ { "id": "qlootag:texmex", "name": "texmex", "type": "urn:tag" }, { "id": "qlootag:street_food", "name": "street food", "type": "urn:tag" }, { "id": "qlootag:austin", "name": "austin", "type": "urn:tag" } ], "explainability": "Fictional dish: tex-mex and street-food affinity is highest in this neighborhood." },
+    { "entity_id": "qloo:brand:gulf_shrimp", "name": "Gulf Shrimp", "type": "brand", "qloo_rank": 2, "popularity": 0.47, "obscurity": 5, "primary_genres": [], "qloo_tags": [ { "id": "qlootag:seafood", "name": "seafood", "type": "urn:tag" }, { "id": "qlootag:shellfish", "name": "shellfish", "type": "urn:tag" } ], "explainability": "Fictional dish: strong seafood affinity, and it carries the excluded shellfish tag." },
+    { "entity_id": "qloo:brand:nordic_brat", "name": "Butter Brat", "type": "brand", "qloo_rank": 3, "popularity": 0.31, "obscurity": 8, "primary_genres": [], "qloo_tags": [ { "id": "qlootag:scandi", "name": "scandi", "type": "urn:tag" }, { "id": "qlootag:bakery", "name": "bakery", "type": "urn:tag" } ], "explainability": "Fictional dish: Scandi bakery affinity from nearby places." },
+    { "entity_id": "qloo:brand:birria_house", "name": "Birria Bowl", "type": "brand", "qloo_rank": 4, "popularity": 0.66, "obscurity": 3, "primary_genres": [], "qloo_tags": [ { "id": "qlootag:mexican", "name": "mexican", "type": "urn:tag" }, { "id": "qlootag:slowfood", "name": "slowfood", "type": "urn:tag" } ], "explainability": "Fictional dish: high affinity, but the invented food cost breaks the margin rule." }
+  ]
+}

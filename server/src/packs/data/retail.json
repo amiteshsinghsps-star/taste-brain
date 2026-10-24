@@ -1,0 +1,80 @@
+{
+  "pack": "retail",
+  "unit": "store",
+  "display_name": "Retail and fashion",
+  "description": "Which brands to stock in a store, ranked by the local audience's Qloo taste and checked against buying policy.",
+  "goal_templates": [
+    "Add {n} brands to the {season} assortment for this store",
+    "Replace the lowest-fit {n} brands in this store"
+  ],
+  "qloo": {
+    "target_types": ["brand"],
+    "seed_types": ["brand", "place", "artist"],
+    "location_signal": "city",
+    "max_calls_per_request": 8
+  },
+  "copy": { "audience_label": "store audience", "offer_label": "brand" },
+  "sop_documents": [
+    { "id": "SOP-Buying-Policy.md", "title": "Buying Policy", "lines": { "L12": "No single item may have a unit cost above $40 for the opening assortment.", "L20": "Minimum supplier order quantity must not exceed 500 units." } },
+    { "id": "SOP-Brand-Safety.md", "title": "Brand Safety", "lines": { "L4": "Exclude any brand tagged tobacco or adult_content in the approved-brand list." } }
+  ],
+  "rules": [
+    { "id": "budget_cap", "kind": "numeric_max", "field": "unit_cost", "value": 40, "source": "SOP-Buying-Policy.md#L12", "snippet": "unit_cost must be <= 40" },
+    { "id": "min_order", "kind": "numeric_max", "field": "minimum_order", "value": 500, "source": "SOP-Buying-Policy.md#L20", "snippet": "minimum_order must be <= 500" },
+    { "id": "brand_safety", "kind": "exclude_tags", "tags": ["qlootag:tobacco", "qlootag:adult_content"], "source": "SOP-Brand-Safety.md#L4", "snippet": "exclude tobacco / adult_content tags" }
+  ],
+  "locations": [
+    { "id": "store_1", "name": "Store 1 - Belltown, Seattle", "city": "Seattle, WA", "seeds": ["qloo:brand:patagonia", "qloo:brand:filson", "qloo:brand:seattle_anchor_outfitters"], "catalog": "store_1", "data_provenance": "Buying-policy figures are sample terms for a fictional store; the ranked brands in the Replay fixture are invented. Live mode reads real Qloo brands, and any brand without terms on file is shown as unsupported rather than guessed." },
+    { "id": "store_2", "name": "Store 2 - Wynwood, Miami", "city": "Miami, FL", "seeds": ["qloo:brand:kith", "qloo:brand:stussy", "qloo:brand:miami_coast_kicks"], "catalog": "store_2", "data_provenance": "Same pack, different configuration: this is the proof that a vertical is a file, not code. Store terms are sample data; nothing here is a real buying decision." },
+    { "id": "store_3", "name": "Store 3 - East Austin, TX", "city": "Austin, TX", "seeds": ["qloo:brand:yeti", "qloo:brand:tecovas", "qloo:brand:howler_brothers"], "catalog": "store_3", "data_provenance": "Store terms are sample data for a fictional assortment. Fixture brands are invented so no real brand is attributed an invented price." }
+  ],
+  "catalogs": {
+    "store_3": [
+      { "offer_id": "off_a_ledge", "name": "Arbor & Ledge", "qloo_entity_id": "qloo:brand:arbor_and_ledge", "fields": { "unit_cost": 28, "minimum_order": 240 }, "tags": ["outdoors", "sustainable"] },
+      { "offer_id": "off_northbound", "name": "Northbound Supply", "qloo_entity_id": "qloo:brand:northbound_supply", "fields": { "unit_cost": 34, "minimum_order": 300 }, "tags": ["workwear", "denim"] },
+      { "offer_id": "off_lumen", "name": "Lumen Threads", "qloo_entity_id": "qloo:brand:lumen_threads", "fields": { "unit_cost": 22, "minimum_order": 180 }, "tags": ["streetwear", "music"] },
+      { "offer_id": "off_riverstone", "name": "Riverstone Co.", "qloo_entity_id": "qloo:brand:riverstone_co", "fields": { "unit_cost": 46, "minimum_order": 200 }, "tags": ["premium", "leather"] },
+      { "offer_id": "off_mesa", "name": "Mesa & Main", "qloo_entity_id": "qloo:brand:mesa_and_main", "fields": { "unit_cost": 19, "minimum_order": 620 }, "tags": ["basics", "cotton"] },
+      { "offer_id": "off_cedar", "name": "Cedar Row", "qloo_entity_id": "qloo:brand:cedar_row", "fields": { "unit_cost": 30, "minimum_order": 260 }, "tags": ["western", "boots"] },
+      { "offer_id": "off_halo", "name": "Halo Athletics", "qloo_entity_id": "qloo:brand:halo_athletics", "fields": { "unit_cost": 26, "minimum_order": 320 }, "tags": ["athleisure"] },
+      { "offer_id": "off_dusk", "name": "Dusk Records Apparel", "qloo_entity_id": "qloo:brand:dusk_records_apparel", "fields": { "unit_cost": 24, "minimum_order": 120 }, "tags": ["music", "vinyl"] },
+      { "offer_id": "off_southerntide", "name": "Southern Tide", "qloo_entity_id": "E867557B-459C-49B1-A572-50EB012D5708", "fields": { "unit_cost": 28, "minimum_order": 300 }, "tags": ["preppy", "coastal"] },
+      { "offer_id": "off_lacrosse", "name": "Lacrosse Footwear", "qloo_entity_id": "A0629A26-9501-4645-BA4B-F4BC7F260D1E", "fields": { "unit_cost": 38, "minimum_order": 200 }, "tags": ["workwear", "boots"] },
+      { "offer_id": "off_stetson", "name": "Stetson", "qloo_entity_id": "6B4525D2-C1C9-44F2-8F44-4BCCD4B61A6F", "fields": { "unit_cost": 35, "minimum_order": 250 }, "tags": ["western", "hats"] },
+      { "offer_id": "off_cabelas", "name": "Cabela's", "qloo_entity_id": "D46C358B-C258-40FD-BE2F-1B03DBAC7913", "fields": { "unit_cost": 25, "minimum_order": 600 }, "tags": ["hunting", "outdoor"] },
+      { "offer_id": "off_chubbies", "name": "Chubbies", "qloo_entity_id": "80C93E1C-141F-4F06-B6A4-784A08379882", "fields": { "unit_cost": 24, "minimum_order": 200 }, "tags": ["shorts", "casual"] },
+      { "offer_id": "off_codigo", "name": "Código 1530 Tequila", "qloo_entity_id": "A5B4AB53-CF55-4FE0-9D41-0782A3A3A2DB", "fields": { "unit_cost": 30, "minimum_order": 100 }, "tags": ["qlootag:adult_content", "spirits"] },
+      { "offer_id": "off_blenders", "name": "Blenders Eyewear", "qloo_entity_id": "E5BD9673-AAA1-4A5A-82CE-5880BFE95DB7", "fields": { "unit_cost": 18, "minimum_order": 150 }, "tags": ["sunglasses", "active"] },
+      { "offer_id": "off_olukai", "name": "OluKai", "qloo_entity_id": "58EF7B18-01E0-43D1-905B-EB00D0D3EF6B", "fields": { "unit_cost": 36, "minimum_order": 180 }, "tags": ["footwear", "island"] },
+      { "offer_id": "off_traeger", "name": "Traeger Grills", "qloo_entity_id": "F85DF97F-AF53-4F36-9A07-9D0F8580B9F8", "fields": { "unit_cost": 85, "minimum_order": 100 }, "tags": ["bbq", "lifestyle"] },
+      { "offer_id": "off_palmetto", "name": "Palmetto Vape Co.", "qloo_entity_id": "qloo:brand:palmetto_vape_co", "fields": { "unit_cost": 12, "minimum_order": 150 }, "tags": ["accessories", "qlootag:adult_content"], "_note": "SYNTHETIC fictional brand carried by the Replay fixture so brand safety refuses inside the policy, not just for a brand with no offer on file." }
+    ],
+    "store_1": [
+      { "offer_id": "off_cascadia", "name": "Cascadia Knit", "qloo_entity_id": "qloo:brand:cascadia_knit", "fields": { "unit_cost": 38, "minimum_order": 200 }, "tags": ["rainwear", "knit"] },
+      { "offer_id": "off_timberline", "name": "Timberline", "qloo_entity_id": "qloo:brand:timberline", "fields": { "unit_cost": 33, "minimum_order": 400 }, "tags": ["outdoors", "layers"] },
+      { "offer_id": "off_salish", "name": "Salish Coffee Goods", "qloo_entity_id": "qloo:brand:salish_coffee_goods", "fields": { "unit_cost": 21, "minimum_order": 150 }, "tags": ["coffee", "cafe"] },
+      { "offer_id": "off_rei", "name": "Recreational Equipment Inc", "qloo_entity_id": "205AF33F-118E-4C49-9721-6BDBAF981DA0", "fields": { "unit_cost": 28, "minimum_order": 250 }, "tags": ["outdoors", "gear"] },
+      { "offer_id": "off_huckberry", "name": "Huckberry", "qloo_entity_id": "82BC424A-68CF-4F14-A831-826F28143F54", "fields": { "unit_cost": 34, "minimum_order": 300 }, "tags": ["menswear", "adventure"] },
+      { "offer_id": "off_pendleton", "name": "Pendleton Woolen Mills", "qloo_entity_id": "D69A3BE9-3C01-4786-9EFD-8B70586A977E", "fields": { "unit_cost": 38, "minimum_order": 200 }, "tags": ["wool", "heritage"] },
+      { "offer_id": "off_backcountry", "name": "Backcountry", "qloo_entity_id": "11540186-905B-4FF4-8B1A-B1C05AC68DA3", "fields": { "unit_cost": 32, "minimum_order": 600 }, "tags": ["outdoors", "retail"] },
+      { "offer_id": "off_arcteryx", "name": "Arc'teryx", "qloo_entity_id": "B2A2238B-5FDC-46CD-B6F9-A32DB1474C70", "fields": { "unit_cost": 65, "minimum_order": 200 }, "tags": ["technical", "outerwear"] },
+      { "offer_id": "off_smartwool", "name": "Smartwool", "qloo_entity_id": "F5EA6E51-2F04-4714-AAB1-779387D6F2EE", "fields": { "unit_cost": 22, "minimum_order": 180 }, "tags": ["merino", "socks"] },
+      { "offer_id": "off_fjallraven", "name": "Fjällräven", "qloo_entity_id": "E9A70778-6E65-49A4-8C38-A24D20C05BDA", "fields": { "unit_cost": 36, "minimum_order": 220 }, "tags": ["scandinavian", "backpacks"] },
+      { "offer_id": "off_danner", "name": "Danner", "qloo_entity_id": "3F0E9B87-8CE9-4EE5-A1B1-A9A6AED8452A", "fields": { "unit_cost": 39, "minimum_order": 150 }, "tags": ["boots", "heritage"] },
+      { "offer_id": "off_harborlight", "name": "Harbor Light Towels", "qloo_entity_id": "qloo:brand:harbor_light_towels", "fields": { "unit_cost": 16, "minimum_order": 200 }, "tags": ["accessories", "qlootag:tobacco"], "_note": "SYNTHETIC fictional brand carried by the Replay fixture so the brand-safety rule has something to refuse offline. Terms are invented." }
+    ],
+    "store_2": [
+      { "offer_id": "off_azul", "name": "Azul Linen", "qloo_entity_id": "qloo:brand:azul_linen", "fields": { "unit_cost": 27, "minimum_order": 210 }, "tags": ["resort", "linen"] },
+      { "offer_id": "off_sol", "name": "Sol Swim", "qloo_entity_id": "qloo:brand:sol_swim", "fields": { "unit_cost": 31, "minimum_order": 260 }, "tags": ["swim", "beach"] },
+      { "offer_id": "off_marlowe", "name": "Marlowe Artwear", "qloo_entity_id": "qloo:brand:marlowe_artwear", "fields": { "unit_cost": 25, "minimum_order": 180 }, "tags": ["art", "streetwear"] },
+      { "offer_id": "off_fog", "name": "Fear Of God", "qloo_entity_id": "73C9B585-08D4-4ECA-9500-3745F70C81F1", "fields": { "unit_cost": 85, "minimum_order": 120 }, "tags": ["luxury", "streetwear"] },
+      { "offer_id": "off_y3", "name": "Y-3", "qloo_entity_id": "A5C63FA9-24C7-4D4B-956D-8F9FF265660E", "fields": { "unit_cost": 75, "minimum_order": 150 }, "tags": ["designer", "avantgarde"] },
+      { "offer_id": "off_undefeated", "name": "Undefeated", "qloo_entity_id": "4C39C63F-030D-422C-8879-233D5445771A", "fields": { "unit_cost": 26, "minimum_order": 200 }, "tags": ["streetwear", "athletic"] },
+      { "offer_id": "off_supreme", "name": "Supreme", "qloo_entity_id": "7161ADA0-8DC8-471E-A4A8-61EE15578400", "fields": { "unit_cost": 38, "minimum_order": 550 }, "tags": ["skate", "hype"] },
+      { "offer_id": "off_bbc", "name": "Billionaire Boys Club", "qloo_entity_id": "9A180424-C0FD-4013-9431-18B70E1A7176", "fields": { "unit_cost": 32, "minimum_order": 250 }, "tags": ["streetwear", "graphic"] },
+      { "offer_id": "off_assc", "name": "Anti Social Social Club", "qloo_entity_id": "395E0A85-4655-4894-9D30-BC94946FB25E", "fields": { "unit_cost": 25, "minimum_order": 200 }, "tags": ["streetwear", "hoodies"] },
+      { "offer_id": "off_stampd", "name": "Stampd", "qloo_entity_id": "A6845A0E-C16B-4D9C-AFAA-3D6E48CC2836", "fields": { "unit_cost": 35, "minimum_order": 180 }, "tags": ["minimalist", "luxury"] },
+      { "offer_id": "off_palace", "name": "Palace Skateboards", "qloo_entity_id": "91D22C42-E4F7-4FBC-9D0D-A0182794C86D", "fields": { "unit_cost": 30, "minimum_order": 220 }, "tags": ["skate", "london"] }
+    ]
+  }
+}

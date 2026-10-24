@@ -1,0 +1,10 @@
+{
+  "_note": "SYNTHETIC fixture for Replay mode only. NOT a Qloo response. Fictional Wynwood brands with invented figures, so the retail pack works with no key. fit is derived by Taste Brain from qloo_rank.",
+  "workflow": "recommend",
+  "fetched_at": "1970-01-01T00:00:00.000Z",
+  "results": [
+    { "entity_id": "qloo:brand:marlowe_artwear", "name": "Marlowe Artwear", "type": "brand", "qloo_rank": 1, "popularity": 0.47, "obscurity": 6, "followers": 26000, "primary_genres": [], "qloo_tags": [ { "id": "qlootag:art", "name": "art", "type": "urn:tag" }, { "id": "qlootag:streetwear", "name": "streetwear", "type": "urn:tag" }, { "id": "qlootag:miami", "name": "miami", "type": "urn:tag" } ], "explainability": "Fictional brand: Wynwood art-scene affinity carries to wearable collabs." },
+    { "entity_id": "qloo:brand:sol_swim", "name": "Sol Swim", "type": "brand", "qloo_rank": 2, "popularity": 0.55, "obscurity": 4, "followers": 61000, "primary_genres": [], "qloo_tags": [ { "id": "qlootag:swim", "name": "swim", "type": "urn:tag" }, { "id": "qlootag:beach", "name": "beach", "type": "urn:tag" } ], "explainability": "Fictional brand: beach and swim affinity for the Miami audience." },
+    { "entity_id": "qloo:brand:azul_linen", "name": "Azul Linen", "type": "brand", "qloo_rank": 3, "popularity": 0.33, "obscurity": 7, "followers": 12000, "primary_genres": [], "qloo_tags": [ { "id": "qlootag:resort", "name": "resort", "type": "urn:tag" }, { "id": "qlootag:linen", "name": "linen", "type": "urn:tag" } ], "explainability": "Fictional brand: resort linen affinity from place and travel signals." }
+  ]
+}
