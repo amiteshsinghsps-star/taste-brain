@@ -16,6 +16,10 @@ build/
 # SQLite / Logs / Private cache
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
+*-wal
+*-shm
 *.sqlite
 *.sqlite-journal
 dev.db

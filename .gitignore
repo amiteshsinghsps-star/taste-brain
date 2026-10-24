@@ -22,6 +22,10 @@ server/.private-cache/
 *.sqlite-journal
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
+*-wal
+*-shm
 
 # logs and local test artifacts
 *.log
