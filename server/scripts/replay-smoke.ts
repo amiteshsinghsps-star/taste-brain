@@ -1,6 +1,7 @@
 process.env.GRAPH_DB=':memory:';
 process.env.DEFAULT_MODE='replay';
 process.env.QLOO_ENABLED='false';
+process.env.PACK_OVERLAY_DISABLE='true';   // smoke what a fresh clone runs, not what this machine's overlay resolves to
 async function main() {
   const { runPipeline } = await import('../src/agents/pipeline');
   for (const [pack, loc] of [['venues','venue_redroom'],['retail','store_3'],['restaurants','loc_westside']] as const) {

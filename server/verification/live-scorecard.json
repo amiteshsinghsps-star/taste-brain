@@ -36,9 +36,9 @@
       "retail/store_1",
       "retail/store_2",
       "retail/store_3",
-      "venues/venue_luckett",
+      "venues/venue_alder_room",
       "venues/venue_redroom",
-      "venues/venue_thalia"
+      "venues/venue_corner_hall"
     ],
     "all_badged": true,
     "latency_ms_for_live_reads": {
@@ -244,7 +244,7 @@
     {
       "proposal_id": "p_mvm1n414_003",
       "pack": "venues",
-      "location": "venue_luckett",
+      "location": "venue_alder_room",
       "goal": "Book 3 acts for the autumn series in this room",
       "badge_at_run": "live",
       "status": "pending",
@@ -277,7 +277,7 @@
     {
       "proposal_id": "p_mvm1me2h_002",
       "pack": "venues",
-      "location": "venue_thalia",
+      "location": "venue_corner_hall",
       "goal": "Book 3 acts for the autumn series in this room",
       "badge_at_run": "live",
       "status": "pending",
@@ -311,7 +311,7 @@
     {
       "proposal_id": "p_mvm1lifw_001",
       "pack": "venues",
-      "location": "venue_thalia",
+      "location": "venue_corner_hall",
       "goal": "Book 3 acts for the autumn series in this room",
       "badge_at_run": "live",
       "status": "pending",
@@ -601,7 +601,7 @@
         "items": 6
       },
       {
-        "room": "venues/venue_luckett",
+        "room": "venues/venue_alder_room",
         "arm_c_kendall_tau": null,
         "arm_c_overlap_at_k": 0,
         "arm_c_changed_in_top_k": 10,
@@ -625,7 +625,7 @@
         "items": 0
       },
       {
-        "room": "venues/venue_thalia",
+        "room": "venues/venue_corner_hall",
         "arm_c_kendall_tau": null,
         "arm_c_overlap_at_k": 0,
         "arm_c_changed_in_top_k": 10,
@@ -642,7 +642,7 @@
       {
         "proposal_id": "p_mvm1me2h_002",
         "pack": "venues",
-        "location": "venue_thalia",
+        "location": "venue_corner_hall",
         "computed_at": "2026-10-24T07:01:36.140Z",
         "source_mode": "live",
         "candidate_pool": 25,
@@ -668,7 +668,7 @@
       {
         "proposal_id": "p_mvm1n414_003",
         "pack": "venues",
-        "location": "venue_luckett",
+        "location": "venue_alder_room",
         "computed_at": "2026-10-24T07:01:36.011Z",
         "source_mode": "live",
         "candidate_pool": 25,
@@ -921,7 +921,7 @@
       "real_reads_during_this_pass": 0
     },
     "replay_rooms_run": [
-      "venues/venue_thalia",
+      "venues/venue_corner_hall",
       "venues/venue_redroom",
       "retail/store_1",
       "restaurants/loc_westside"
@@ -930,7 +930,7 @@
     "trust_after": "13 pass · 0 fail · 0 unproven",
     "ledger_after": "chain verified, 5 entries in the default store",
     "browser_console_faults": 0,
-    "defect_fixed_in_this_pass": "A Replay run for a room with no committed fixture used to emit five “relaxed the filters” trace steps and then say “Qloo returned 0 candidates”. No query ran, so both lines were untrue. The ladder is now skipped and the step names the missing fixture file: venues/venue_thalia went from 8 steps (5 fabricated relaxations) to 3 steps, one of which states the real reason."
+    "defect_fixed_in_this_pass": "A Replay run for a room with no committed fixture used to emit five “relaxed the filters” trace steps and then say “Qloo returned 0 candidates”. No query ran, so both lines were untrue. The ladder is now skipped and the step names the missing fixture file: venues/venue_corner_hall went from 8 steps (5 fabricated relaxations) to 3 steps, one of which states the real reason."
   },
   "live_re_enable_pass": {
     "taken_at": "2026-10-24T15:35:00Z",
@@ -938,7 +938,7 @@
     "fresh_live_run": {
       "proposal_id": "p_mvm7xz9v_007",
       "pack": "venues",
-      "location": "venue_thalia",
+      "location": "venue_corner_hall",
       "badge": "LIVE",
       "trace_steps": 130,
       "steps_fetched_now": 130,
@@ -976,7 +976,7 @@
     "venue runs mark items needs_data + approval_blocked until the operator supplies offer terms.",
     "The harness day counter is in-memory and resets on dev-server reload; the saved call log is the durable spend record.",
     "Retail and restaurant runs show local_lift 0 on every item: for those seeds the live no-location arm returned the identical order, so the \"local taste\" story is a venues story and the UI does not pretend otherwise.",
-    "Replay ships synthetic fixtures for 5 of the 7 rooms (venue_redroom, store_1..3, loc_westside); the two rooms whose data is real Qloo (Thalia, Luckett) have none, because committed fixtures may not contain live Qloo payloads. Offline they now return an honest empty run that names the missing fixture file.",
+    "Replay ships synthetic fixtures for 5 of the 7 rooms (venue_redroom, store_1..3, loc_westside); the two rooms configured to draw on live Qloo (Corner Hall, Alder Room) have none, because committed fixtures may not contain live Qloo payloads and their tracked room/seed names are fictional. Offline they now return an honest empty run that names the missing fixture file.",
     "Taste Lift arm A did not run (no LLM key on this host), so no LLM-vs-grounded lift figure exists."
   ]
 }

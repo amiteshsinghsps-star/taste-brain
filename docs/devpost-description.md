@@ -19,11 +19,11 @@ Redacted request→result: see the README walkthrough — a Replay run of the sy
 
 **What we built.** Direct Qloo REST client, vertical packs, taste-driven agents, the Grounding Auditor, Decision Trace, Taste Lift evaluation, offline Replay fixtures, cache warmer, and interactive React UI.
 
-**Setup from a clean environment.** `cd server && npm i && cp .env.example .env && npm run dev`, `cd client && npm i && npm run dev`, open `http://localhost:3000`, pick Store 1 and run the agent. Runs offline in Replay mode with no credential. For Live: configure `QLOO_API_KEY` in `server/.env` and set `QLOO_ENABLED=true`/`DEFAULT_MODE=live`.
+**Setup from a clean environment.** `cd server && npm i && cp .env.example .env && npm run dev`, `cd client && npm i && npm run dev`, open `http://localhost:3000`, pick Store 1 and run the agent. Runs offline in Replay mode with no credential, and live is off by default (`QLOO_ENABLED=false`) so no visitor can spend the team key. For Live: `QLOO_API_KEY` in `server/.env`, `QLOO_ENABLED=true`/`DEFAULT_MODE=live`, and the gitignored identity overlay in `server/.private-data/` that maps the fictional seeds to the real entities.
 
 **Try it.** [demo URL] · [repo URL] · MIT license · 60-second path in the README.
 
-**Known limitations.** Qloo gives aggregate affinities, not facts about individuals. Sample data is synthetic and every screen states its mode. Taste Lift publishes only Arm B when no LLM key is set — no lift figure is fabricated. Results are decision support, not guarantees of business outcomes, and not medical/financial/legal advice.
+**Known limitations.** Qloo gives aggregate affinities, not facts about individuals. Sample data is synthetic and every screen states its mode; no committed file names a real company, artist or venue or carries a Qloo entity id. Taste Lift publishes only Arm B when no LLM key is set — no lift figure is fabricated. Results are decision support, not guarantees of business outcomes, and not medical/financial/legal advice.
 
 ## Kit checklist (SUBMISSION.md)
 - [x] Short problem statement

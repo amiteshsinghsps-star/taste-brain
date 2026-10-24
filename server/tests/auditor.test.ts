@@ -155,7 +155,7 @@ describe('Retail store_3 (the same engine, different configuration)', () => {
     const names = p.items.map((i) => i.name);
     expect(names).not.toContain('Riverstone Co.');       // budget_cap
     expect(names).not.toContain('Mesa & Main');          // min_order
-    expect(names).not.toContain('Palmetto Vape Co.');    // brand_safety
+    expect(names).not.toContain('Boggy Creek Vapor Co.');    // brand_safety
     expect(p.unsupported.some((u) => u.name === 'Unknown Indie Label')).toBe(true);
     expect(p.rejections.some((r) => r.check === 3)).toBe(true);
     for (const it of p.items) {

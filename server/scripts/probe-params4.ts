@@ -4,6 +4,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { probeNames } from './probe-input';
 
 function loadEnv() {
   for (const f of [path.join(__dirname, '../.env'), path.join(process.cwd(), '.env'), path.join(process.cwd(), 'server/.env')]) {
@@ -47,7 +48,7 @@ async function main() {
   if (!KEY) { console.error('no key'); process.exit(1); }
 
   const seedIds: string[] = [];
-  for (const s of ['Vampire Weekend', 'Bon Iver', 'Phoebe Bridgers']) {
+  for (const s of probeNames('artist').slice(0, 3)) {
     const r = await call('/search', { query: s, type: 'urn:entity:artist' });
     const first = rows(r.data)[0];
     if (first) seedIds.push(String(first.entity_id ?? first.id));

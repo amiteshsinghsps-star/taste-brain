@@ -1,6 +1,7 @@
 // Runtime configuration for Taste Brain. No login, no external database.
 // Qloo is reached through direct REST when QLOO_API_KEY is present; otherwise
 // the server runs in Replay mode from committed synthetic fixtures.
+// Real entity identities are never in the tracked packs — see packs/overlay.ts.
 
 import { z } from 'zod';
 import * as fs from 'fs';
@@ -56,6 +57,17 @@ const schema = z.object({
   QLOO_PRIVATE_CACHE_DIR: z.string().default('.private-cache'),
   QLOO_DAILY_SOFT_LIMIT: z.coerce.number().default(400),
 
+  // Identity overlay for live mode. Committed packs name fictional companies and
+  // rooms only; the real Qloo entity ids and query names live in one gitignored
+  // file per pack, held by the key custodian and set on the host. Without it the
+  // app still runs — live mode simply finds no offer on file and says so.
+  PACK_OVERLAY_DIR: z.string().default('.private-data'),
+  PACK_OVERLAY_B64: z.string().optional(), // host without file upload: base64 of the pack overlay JSON
+  // Committed artifacts (the sample export, the Taste Lift snapshot) are generated
+  // with this set, so a real identity cannot be written into the repo by a run on
+  // the custodian's own machine.
+  PACK_OVERLAY_DISABLE: boolish.default(false),
+
   // Optional LLM. Writes explanations only; never ranks, filters or approves.
   LLM_API_KEY: z.string().optional(),
   LLM_BASE_URL: z.string().default('https://api.openai.com/v1'),
@@ -93,6 +105,9 @@ export const env = schema.parse({
   QLOO_MAX_CALLS_PER_RUN: process.env.QLOO_MAX_CALLS_PER_RUN,
   QLOO_PRIVATE_CACHE_DIR: process.env.QLOO_PRIVATE_CACHE_DIR,
   QLOO_DAILY_SOFT_LIMIT: process.env.QLOO_DAILY_SOFT_LIMIT,
+  PACK_OVERLAY_DIR: process.env.PACK_OVERLAY_DIR,
+  PACK_OVERLAY_B64: process.env.PACK_OVERLAY_B64,
+  PACK_OVERLAY_DISABLE: process.env.PACK_OVERLAY_DISABLE,
   LLM_API_KEY: process.env.LLM_API_KEY,
   LLM_BASE_URL: process.env.LLM_BASE_URL,
   LLM_MODEL: process.env.LLM_MODEL,

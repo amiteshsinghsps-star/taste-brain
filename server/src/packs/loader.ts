@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { Rule } from '../types';
+import { applyOverlay, overlayFor } from './overlay';
 
 const DATA_DIR = path.join(__dirname, 'data');
 const cache = new Map<string, PackFile>();
@@ -84,9 +85,11 @@ export function loadPack(id: string): PackFile {
   if (!/^[A-Za-z0-9_-]+$/.test(key)) throw new Error('unknown pack');
   const file = path.join(DATA_DIR, `${key}.json`);
   if (!fs.existsSync(file)) throw new Error(`unknown pack ${key}`);
-  const raw = JSON.parse(fs.readFileSync(file, 'utf8')) as PackFile;
-  cache.set(key, raw);
-  return raw;
+  // The committed file is fictional; a host that holds the private overlay gets
+  // real identities merged in, so live mode can still join Qloo results to offers.
+  const pack = applyOverlay(JSON.parse(fs.readFileSync(file, 'utf8')) as PackFile, overlayFor(key));
+  cache.set(key, pack);
+  return pack;
 }
 
 export function getLocations(id: string): PackLocation[] {

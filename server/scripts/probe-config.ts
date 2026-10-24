@@ -1,10 +1,12 @@
 // probe-config.ts — resolve the values the venue pack needs as configuration:
 // taste-seed entity names that actually resolve, and real Qloo tag ids for the
-// content-policy rules. Prints ids/names only (they become pack config); the
-// API key is never printed.
+// content-policy rules. Seed names come in from the operator or the private
+// overlay; what this script prints belongs in server/.private-data/, never in a
+// tracked pack file. The API key is never printed.
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { probeNames } from './probe-input';
 
 function loadEnv() {
   for (const f of [path.join(__dirname, '../.env'), path.join(process.cwd(), '.env'), path.join(process.cwd(), 'server/.env')]) {
@@ -47,12 +49,12 @@ async function main() {
   if (!KEY) { console.error('no key'); process.exit(1); }
 
   console.log('--- seed resolution (exact-name match only) ---');
-  for (const name of ['Bon Iver', 'Phoebe Bridgers', 'Vampire Weekend', 'Sufjan Stevens', 'Metro', 'Thalia']) {
+  for (const name of [...probeNames('artist'), ...probeNames('place')]) {
     const r = await get('/search', { query: name, type: 'urn:entity:artist', take: 3 });
     const first = rows(r.data)[0];
     console.log(`artist "${name}": HTTP ${r.status} top="${first?.name ?? '-'}" exact=${first ? String(first.name).toLowerCase() === name.toLowerCase() : false}`);
   }
-  for (const name of ['Metro', 'Thalia Hall', 'Empty Bottle']) {
+  for (const name of probeNames('place')) {
     const r = await get('/search', { query: name, type: 'urn:entity:place', take: 3 });
     const list = rows(r.data);
     console.log(`place "${name}": HTTP ${r.status} top="${list[0]?.name ?? '-'}" others=${list.slice(1, 3).map((x: any) => x.name).join(' | ')}`);
@@ -60,7 +62,7 @@ async function main() {
 
   console.log('\n--- ablation arm shapes ---');
   const seeds: string[] = [];
-  for (const name of ['Bon Iver', 'Phoebe Bridgers']) {
+  for (const name of probeNames('artist').slice(0, 2)) {
     const r = await get('/search', { query: name, type: 'urn:entity:artist', take: 3 });
     const first = rows(r.data).find((x: any) => String(x.name).toLowerCase() === name.toLowerCase()) ?? rows(r.data)[0];
     if (first) seeds.push(String(first.entity_id ?? first.id));

@@ -85,7 +85,12 @@ export function effectiveMode(requested: TasteMode | undefined, ip: string | und
   const base = requested ?? env.DEFAULT_MODE;
   if (base !== 'live') return { mode: base, reason: '' };
   if (!qlooKeyAvailable()) {
-    return { mode: 'cached', degraded_from: 'live', reason: 'No Qloo credential on this host — serving from the private cache, then from synthetic fixtures.' };
+    // A key sitting unused is a different fact from no key at all, and the
+    // operator reading the badge needs the one that is true.
+    const why = env.QLOO_API_KEY && env.QLOO_API_KEY.length > 0
+      ? 'A Qloo key is present but live is switched off on this host (QLOO_ENABLED=false)'
+      : 'No Qloo credential on this host';
+    return { mode: 'cached', degraded_from: 'live', reason: `${why} — serving from the private cache, then from synthetic fixtures.` };
   }
   const { ok, reason, state } = reserveLiveCall(ip);
   if (ok) return { mode: 'live', reason: '' };

@@ -25,6 +25,12 @@ The store is SQLite (`node:sqlite`): license-safe for a public open-source relea
 
 Throttle (250 ms), per-request memory cache, and a redacted call log (`/api/qloo/log`). Credential is server-side only.
 
+## Vertical packs and the identity overlay (`server/src/packs/`)
+
+A vertical is one JSON file in `server/src/packs/data/` — locations, rules with their SOP source, a candidate catalog, copy and goal templates. Adding one changes no code.
+
+Every committed pack names fictional companies, rooms and dishes, and uses symbolic ids like `qloo:brand:cedar_row` rather than Qloo's 36-character entity ids, so nothing in the public repository is a real entity. Live mode reaches the real ones through `server/src/packs/overlay.ts`: it reads `server/.private-data/<pack>.overlay.json` (or the `PACK_OVERLAY_B64` bundle) and returns a *merged copy* of the pack — seeds re-labelled with the real name to resolve through `/search`, offer rows re-attached to their real entity id, matched by `offer_id`. The committed object is never mutated, the contents are never logged or returned, and a host without an overlay simply runs the fictional pack. `PACK_OVERLAY_DISABLE=true` forces that behaviour, which is why `npm run eval`, `npm run verify:sample`, `npm run smoke:replay` and `npm run gate:public` all set it: an artifact generated on the custodian's machine must look exactly like one generated from a fresh clone.
+
 ## Decision Trace (`server/src/trace/builder.ts`)
 
 Ordered `steps[]`, each with `type, label, source, mode, result, at`. `rerun_hash` is a sha256 over the decision-relevant steps (Rule / QlooEntity / Offer / Filter with id, result, score) so re-running the export reproduces the ranking — verified by a test.

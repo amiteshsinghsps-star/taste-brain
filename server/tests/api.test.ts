@@ -71,8 +71,8 @@ describe('discovery', () => {
   });
 
   it('rooms differ by configuration: rules in force and popularity band', async () => {
-    const t = await get('/api/packs/venues/locations/venue_thalia');
-    const l = await get('/api/packs/venues/locations/venue_luckett');
+    const t = await get('/api/packs/venues/locations/venue_corner_hall');
+    const l = await get('/api/packs/venues/locations/venue_alder_room');
     expect(t.status).toBe(200);
     expect(l.body.location.rule_ids).toContain('matinee_content');
     expect(t.body.location.rule_ids).not.toContain('matinee_content');

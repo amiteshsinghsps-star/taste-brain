@@ -184,7 +184,7 @@ function Audience() {
 }
 
 function Items({ onRefused }: { onRefused: (m: string) => void }) {
-  const { proposal, run, decide, approver, setApprover } = useApp();
+  const { proposal, run, decide, approver, setApprover, modeInfo } = useApp();
   const [picked, setPicked] = useState<string[]>([]);
   const [terms, setTerms] = useState<Record<string, Record<string, number>>>({});
   const [busy, setBusy] = useState(false);
@@ -206,7 +206,9 @@ function Items({ onRefused }: { onRefused: (m: string) => void }) {
       title={`2 · Proposal — ${items.length} item${items.length === 1 ? '' : 's'}`}
       description="Order is Qloo's own. Fit is derived by Taste Brain from that order and is labelled as such on every card."
       mode={proposal?.mode}
-      actions={<Button size="sm" variant="outline" onClick={() => run({ mode: 'live' })} disabled={busy}>Re-run live</Button>}
+      actions={modeInfo?.qloo_rest_active
+        ? <Button size="sm" variant="outline" onClick={() => run({ mode: 'live' })} disabled={busy}>Re-run live</Button>
+        : <span className="text-[11px] text-slate-500" title="Live Qloo is switched off on this host, so a visitor cannot spend the team key with one click.">live re-run off on this host</span>}
     >
       <ModeMixLine mix={proposal?.trace.mode_mix} />
       {!items.length ? (

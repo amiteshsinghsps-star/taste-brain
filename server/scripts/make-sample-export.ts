@@ -10,6 +10,10 @@
 process.env.QLOO_ENABLED = 'false';
 process.env.DEFAULT_MODE = 'replay';
 process.env.GRAPH_DB = ':memory:';
+// This file is committed. On the custodian's machine the private identity overlay
+// is present, and a run that resolves seeds would then write real names into the
+// repo — so the overlay is switched off for anything that ships.
+process.env.PACK_OVERLAY_DISABLE = 'true';
 
 import * as fs from 'fs';
 import * as path from 'path';

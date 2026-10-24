@@ -3,6 +3,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { probeNames } from './probe-input';
 
 function loadEnv() {
   for (const f of [path.join(__dirname, '../.env'), path.join(process.cwd(), '.env')]) {
@@ -45,7 +46,8 @@ async function get(pp: string, params: Record<string, string | number>, label: s
 }
 
 async function main() {
-  const seed = await get('/search', { query: 'Bon Iver', type: 'urn:entity:artist' }, 'resolve Bon Iver');
+  const seedName = probeNames('artist')[0];
+  const seed = await get('/search', { query: seedName, type: 'urn:entity:artist' }, `resolve ${seedName}`);
   const id = seed.entities[0]?.entity_id;
 
   // 1. popularity band with corrected 0..1 floats
@@ -65,7 +67,8 @@ async function main() {
   console.log(`  short_descriptions=${JSON.stringify(p.short_descriptions)?.slice(0, 200)}`);
 
   // 3. brands: is there an affinity/score field for brands?
-  const bseed = await get('/search', { query: 'Patagonia', type: 'urn:entity:brand' }, 'resolve Patagonia');
+  const brandName = probeNames('brand', 'retail')[0];
+  const bseed = await get('/search', { query: brandName, type: 'urn:entity:brand' }, `resolve ${brandName}`);
   const bid = bseed.entities[0]?.entity_id;
   const brands = await get('/v2/insights', { 'filter.type': 'urn:entity:brand', 'signal.interests.entities': bid, 'filter.location.query': 'Austin, TX', take: 15 }, 'brands for Austin');
   const be = brands.entities[0] ?? {};

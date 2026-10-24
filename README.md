@@ -23,7 +23,7 @@ npm run dev                    # open http://localhost:3000
 
 In the UI: pick **Retail and fashion → Store 3 - East Austin → "Add 4 brands for spring"** and hit **Run the agent**. You get a ranked proposal, a Decision Trace, Auditor rejections, and a Qloo call log — first full trace well under 60 seconds. Then open **Taste Lift** and run the fixed request set, and switch to **Venues** to see the same engine on new data.
 
-> **Data mode honesty:** the demo ships in **Replay** mode using **synthetic sample fixtures** (clearly labelled `mode: "replay"` on every result). They are *not* live Qloo output. With a Qloo API key configured (`QLOO_API_KEY` in `server/.env`) and `QLOO_ENABLED=true` / `DEFAULT_MODE=live`, the engine makes direct real REST calls to the official Qloo API (`https://hackathon.api.qloo.com`) via `X-Api-Key`.
+> **Data mode honesty:** the demo ships in **Replay** mode using **synthetic sample fixtures** (clearly labelled `mode: "replay"` on every result). They are *not* live Qloo output, and the public host leaves `QLOO_ENABLED=false` so no visitor can make a live call. With a Qloo API key configured (`QLOO_API_KEY` in `server/.env`) **and** `QLOO_ENABLED=true` / `DEFAULT_MODE=live`, the engine makes direct real REST calls to the official Qloo API (`https://hackathon.api.qloo.com`) via `X-Api-Key`.
 
 ---
 
@@ -80,7 +80,7 @@ Every proposal carries a **Decision Trace**. A **Grounding Auditor** blocks anyt
                        min_order  "minimum_order 260 <= 500"           → pass
                        brand_safety "no excluded tag present"              → pass
 5. Grounding Auditor → Riverstone Co. (Qloo rank 1, popularity 0.490) rejected on
-                       budget_cap, check 3; Palmetto Vape Co. rejected on brand_safety
+                       budget_cap, check 3; Boggy Creek Vapor Co. rejected on brand_safety
                        (carries the excluded tag qlootag:adult_content); Mesa & Main
                        rejected on min_order (620 > 500). Each rejection is a Filter step.
 6. Shown             → Cedar Row, Lumen Threads, Arbor & Ledge, Northbound Supply,
@@ -131,6 +131,7 @@ Each pack defines entity types, goal templates, Rule templates (with their SOP s
 cd server
 npm test                 # Grounding Auditor checks (§11), REST client contracts, rule kinds, pipeline hard scenario
 npm run eval             # Taste Lift fixed request set -> server/src/eval/results.json
+npm run gate:public      # the publish checklist below, run against committed content
 npm run warm-cache       # Pre-fetches one-click scenarios on deployment host into gitignored .private-cache/
 ```
 
@@ -143,9 +144,26 @@ npm run warm-cache       # Pre-fetches one-click scenarios on deployment host in
 
 ## Data & provenance
 
+Disclosed 2026-10-24 against this tree.
+
 - All sample data is fictional. No customer data, credentials or personal data are present.
+- **Nothing committed names a real company, artist or venue, and no committed file carries a Qloo entity id.** Qloo entity ids are 36-character UUIDs, so every entity in a tracked pack, fixture, test or document is a symbolic `qloo:brand:cedar_row`-style name, and ids that appeared inside live request parameters are recorded as `qloo-entity-N` tokens (`server/verification/gate-report.json` says so in its own provenance field).
+- **Live mode reaches real entities through a gitignored identity overlay** — `server/.private-data/<pack>.overlay.json` (or the `PACK_OVERLAY_B64` bundle on a host that cannot upload files). It maps each fictional seed to the real name to ask Qloo for, and each offer row to its real entity id, and it is merged in memory at pack load (`server/src/packs/overlay.ts`). It holds Qloo data, so it is treated as the same class of secret as the API key: one custodian, never committed, never printed. A checkout without it runs Replay and Cached exactly as published, and the two live-drawing rooms report that they have no fixture rather than inventing one.
+- Committed artifacts (`npm run eval`, `npm run verify:sample`, `npm run smoke:replay`) set `PACK_OVERLAY_DISABLE=true`, so a Replay-generated file can never carry a real identity from the machine that made it.
 - Every result is labelled with its mode (Live / Cached / Replay); nothing is presented as live that isn't.
 - Live responses are kept strictly on the server in `.private-cache/` and never checked into source control.
+
+### Live is off for visitors
+
+`QLOO_ENABLED=false` and `DEFAULT_MODE=replay` are the defaults in code, in `server/.env.example` and on the public host, so no visitor can spend the team key by accident:
+
+- the header's **live** control renders disabled with the reason in its tooltip, and the header shows `live off on this host`;
+- the Plan screen offers no one-click **Re-run live** button;
+- even a hand-made `POST /api/proposals` with `"mode":"live"` comes back labelled Cached or Replay, with the reason written into the run.
+
+The key custodian sets `QLOO_ENABLED=true` in the host environment for a planned warm-up or the finals, and switches it off again. `cd server && npm run gate:public` re-checks all of the above (plus the license and the keyless Replay path) against committed content, and runs in CI.
+
+`gate:public` fails the build if any tracked line carries a credential value, a Qloo entity id (UUID literal) or a name taken from the private overlay; if `.env`, `.private-cache/`, `.private-data/` or a live capture is tracked; if the shipped defaults are not `QLOO_ENABLED=false` / `DEFAULT_MODE=replay`; if `LICENSE` is missing; if the README disclosure is older than the evidence files it describes; or if a keyless Replay run returns nothing for the three demo rooms.
 
 ---
 
@@ -153,7 +171,7 @@ npm run warm-cache       # Pre-fetches one-click scenarios on deployment host in
 
 - Qloo returns **aggregate audience affinities**, not evidence about any individual. The UI says so and never claims to know a person's individual taste.
 - This build ships with **Replay mode with synthetic sample fixtures** enabled by default so the demo is 100% runnable offline without any credentials.
-- In **Live mode**, recommendations derive from real calls to `https://hackathon.api.qloo.com`. An API key must be supplied in `server/.env`.
+- In **Live mode**, recommendations derive from real calls to `https://hackathon.api.qloo.com`. An API key must be supplied in `server/.env`, `QLOO_ENABLED` must be turned on by the key custodian, and the host needs the private identity overlay described above — without it, the fictional seeds in the committed packs resolve to nothing real.
 - Outbound API calls are limited by a 250ms throttle queue and daily soft quota limits.
 - Results provide **decision support and proof traces**, not guarantees of commercial sales or performance.
 - Multi-tenancy, billing and production cloud isolation are out of scope for the hackathon.

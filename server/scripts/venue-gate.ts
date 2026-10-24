@@ -8,6 +8,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { probeNames } from './probe-input';
 
 function loadEnv() {
   for (const f of [path.join(__dirname, '../.env'), path.join(process.cwd(), '.env'), path.join(process.cwd(), 'server/.env')]) {
@@ -58,10 +59,29 @@ const rows: Row[] = [];
  * is the point; recording the values would put response data in the repository.
  * Each distinct id becomes a stable token so an A/B row still reads as a
  * comparison — the real ids live in the gitignored private cache.
+ *
+ * Seed query names go through the same treatment: they are the names this run
+ * asked Qloo to resolve, and a committed row naming a real artist is Qloo data
+ * in the public repo whether it came back or went in.
  */
+const seedTokens = new Map<string, string>();
+
+function seedToken(name: string): string {
+  const key = name.toLowerCase();
+  let token = seedTokens.get(key);
+  if (!token) { token = `qloo-seed-${seedTokens.size + 1}`; seedTokens.set(key, token); }
+  return token;
+}
+
+function escapeForRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export function redactEntityIds<T>(value: T, seen = new Map<string, string>()): T {
   if (typeof value === 'string') {
-    return value.replace(
+    let out = value;
+    for (const [name, token] of seedTokens) out = out.replace(new RegExp(escapeForRegExp(name), 'ig'), token);
+    return out.replace(
       /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g,
       (id) => {
         const upper = id.toUpperCase();
@@ -158,8 +178,11 @@ const CITIES: { id: string; name: string; query: string }[] = [
   { id: 'nashville', name: 'Nashville, TN', query: 'Nashville, TN' },
 ];
 
-// Seed artists: widely-known acts used only as taste anchors (not recommendations).
-const SEEDS = ['Vampire Weekend', 'Bon Iver', 'Phoebe Bridgers'];
+// Seed artists: taste anchors only, never recommendations. The names come from the
+// operator (--artists=, PROBE_ARTISTS) or the private overlay — see probe-input.ts.
+const SEEDS = probeNames('artist');
+// Tokenise before anything is written, so the first row already reads qloo-seed-1.
+SEEDS.forEach(seedToken);
 
 async function main() {
   console.log('=== TASTE BRAIN: VENUE DECISION GATE + CAPABILITY VERIFICATION ===');

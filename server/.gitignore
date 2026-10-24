@@ -29,6 +29,9 @@ dev.db-journal
 .private-cache/*
 .private-cache-test/
 .private-cache-test/*
+# real Qloo identities merged into the fictional committed packs
+.private-data/
+.private-data/*
 
 # OS Junk
 .DS_Store

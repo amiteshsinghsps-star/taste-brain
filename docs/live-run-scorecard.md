@@ -40,8 +40,8 @@ sweep was a live miss, while the retail and restaurant seed lookups were served 
 
 | room | items | with Qloo rank | explained | rules pass / needs_data | flip pts | rejections | unsupported | trace steps |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| venues/venue_thalia | 25 | 25 | 25 | 50 / 25 | 0 | 0 | 0 | 130 |
-| venues/venue_luckett | 23 | 23 | 23 | 69 / 23 | 2 | 2 | 0 | 154 |
+| venues/venue_corner_hall | 25 | 25 | 25 | 50 / 25 | 0 | 0 | 0 | 130 |
+| venues/venue_alder_room | 23 | 23 | 23 | 69 / 23 | 2 | 2 | 0 | 154 |
 | venues/venue_redroom | 0 | — | — | — | 0 | 0 | 25 | 30 |
 | restaurants/loc_westside | 0 | — | — | — | 0 | 0 | 25 | 29 |
 | retail/store_1 | 7 | 7 | 7 | 21 / 0 | 2 | 2 | 16 | 66 |
@@ -151,21 +151,24 @@ the step names the real cause:
 
 | run | before | after |
 | --- | --- | --- |
-| venues/venue_thalia (no fixture) | 8 steps, 5 of them fabricated relaxations, "Qloo returned 0 candidates" | **3 steps**, one `fail` naming `Replay holds no committed fixture for venues/venue_thalia … missing sample data on our side, not Qloo having nothing` |
+| venues/venue_corner_hall (no fixture) | 8 steps, 5 of them fabricated relaxations, "Qloo returned 0 candidates" | **3 steps**, one `fail` naming `Replay holds no committed fixture for venues/venue_corner_hall … missing sample data on our side, not Qloo having nothing` |
 | venues/venue_redroom | 20 steps, 2 items | unchanged ✓ |
 | retail/store_1 | 23 steps, 3 items | unchanged ✓ |
 | restaurants/loc_westside | 19 steps, 2 items | unchanged ✓ |
 
-Fixtures cover 5 of the 7 rooms; the two rooms whose candidates are real Qloo data (Thalia,
-Luckett) cannot ship committed fixtures, because live Qloo payloads must not enter the repo. So
-the credential-free judge path is Red Room / Store 1 / Westside — which is the documented 60-second
-path — and Thalia says why it is empty instead of blaming Qloo.
+Fixtures cover 5 of the 7 rooms. The two live-drawing rooms (Corner Hall, Alder Room) cannot ship
+committed fixtures, because live Qloo payloads must not enter the repo — and the room names and
+seed names on their tracked lines are fictional too, so an offline run has nothing real to look up.
+A checkout with no private overlay therefore has no candidates for them at all. So the
+credential-free judge path is Red Room / Store 1 / Westside — which is the documented 60-second
+path — and Corner Hall says why it is empty instead of blaming Qloo.
 
 ## Live re-enabled: what a fresh run cost, and what it exposed
 
-`QLOO_ENABLED=true` again, requested per call rather than globally. Two results are on record:
+`QLOO_ENABLED=true` again for this pass, requested per call rather than globally; the host is back
+at `false` now. Two results are on record:
 
-- **A genuinely fresh live run.** `p_mvm7xz9v_007`, venues/venue_thalia, badge **LIVE**,
+- **A genuinely fresh live run.** `p_mvm7xz9v_007`, venues/venue_corner_hall, badge **LIVE**,
   **130/130 trace steps fetched now** (0 cached, 0 replay, 0 steps missing a mode), 25 items with
   real Qloo entities. Trust 13 pass, ledger chain verified (5 entries, head `1917eb001548865e…`),
   console faults 0. The five headliners and their fit scores are live Qloo output, so they are not
@@ -211,7 +214,10 @@ These are requirements in the rules, not polish:
 cd server && npm run dev      # Replay fixtures, :4000
 cd client && npm run dev      # :3000, proxies /api
 
-# the live configuration used for this sweep, if you have a harness key
+# the live configuration used for this sweep, if you have a harness key.
+# The tracked packs are fictional, so a live run also needs the gitignored
+# identity overlay (server/.private-data/<pack>.overlay.json, or PACK_OVERLAY_B64)
+# that re-attaches the real seed names and offer ids on this host only.
 cd server && GRAPH_DB=verification/live-2026-10-24.db \
   QUOTA_VISITOR_HOUR=90 QUOTA_VISITOR_DAY=150 \
   QLOO_ENABLED=true DEFAULT_MODE=live npm run dev

@@ -64,6 +64,9 @@ const MODE_HINT: Record<TasteMode, string> = {
   replay: 'Synthetic fixtures only. Runs with no key and never claims to be live.',
 };
 
+const LIVE_OFF_HINT = 'Live is switched off on this host, so no visitor can spend the team key by accident. '
+  + 'The key custodian turns it on in the host environment for a planned warm-up or the finals, then off again.';
+
 function Shell() {
   const app = useApp();
   const [tab, setTab] = useState(() => (typeof window === 'undefined' ? 'plan' : window.location.hash.replace('#', '') || 'plan'));
@@ -105,11 +108,21 @@ function Shell() {
 
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] text-slate-500">request mode</span>
-            {(['replay', 'cached', 'live'] as TasteMode[]).map((m) => (
-              <button key={m} onClick={() => app.setMode(m)} className="cursor-pointer" title={MODE_HINT[m]}>
-                <span className={app.mode === m ? '' : 'opacity-45'}><ModeBadge mode={m} /></span>
-              </button>
-            ))}
+            {(['replay', 'cached', 'live'] as TasteMode[]).map((m) => {
+              const off = m === 'live' && info !== null && !info.qloo_rest_active;
+              return (
+                <button
+                  key={m} disabled={off} onClick={() => app.setMode(m)}
+                  className={off ? 'cursor-not-allowed' : 'cursor-pointer'}
+                  title={off ? LIVE_OFF_HINT : MODE_HINT[m]}
+                >
+                  <span className={app.mode === m && !off ? '' : 'opacity-45'}><ModeBadge mode={m} /></span>
+                </button>
+              );
+            })}
+            {info !== null && !info.qloo_rest_active && (
+              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600" title={LIVE_OFF_HINT}>live off on this host</span>
+            )}
           </div>
 
           <div className="flex items-center gap-2 text-[11px] text-slate-500">

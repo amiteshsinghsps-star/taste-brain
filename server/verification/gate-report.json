@@ -44,15 +44,15 @@
     "Q11"
   ],
   "not_usable": [],
-  "redaction": "Qloo entity ids in request parameters are replaced by qloo-entity-N tokens, numbered by first appearance in this file. The same id always gets the same token, so an A/B comparison still reads as one. Real ids and raw responses stay in the gitignored private cache.",
+  "redaction": "Qloo entity ids in request parameters and the seed query names this run asked Qloo to resolve are replaced by qloo-entity-N and qloo-seed-N tokens, numbered by first appearance in this file. The same value always gets the same token, so an A/B comparison still reads as one. Real ids, real names and raw responses stay in the gitignored private cache and the private pack overlay.",
   "entity_ids_redacted": true,
   "rows": [
     {
       "id": "Q1",
-      "label": "resolve artist \"Vampire Weekend\"",
+      "label": "resolve artist \"qloo-seed-1\"",
       "path": "/search",
       "params": {
-        "query": "Vampire Weekend",
+        "query": "qloo-seed-1",
         "type": "urn:entity:artist"
       },
       "status": 200,
@@ -63,10 +63,10 @@
     },
     {
       "id": "Q1",
-      "label": "resolve artist \"Bon Iver\"",
+      "label": "resolve artist \"qloo-seed-2\"",
       "path": "/search",
       "params": {
-        "query": "Bon Iver",
+        "query": "qloo-seed-2",
         "type": "urn:entity:artist"
       },
       "status": 200,
@@ -77,10 +77,10 @@
     },
     {
       "id": "Q1",
-      "label": "resolve artist \"Phoebe Bridgers\"",
+      "label": "resolve artist \"qloo-seed-3\"",
       "path": "/search",
       "params": {
-        "query": "Phoebe Bridgers",
+        "query": "qloo-seed-3",
         "type": "urn:entity:artist"
       },
       "status": 200,

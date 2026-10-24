@@ -1,5 +1,10 @@
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
+
+// results.json is committed, so this snapshot is always taken from the fictional
+// packs: the line below must run before config/env is imported.
+process.env.PACK_OVERLAY_DISABLE = 'true';
+
 import { runTasteLift } from './taste-lift';
 
 import { env } from '../config/env';

@@ -5,6 +5,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { probeNames } from './probe-input';
 
 function loadEnv() {
   for (const f of [path.join(__dirname, '../.env'), path.join(process.cwd(), '.env')]) {
@@ -45,8 +46,9 @@ async function get(pp: string, params: Record<string, string | number>, label: s
 }
 
 async function main() {
-  // resolve one artist seed to get a real id
-  const seed = await get('/search', { query: 'Bon Iver', type: 'urn:entity:artist' }, 'Q1 resolve Bon Iver');
+  // resolve one artist seed, named by the operator, to get a real id
+  const seedName = probeNames('artist')[0];
+  const seed = await get('/search', { query: seedName, type: 'urn:entity:artist' }, `Q1 resolve ${seedName}`);
   const id = seed.ents[0]?.entity_id ?? seed.ents[0]?.id;
   console.log('seed id resolved:', Boolean(id));
 

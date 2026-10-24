@@ -74,7 +74,7 @@
       "name": "Red Room — Chicago (synthetic worked example)",
       "city": "Chicago, IL",
       "capacity_tier": "250 capacity, 21+",
-      "seeds": ["qloo:artist:bon_iver", "qloo:artist:phoebe_bridgers"],
+      "seeds": ["qloo:artist:ember_lark", "qloo:artist:wren_hollow"],
       "catalog": "redroom",
       "accept_unknown_offers": false,
       "popularity_band": { "min": 0.05, "max": 0.85 },
@@ -85,12 +85,12 @@
       "data_provenance": "SYNTHETIC. The Red Room and its four acts are invented for an offline worked example; the catalogue terms are fiction. Runs in Replay/Cached with committed fixtures so the full pass / fail / flip / approve story works with no key. No real artist's finances are represented here, and none are implied."
     },
     {
-      "id": "venue_thalia",
-      "name": "Thalia Hall — Headline Room, Chicago",
+      "id": "venue_corner_hall",
+      "name": "Corner Hall — Headline Room, Chicago",
       "city": "Chicago, IL",
       "capacity_tier": "300 capacity, 21+ headline room",
-      "seeds": ["qloo:place:thalia_hall", "qloo:artist:bon_iver", "qloo:artist:phoebe_bridgers"],
-      "_seed_note": "Seed NAMES are what the room is configured with; live mode resolves each one through /search and refuses to continue on an ambiguous match. Nothing here is a Qloo entity id.",
+      "seeds": ["qloo:place:corner_hall_chicago", "qloo:artist:ember_lark", "qloo:artist:wren_hollow"],
+      "_seed_note": "Seed NAMES are what the room is configured with; live mode resolves each one through /search and refuses to continue on an ambiguous match. Nothing here is a Qloo entity id. The committed names are fictional; on a host that holds the private overlay they are re-attached to the real entities before the call.",
       "catalog": "none_live",
       "accept_unknown_offers": true,
       "popularity_band": { "min": 0.05, "max": 0.85 },
@@ -98,14 +98,14 @@
       "recent_plays": [],
       "exclude_entity_ids": [],
       "exclude_tag_ids": [],
-      "data_provenance": "REAL Qloo data. This room's candidates are live Qloo artists for a Chicago taste signal. No booking terms exist for any of them, so the guarantee ceiling is reported as awaiting an operator-entered figure and approval is refused until it is entered — the engine never guesses a guarantee."
+      "data_provenance": "REAL Qloo data in live mode; fictional room in this file. The room name, seeds and id here are invented; on a host holding the private overlay they resolve to real Chicago artists. No booking terms exist for any returned act, so the guarantee ceiling is reported as awaiting an operator-entered figure and approval is refused until it is entered — the engine never guesses a guarantee."
     },
     {
-      "id": "venue_luckett",
-      "name": "Luckett Room — all-ages matinee, Austin",
+      "id": "venue_alder_room",
+      "name": "Alder Room — all-ages matinee, Austin",
       "city": "Austin, TX",
       "capacity_tier": "180 capacity, all-ages matinee",
-      "seeds": ["qloo:artist:sufjan_stevens", "qloo:artist:vampire_weekend"],
+      "seeds": ["qloo:artist:ashbury_strings", "qloo:artist:cathedral_synth"],
       "catalog": "none_live",
       "accept_unknown_offers": true,
       "popularity_band": { "min": 0.02, "max": 0.6 },
@@ -113,7 +113,7 @@
       "recent_plays": [],
       "exclude_entity_ids": [],
       "exclude_tag_ids": ["urn:tag:music:qloo:explicit"],
-      "data_provenance": "REAL Qloo data, different configuration from the same pack: smaller room, tighter popularity band, plus the all-ages content policy. This is the proof that a room is configuration."
+      "data_provenance": "REAL Qloo data in live mode; fictional room in this file, and a different configuration from the same pack: smaller room, tighter popularity band, plus the all-ages content policy. This is the proof that a room is configuration."
     }
   ],
   "catalogs": {

@@ -18,6 +18,10 @@ coverage/
 # private cache & local databases (never commit real Qloo data)
 server/.private-cache/
 .private-cache/
+# pack identity overlays: real Qloo entity ids and real seed names, merged into
+# the fictional committed packs only on the custodian's machine and the host
+server/.private-data/
+.private-data/
 *.sqlite
 *.sqlite-journal
 *.db

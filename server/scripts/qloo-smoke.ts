@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { probeNames } from './probe-input';
 
 // Minimal .env loader that does not leak secrets
 function loadEnv() {
@@ -166,14 +167,16 @@ async function runSmokeTest() {
   console.log('API Key: [REDACTED - PRESENT]');
   console.log('--------------------------------------------------');
 
-  // 1. Call /search for one brand
-  console.log('\n[1/5] Searching for Brand: "Patagonia"...');
-  const brandSearch = await qlooFetch('/search', { query: 'Patagonia', type: 'urn:entity:brand' });
+  // 1. Call /search for one brand (named by the operator or the private overlay)
+  const brandName = probeNames('brand', 'retail')[0];
+  console.log(`\n[1/5] Searching for Brand: "${brandName}"...`);
+  const brandSearch = await qlooFetch('/search', { query: brandName, type: 'urn:entity:brand' });
   printCallSummary(brandSearch);
 
   // 2. Call /search for one place
-  console.log('\n[2/5] Searching for Place: "Pike Place Market"...');
-  const placeSearch = await qlooFetch('/search', { query: 'Pike Place Market', type: 'urn:entity:place' });
+  const placeName = probeNames('place', 'venues')[0];
+  console.log(`\n[2/5] Searching for Place: "${placeName}"...`);
+  const placeSearch = await qlooFetch('/search', { query: placeName, type: 'urn:entity:place' });
   printCallSummary(placeSearch);
 
   // 3. Call /v2/tags for one keyword: "streetwear"

@@ -67,3 +67,13 @@ jobs:
           else
             echo "no secrets detected"
           fi
+
+      - name: Client lint
+        working-directory: client
+        run: npm run lint -- --max-warnings=0
+
+      # The publish checklist: no entity id, no overlay identity, safe defaults,
+      # license present, disclosure dated, and a keyless Replay run still works.
+      - name: Public gate
+        working-directory: server
+        run: npm run gate:public

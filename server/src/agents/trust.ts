@@ -173,7 +173,7 @@ export function trustReport(proposal: Proposal | null): TrustReport {
     claim: 'No sentence introduces a name or a number that is not in the stored result for that item.',
     status: audit && audit.failures.filter((f) => f.check === 2).length === 0 ? 'pass' : audit ? 'fail' : 'unproven',
     evidence: audit
-      ? `${audit.failures.filter((f) => f.check === 2).length} narrative failure(s). A control probe with an ungrounded figure is rejected: ${checkNarrativeGrounding('This act sold out 3 arenas last year', ['Sufjan Stevens']).reason || 'unexpected pass'}.`
+      ? `${audit.failures.filter((f) => f.check === 2).length} narrative failure(s). A control probe with an ungrounded figure is rejected: ${checkNarrativeGrounding('This act sold out 3 arenas last year', ['Ember Lark']).reason || 'unexpected pass'}.`
       : 'no proposal to audit yet',
   });
 

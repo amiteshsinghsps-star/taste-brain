@@ -52,12 +52,20 @@ mode badge on screen says `REPLAY`, and it must stay visible in the shot.
 
 ## If you run it Live
 
-Install the harness (`npm i -g @qloo/qloo-harness`, Node 22.19.0+), `qloo setup --qloo`
-with your own credential, set `QLOO_ENABLED=true` and `DEFAULT_MODE=live` in
-`server/.env`, restart, then click **Run Live (harness)**. Results re-badge from
-Replay → Live. Confirm the real workflow names/inputs against `qloo --help` on your
-machine before demoing. Live reads spend the shared quota — 12 Qloo calls per run,
-400 per day — so rehearse in Replay and switch only for the take you keep.
+Live is off where this ships: `QLOO_ENABLED=false`, so the header's **live** control
+is disabled, the Plan screen offers no **Re-run live**, and a hand-made live request
+still comes back labelled Cached or Replay with the reason written into the run.
+
+The key custodian turns it on: `QLOO_ENABLED=true` and `DEFAULT_MODE=live` in
+`server/.env` (or in the host environment), plus the gitignored identity overlay in
+`server/.private-data/<pack>.overlay.json` that maps the fictional seeds and offer rows
+to the real entities — without it the committed packs ask Qloo for names that do not
+exist. Then install the harness (`npm i -g @qloo/qloo-harness`, Node 22.19.0+), run
+`qloo setup --qloo` with your own credential, restart and click **Run Live (harness)**.
+Results re-badge from Replay → Live. Confirm the real workflow names/inputs against
+`qloo --help` on your machine before demoing. Live reads spend the shared quota — 12
+Qloo calls per run, 400 per day — so rehearse in Replay and switch only for the take
+you keep, then switch the flag back off.
 
 ## Judge path (read-only)
 
