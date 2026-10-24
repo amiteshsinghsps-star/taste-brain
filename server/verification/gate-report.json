@@ -44,6 +44,8 @@
     "Q11"
   ],
   "not_usable": [],
+  "redaction": "Qloo entity ids in request parameters are replaced by qloo-entity-N tokens, numbered by first appearance in this file. The same id always gets the same token, so an A/B comparison still reads as one. Real ids and raw responses stay in the gitignored private cache.",
+  "entity_ids_redacted": true,
   "rows": [
     {
       "id": "Q1",
@@ -93,7 +95,7 @@
       "path": "/v2/insights",
       "params": {
         "filter.type": "urn:entity:artist",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "signal.location.query": "Chicago, IL",
         "take": 20
       },
@@ -109,7 +111,7 @@
       "path": "/v2/insights",
       "params": {
         "filter.type": "urn:entity:artist",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "signal.location.query": "Chicago, IL",
         "take": 20,
         "filter.popularity.min": 0.05,
@@ -127,7 +129,7 @@
       "path": "/v2/insights",
       "params": {
         "filter.type": "urn:entity:artist",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "signal.location.query": "Chicago, IL",
         "take": 20,
         "feature.explainability": "true"
@@ -144,7 +146,7 @@
       "path": "/v2/insights",
       "params": {
         "filter.type": "urn:entity:artist",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "signal.location.query": "Austin, TX",
         "take": 20
       },
@@ -160,7 +162,7 @@
       "path": "/v2/insights",
       "params": {
         "filter.type": "urn:entity:artist",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "signal.location.query": "Austin, TX",
         "take": 20,
         "filter.popularity.min": 0.05,
@@ -178,7 +180,7 @@
       "path": "/v2/insights",
       "params": {
         "filter.type": "urn:entity:artist",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "signal.location.query": "Austin, TX",
         "take": 20,
         "feature.explainability": "true"
@@ -195,7 +197,7 @@
       "path": "/v2/insights",
       "params": {
         "filter.type": "urn:entity:artist",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "signal.location.query": "Nashville, TN",
         "take": 20
       },
@@ -211,7 +213,7 @@
       "path": "/v2/insights",
       "params": {
         "filter.type": "urn:entity:artist",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "signal.location.query": "Nashville, TN",
         "take": 20,
         "filter.popularity.min": 0.05,
@@ -229,7 +231,7 @@
       "path": "/v2/insights",
       "params": {
         "filter.type": "urn:entity:artist",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "signal.location.query": "Nashville, TN",
         "take": 20,
         "feature.explainability": "true"
@@ -246,9 +248,9 @@
       "path": "/v2/insights",
       "params": {
         "filter.type": "urn:entity:artist",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "signal.location.query": "Chicago, IL",
-        "filter.exclude.entities": "6A955457-1D79-41C2-94D2-06683841CD66",
+        "filter.exclude.entities": "qloo-entity-1",
         "take": 10
       },
       "status": 200,
@@ -263,7 +265,7 @@
       "path": "/v2/insights",
       "params": {
         "filter.type": "urn:entity:artist",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "signal.location.query": "Chicago, IL",
         "bias.trends": "high",
         "take": 10
@@ -280,7 +282,7 @@
       "path": "/v2/insights",
       "params": {
         "filter.type": "urn:entity:artist",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "signal.location.query": "Chicago, IL",
         "bias.trends": "true",
         "take": 10
@@ -297,7 +299,7 @@
       "path": "/v2/trending",
       "params": {
         "filter.type": "urn:entity:artist",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "take": 10
       },
       "status": 400,
@@ -312,7 +314,7 @@
       "path": "/v2/trending",
       "params": {
         "filter.type": "urn:entity:artist",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66",
+        "signal.interests.entities": "qloo-entity-1",
         "filter.start_date": "2026-08-01",
         "filter.end_date": "2026-10-01",
         "take": 10
@@ -329,9 +331,9 @@
       "path": "/v2/insights",
       "params": {
         "filter.type": "urn:entity:artist",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "signal.location.query": "Chicago, IL",
-        "filter.results.entities": "92E3DAD5-93AC-4FE9-932F-2F2ABCEA2FCE,17CA60C4-D34B-4D9C-B6BC-E1CD59BDFAA5,09A6AE07-2814-498F-A978-17B59092F9DC,192BB96E-F4BD-4A76-B24E-CD049EC9DFA2,3460E83E-DCD5-4D1B-B3BF-1B6C1D6D2BB8",
+        "filter.results.entities": "qloo-entity-4,qloo-entity-5,qloo-entity-6,qloo-entity-7,qloo-entity-8",
         "take": 5
       },
       "status": 200,
@@ -359,7 +361,7 @@
       "path": "/v2/insights",
       "params": {
         "filter.type": "urn:demographics",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "signal.location.query": "Chicago, IL",
         "take": 10
       },
@@ -375,9 +377,9 @@
       "path": "/v2/analysis/compare",
       "params": {
         "filter.type": "urn:tag",
-        "a.signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "a.signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "a.signal.location.query": "Chicago, IL",
-        "b.signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "b.signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "b.signal.location.query": "Austin, TX",
         "take": 10
       },
@@ -393,9 +395,9 @@
       "path": "/v2/analysis/compare",
       "params": {
         "filter.type": "urn:tag",
-        "a.signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66",
+        "a.signal.interests.entities": "qloo-entity-1",
         "a.signal.location.query": "Chicago, IL",
-        "b.signal.interests.entities": "E51DB8F2-7A93-4746-A283-E55B5216FDE1",
+        "b.signal.interests.entities": "qloo-entity-2",
         "b.signal.location.query": "Chicago, IL",
         "take": 10
       },
@@ -411,7 +413,7 @@
       "path": "/v2/insights",
       "params": {
         "filter.type": "urn:heatmap",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "filter.location.query": "Chicago, IL",
         "take": 10
       },
@@ -427,7 +429,7 @@
       "path": "/v2/insights",
       "params": {
         "filter.type": "urn:entity:place",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "signal.location.query": "Chicago, IL",
         "take": 10
       },
@@ -443,7 +445,7 @@
       "path": "/v2/insights",
       "params": {
         "filter.type": "urn:entity:brand",
-        "signal.interests.entities": "6A955457-1D79-41C2-94D2-06683841CD66,E51DB8F2-7A93-4746-A283-E55B5216FDE1,AFBC71A7-9439-4AB0-AB68-D14B11AAF836",
+        "signal.interests.entities": "qloo-entity-1,qloo-entity-2,qloo-entity-3",
         "signal.location.query": "Chicago, IL",
         "take": 10
       },

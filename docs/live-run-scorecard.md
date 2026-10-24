@@ -7,7 +7,9 @@ This is a self-assessment against the four **equally weighted** criteria publish
 [hackathon rules](https://qloo.devpost.com/rules) — Technological Implementation, Design,
 Potential Impact, Quality of the Idea. It is written from numbers read off the running app,
 not from intent. Raw live Qloo payloads are kept outside this repository; only statuses,
-counts, parameters and derived metrics are stored here.
+counts, parameter names and derived metrics are stored here — and an entity id that
+appears inside a recorded request parameter is replaced by a `qloo-entity-N` token
+(`server/verification/gate-report.json` carries the `redaction` note that explains it).
 
 **How it was obtained.** The dev stack was started once in a documented live configuration
 (`QLOO_ENABLED=true`, `DEFAULT_MODE=live`, `GRAPH_DB=verification/live-2026-10-24.db`) and
@@ -99,7 +101,7 @@ duplicated them.
 | mode-honesty | badge and step mix reconciled from the trace; a run that asked for LIVE and read nothing is relabelled CACHED |
 | LLM involvement | 0 trace steps attribute a ranking change to the model; no LLM key on this host, so Arm A never ran and **no lift figure was fabricated** |
 | Typecheck | server `tsc --noEmit` 0 errors · client `tsc --noEmit` 0 errors |
-| Tests | `vitest run` → **84 passed**, 4 files |
+| Tests | `vitest run` → **84 passed**, 4 files (later the same day, after the W1 verifier and W6 break-it suites landed: **120 passed**, 6 files) |
 | Browser console faults | **0** across every harness run |
 
 The honesty work in this pass was measured, not restated: the server now publishes a per-run
@@ -128,7 +130,7 @@ as authoritative and labels its 0..1 `fit` as derived from that rank.
 | criterion (equally weighted) | score | the measured case | the honest gap |
 | --- | --- | --- | --- |
 | Technological Implementation | **9 / 10** | 37 real reads over 6 workflows, 8 live proposals from one engine across 3 config-only packs, 10 capabilities verified and 3 recorded as empty | 2 of 7 rooms return 0 items — correct, and a weaker screen; and retail's live no-location arm returned the same order, so its local-lift story is 0 |
-| Design | **8 / 10** | 12 screens, provenance on every result, evidence cards carrying Qloo's own figures (popularity 0.836, 14,187 followers, Indie Folk), ledger hashes recomputed on view | nothing deployed; no human but the author has seen it outside a terminal |
+| Design | **8 / 10** | 12 screens at capture (17 now: Verify, Break it, Brief and five more joined), provenance on every result, evidence cards carrying Qloo's own figures (popularity 0.836, 14,187 followers, Indie Folk), ledger hashes recomputed on view | nothing deployed; no human but the author has seen it outside a terminal |
 | Potential Impact | **8 / 10** | a named approver required, no rule silently bypassed, 9 flip points telling the operator which threshold would have changed the answer | no business outcome measured or claimed; 8 proposals is a demo, not evidence of revenue |
 | Quality of the Idea | **9 / 10** | the API is the thing being *proved*: shuffled control collapses to chance while the shipped order does not, and the pipeline will downgrade its own LIVE badge | Taste Lift cannot publish an LLM comparison without a key |
 | **weighted total** | **8.5 / 10** | | |

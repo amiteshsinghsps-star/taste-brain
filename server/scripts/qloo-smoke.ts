@@ -182,10 +182,15 @@ async function runSmokeTest() {
   printCallSummary(tagResult);
 
   // 4. Call /v2/insights with filter.type=urn:entity:brand and signal.interests.entities from search result, take=10
-  console.log('\n[4/5] Querying /v2/insights for brand affinity (take=10)...');
+  console.log('\n[4/5] Querying /v2/insights for brand candidates in Qloo\'s returned order (take=10)...');
   const brandList = brandSearch.raw?.results || [];
   const brandEntity = brandList[0];
-  const brandId = brandEntity?.entity_id || brandEntity?.id || 'DB4CE34E-3A63-4947-946F-9D52502C5762';
+  const brandId = brandEntity?.entity_id || brandEntity?.id;
+  if (!brandId) {
+    // A smoke test that substitutes a hard-coded brand id measures nothing.
+    console.error('\n[v4/5] /v2/search returned no brand entity to key the request on. Stopping rather than inventing an id.');
+    process.exit(1);
+  }
 
   const insightsResult = await qlooFetch('/v2/insights', {
     'filter.type': 'urn:entity:brand',

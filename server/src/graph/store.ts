@@ -161,10 +161,6 @@ export const graph = {
       location: r.location, actor: r.actor, detail: JSON.parse(r.detail), prev_hash: r.prev_hash, hash: r.hash,
     }));
   },
-  /** Rewrite one entry's detail — used only by the Trust Center to prove the chain detects tampering. */
-  tamperLedgerEntry(seq: number, detail: Record<string, unknown>) {
-    db().prepare('UPDATE ledger SET detail=? WHERE seq=?').run(JSON.stringify(detail), seq);
-  },
   headHash(): string | null {
     const row = db().prepare('SELECT hash FROM ledger ORDER BY seq DESC LIMIT 1').get() as { hash: string } | undefined;
     return row?.hash ?? null;

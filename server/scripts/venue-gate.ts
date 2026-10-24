@@ -1,8 +1,9 @@
 // venue-gate.ts — PRD §3.2 decision gate + §6.1 capability verification against live Qloo.
 //
-// Writes ONLY statuses, counts, parameter names and dates to
-// server/verification/gate-report.json (safe to commit — no response payloads).
-// Raw responses go to the gitignored private cache.
+// Writes statuses, counts, parameter NAMES and dates to
+// server/verification/gate-report.json. Entity ids that appear inside request
+// parameters are tokenised on the way out (see redactEntityIds); raw responses go
+// to the gitignored private cache and never into this file.
 // The API key is never printed.
 
 import * as fs from 'fs';
@@ -50,6 +51,32 @@ interface Row extends Probe {
 }
 
 const rows: Row[] = [];
+
+/**
+ * Qloo entity ids are 36-character UUIDs, and a probe sends the ones it resolved
+ * from a live response back as request parameters. Recording the parameter names
+ * is the point; recording the values would put response data in the repository.
+ * Each distinct id becomes a stable token so an A/B row still reads as a
+ * comparison — the real ids live in the gitignored private cache.
+ */
+export function redactEntityIds<T>(value: T, seen = new Map<string, string>()): T {
+  if (typeof value === 'string') {
+    return value.replace(
+      /[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g,
+      (id) => {
+        const upper = id.toUpperCase();
+        let token = seen.get(upper);
+        if (!token) { token = `qloo-entity-${seen.size + 1}`; seen.set(upper, token); }
+        return token;
+      },
+    ) as unknown as T;
+  }
+  if (Array.isArray(value)) return value.map((v) => redactEntityIds(v as any, seen)) as unknown as T;
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, redactEntityIds(v as any, seen)])) as unknown as T;
+  }
+  return value;
+}
 
 async function call(p: Probe, extra: Record<string, string | number> = {}) {
   const url = new URL(BASE + p.path);
@@ -242,8 +269,12 @@ async function main() {
 
   const outDir = path.join(__dirname, '../verification');
   fs.mkdirSync(outDir, { recursive: true });
-  // Committed report carries statuses, counts, parameter names and dates ONLY.
-  // Entity names and ids are Qloo response data and stay out of the repo.
+  // Committed report carries statuses, counts, parameter NAMES and dates.
+  // Entity names never enter this file at all; entity ids are replaced by stable
+  // tokens, because an id a probe read out of a live response is response data.
+  const redacted = redactEntityIds(rows.map(({ id, label, path: pp, params, status, count, popularity_present, explainability_present, affinity_field, error }) => ({
+    id, label, path: pp, params, status, count, popularity_present, explainability_present, affinity_field, error,
+  })));
   fs.writeFileSync(path.join(outDir, 'gate-report.json'), JSON.stringify({
     verified_at: new Date().toISOString(),
     base_url: BASE,
@@ -251,11 +282,11 @@ async function main() {
     capabilities_verified: uniq,
     accepted_but_empty: emptyOk,
     not_usable: rejected,
-    rows: rows.map(({ id, label, path: pp, params, status, count, popularity_present, explainability_present, affinity_field, error }) => ({
-      id, label, path: pp, params, status, count, popularity_present, explainability_present, affinity_field, error,
-    })),
+    redaction: 'Qloo entity ids in request parameters are replaced by qloo-entity-N tokens, numbered by first appearance in this file. The same id always gets the same token, so an A/B comparison still reads as one. Real ids and raw responses stay in the gitignored private cache.',
+    entity_ids_redacted: true,
+    rows: redacted,
   }, null, 2));
-  console.log('\nwrote server/verification/gate-report.json (counts, params and statuses only — no response payloads)');
+  console.log('\nwrote server/verification/gate-report.json (counts, parameter names, statuses and dates; entity ids tokenised)');
 }
 
 main().catch((e) => { console.error('fatal:', e.message); process.exit(1); });

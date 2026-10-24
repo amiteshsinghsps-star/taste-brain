@@ -1,4 +1,4 @@
-// Taste Brain — the shell. One run in memory, fourteen screens over it, and a
+// Taste Brain — the shell. One run in memory, seventeen screens over it, and a
 // header that always tells you which mode the data came in and what is left of
 // the budget. Screens never hold state of their own beyond their inputs.
 
@@ -15,6 +15,7 @@ import WhatIfScreen from '@/screens/WhatIfScreen';
 import PartnersScreen from '@/screens/PartnersScreen';
 import AblationScreen from '@/screens/AblationScreen';
 import TrustScreen from '@/screens/TrustScreen';
+import BriefScreen from '@/screens/BriefScreen';
 import CoverageScreen from '@/screens/CoverageScreen';
 import LedgerScreen from '@/screens/LedgerScreen';
 import VerifyScreen from '@/screens/VerifyScreen';
@@ -51,7 +52,7 @@ class ScreenBoundary extends Component<{ children: ReactNode }, { error: Error |
 }
 
 const NAV: { group: string; items: [string, string, FC][] }[] = [
-  { group: 'Decide', items: [['plan', 'Plan', PlanScreen], ['evidence', 'Evidence', EvidenceScreen], ['trace', 'Trace', TraceScreen]] },
+  { group: 'Decide', items: [['plan', 'Plan', PlanScreen], ['evidence', 'Evidence', EvidenceScreen], ['trace', 'Trace', TraceScreen], ['brief', 'Brief', BriefScreen]] },
   { group: 'Question', items: [['whynot', 'Why not?', WhyNotScreen], ['whatif', 'What if?', WhatIfScreen], ['partners', 'Partners', PartnersScreen]] },
   { group: 'Prove it', items: [['ablation', 'Ablation', AblationScreen], ['trust', 'Trust', TrustScreen], ['verify', 'Verify', VerifyScreen], ['breakit', 'Break it', BreakItScreen], ['coverage', 'Coverage', CoverageScreen], ['ledger', 'Ledger', LedgerScreen]] },
   { group: 'Operate', items: [['budget', 'Budget', BudgetScreen], ['finals', 'Finals', FinalsScreen], ['lift', 'Taste Lift', TasteLiftScreen], ['about', 'About', AboutScreen]] },

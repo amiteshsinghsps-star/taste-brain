@@ -5,9 +5,9 @@
 `server/src/agents/pipeline.ts` → `runPipeline({pack, location, goal, mode})`:
 
 1. **Profiler** — calls `describe_audience` for the location's seeds, stores an `Audience` node, records the taste portrait as a trace step.
-2. **Taste Explorer** — calls `recommend`, collects `QlooEntityResult[]` (entity id, type, Qloo affinity score, tags, explainability, mode). Adds `AFFINITY` edges.
+2. **Taste Explorer** — calls `recommend`, collects `QlooEntityResult[]` (entity id, type, the position Qloo returned it at, tags, explainability, mode). `/v2/insights` carries no score field, so `qloo_rank` is the signal and the app derives `fit` from it. Adds `AFFINITY` edges.
 3. **Rule Checker** (`rule-checker.ts`) — maps each Qloo result to a company-approved `Offer` in the pack catalog and evaluates every applicable `Rule` deterministically.
-4. **Strategist** — ranks surviving items **by the Qloo score** (the LLM never ranks), then optionally writes a narrative via `llm.ts`.
+4. **Strategist** — keeps surviving items **in Qloo's own returned order** (the LLM never ranks, and nothing re-sorts), then optionally writes a narrative via `llm.ts`.
 5. **Grounding Auditor** (`auditItem`) — vetoes any item lacking a Qloo id in the run's stored results (check 1) or failing a rule (check 3). Rejections are logged and shown.
 6. **Approver** (`decide`) — records a human `Decision` node linked to the proposal and approver.
 
@@ -20,8 +20,8 @@ The store is SQLite (`node:sqlite`): license-safe for a public open-source relea
 ## Qloo adapter modes (`server/src/qloo/adapter.ts`)
 
 - `replay` — reads `fixtures/{pack}.{location}.{workflow}.json` (synthetic samples).
-- `cached` — reads a prior result from the SQLite `QlooEntity` cache, else falls back to replay and stores it.
-- `live` — spawns one long-running `qloo mcp` child and calls `qloo_<workflow>`; degrades to cached → replay on timeout/error, always labelled.
+- `cached` — serves the stored private-cache answer for the same request instead of repeating the live call (in-flight dedup, LRU memory cache and gitignored disk cache, `server/src/qloo/rest-client.ts`).
+- `live` — direct `GET` calls to the Qloo REST API with `X-Api-Key`, throttled to ~4 calls/s; degrades to cached, then replay, on error, and every step says which mode served it.
 
 Throttle (250 ms), per-request memory cache, and a redacted call log (`/api/qloo/log`). Credential is server-side only.
 
@@ -39,4 +39,4 @@ Fixed request set (10–15 items, written before testing). Arm B grounded metric
 
 ## Application API (`server/src/http.ts`)
 
-`GET /healthz`, `GET /api/mode`, `GET /api/packs`, `GET /api/packs/:id/locations`, `GET /api/packs/:id/locations/:loc`, `POST /api/proposals`, `GET /api/proposals/:id`, `GET /api/proposals/:id/trace`, `POST /api/proposals/:id/decision`, `POST /api/eval/run`, `GET /api/eval/results`, `GET /api/qloo/log`. Per-IP token-bucket rate limiting; 1 MB payload limit; no credential in any response.
+`GET /healthz`, `GET /api/health`, `GET /api/mode`, `GET /api/packs`, `GET /api/packs/:id/locations`, `GET /api/packs/:id/locations/:loc`, `POST /api/proposals`, `GET /api/proposals`, `GET /api/proposals/latest`, `GET /api/proposals/:id`, `GET /api/proposals/:id/trace`, `GET /api/proposals/:id/export`, `GET /api/proposals/:id/ablation`, `GET /api/proposals/:id/brief`, `POST /api/proposals/:id/decision`, `POST /api/verify`, `GET /api/breakit`, `POST /api/breakit`, `POST /api/whynot`, `POST /api/whatif`, `POST /api/partners`, `GET /api/coverage`, `GET /api/trust`, `GET /api/ledger`, `GET /api/ledger/verify`, `GET /api/snapshots`, `POST /api/eval/run`, `GET /api/eval/results`, `GET /api/qloo/log`, `GET /api/qloo/rest-log`. Per-IP token-bucket rate limiting; 64 kb request-body limit (`http.ts:93`); no credential in any response.

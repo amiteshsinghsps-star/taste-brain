@@ -27,6 +27,12 @@ server/.private-cache/
 *-wal
 *-shm
 
+# server/verification/*.json stays tracked on purpose: counts, statuses,
+# parameter names and one synthetic replay-derived export — no Qloo entity names,
+# entity ids or response payloads (the files say so in their own provenance).
+# CoverageBoard reads two of them at runtime. Everything Qloo actually returned
+# lives in the *.db live captures above, which the rules already keep out.
+
 # logs and local test artifacts
 *.log
 npm-debug.log*

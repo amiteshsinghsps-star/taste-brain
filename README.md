@@ -34,12 +34,12 @@ Taste Brain is a platform where agents make offer / assortment / campaign decisi
 1. **The organization's own rules** (budgets, contracts, capacity, brand safety, dietary or care constraints), stored as Rule nodes linked to the SOP documents they came from.
 2. **Qloo's taste data** about the audience at each location (aggregate affinities across brands, places, music and more, with explainability).
 
-Every proposal carries a **Decision Trace**. A **Grounding Auditor** blocks anything that cannot be traced to a Qloo result or a passing Rule. A **Taste Lift** panel runs the same request through a plain LLM and through the grounded agent. A **Vertical Pack** (one config file) adapts the engine to retail, restaurants, venues, and more.
+Every proposal carries a **Decision Trace**. A **Grounding Auditor** blocks anything that cannot be traced to a Qloo result or a passing Rule. A **Taste Lift** panel runs the same request through a plain LLM and through the grounded agent — the plain-LLM arm only runs when an LLM key is configured, and the panel says so when it did not. A **Vertical Pack** (one config file) adapts the engine to retail, restaurants, venues, and more.
 
 ### Why this would not work without Qloo
 
 - Location audience portraits come from Qloo entity/tag results, not guesses.
-- Candidate ranking is by Qloo affinity score — the LLM never decides the ranking.
+- Candidate ranking is by Qloo's own returned result order — `/v2/insights` gives no score field, so the app reads rank, not a number, and the LLM never decides the ranking.
 - The Auditor vetoes any item without a Qloo entity id in the run's stored results.
 - Taste Lift measures the grounded agent against a plain LLM on the same request.
 
@@ -57,32 +57,37 @@ Every proposal carries a **Decision Trace**. A **Grounding Auditor** blocks anyt
 | Live transport | Direct REST Client | HTTP GET with `X-Api-Key` header | `server/src/qloo/rest-client.ts` |
 
 ### Production REST Protection
-- **Global Throttle Queue:** 250 ms delay between outbound calls (~4 calls/s max) ensuring strict adherence to the ~5 req/s Qloo rate limit.
+- **Global Throttle Queue:** `QLOO_THROTTLE_MS` (default 250 ms, floored at 220 ms in `rest-client.ts`) between outbound calls — about 4 calls/s, comfortably inside the 100-per-5-second burst cap this client enforces.
 - **Resilience:** Automatic retry with exponential backoff and jitter on HTTP 429 and 5xx errors (up to 3 retries).
 - **In-flight Deduplication & Caching:** Concurrent identical requests share a single network call. Results are cached in a LRU memory cache and persistent gitignored private disk cache (`.private-cache/`).
 - **Secret Isolation:** The `QLOO_API_KEY` is accessed only within `rest-client.ts`. It is never returned in HTTP responses, never logged, and never committed to version control.
 
-**Live request→result walkthrough** (`POST /api/proposals` with `{pack:"retail", location:"store_1", goal:"Add 4 brands", mode:"live"}`):
+**Request→result walkthrough** (`POST /api/proposals` with `{pack:"retail", location:"store_3", goal:"Add 4 brands for spring", mode:"replay"}`) — the trace below was copied off this build's own output, and the pack data is the synthetic worked example, so every name and figure is invented fixture data:
 
 ```text
-1. Seed Resolution   → "Patagonia" → 205AF33F-118E-..., "Filson" → DF938ECD-5CE5-...
-2. Seed Ambiguity    → "Seattle Anchor Outfitters" matches 5 candidates (surfaced in UI)
-3. Describe Audience → Qloo tags retrieved for Belltown, Seattle (Outdoors, Pacific Northwest)
-4. Taste Explorer    → GET /v2/insights returns top local brands:
-                       - Recreational Equipment Inc (fit 99)
-                       - Huckberry (fit 95)
-                       - Danner (fit 93)
-                       - Pendleton Woolen Mills (fit 92)
-                       - Smartwool (fit 90)
-                       - Fjällräven (fit 88)
-                       - Backcountry (fit 85)
-                       - Arc'teryx (fit 82)
-5. Rule Checker      → budget_cap (unit_cost <= $40), min_order (minimum_order <= 500)
-                       - Arc'teryx: unit_cost $65 > $40 → FAIL budget_cap
-                       - Backcountry: minimum_order 600 > 500 → FAIL min_order
-6. Grounding Auditor → Arc'teryx & Backcountry vetoed by Auditor (Check 3).
-                       Surviving items (REI, Huckberry, Danner, Pendleton, Smartwool, Fjällräven) pass 100%.
-7. Unsupported       → Backpacker Magazine, L.L.Bean (strong Qloo affinity, but no buying contract on file).
+1. Seeds             → type Audience: "Replay mode: 3 configured seed(s) not re-resolved
+                       against /search" — Replay trusts the stored fixture ids; a Live run
+                       records "seed resolved to a Qloo entity" per seed, and an ambiguous
+                       or unresolvable seed is recorded as its own step, never guessed.
+2. Audience portrait → type Audience: "Store 3 - East Austin, TX audience portrait"
+                       (GET /v2/insights filter.type=urn:tag)
+3. Candidates        → type QlooEntity: "Qloo returned 10 candidates for this audience"
+                       — the order Qloo returned is the ranking. /v2/insights carries no
+                       score field, so the fit figure shown per item is derived from that
+                       rank by this app and the item's own text says so.
+4. Rule Checker      → per item, one step per rule with the value it read:
+                       budget_cap "unit_cost 46 exceeds the ceiling 40" → fail
+                       min_order  "minimum_order 260 <= 500"           → pass
+                       brand_safety "no excluded tag present"              → pass
+5. Grounding Auditor → Riverstone Co. (Qloo rank 1, popularity 0.490) rejected on
+                       budget_cap, check 3; Palmetto Vape Co. rejected on brand_safety
+                       (carries the excluded tag qlootag:adult_content); Mesa & Main
+                       rejected on min_order (620 > 500). Each rejection is a Filter step.
+6. Shown             → Cedar Row, Lumen Threads, Arbor & Ledge, Northbound Supply,
+                       Halo Athletics, Dusk Records Apparel — six, in Qloo's order.
+7. Unsupported       → Unknown Indie Label: Qloo ranks it for this audience, but there is
+                       no approved offer or entered term to rule-check, so it is surfaced,
+                       never approved.
 ```
 
 ---
@@ -116,7 +121,7 @@ Adding a pack is config only — no change to the agents, graph or trace code.
 | Restaurants and hospitality | Thin | `server/src/packs/data/restaurants.json` |
 | Venues, events and media | Thin | `server/src/packs/data/venues.json` |
 
-Each pack defines entity types, goal templates, Rule templates (with their SOP source), fictional locations, and a candidate catalog. Rule kinds implemented: `numeric_max`, `numeric_min`, `exclude_tags`, `require_tags`, `allow_list`, `deny_list`, `capacity` (`server/src/agents/rule-checker.ts`).
+Each pack defines entity types, goal templates, Rule templates (with their SOP source), fictional locations, and a candidate catalog. Rule kinds implemented: `numeric_max`, `numeric_min`, `band`, `exclude_tags`, `require_tags`, `allow_list`, `deny_list`, `exclude_recent`, `require_present` (`server/src/agents/rule-checker.ts`).
 
 ---
 
