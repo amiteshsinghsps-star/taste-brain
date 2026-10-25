@@ -132,9 +132,10 @@ const newestArtifact = ['sample-export.json', 'gate-report.json', 'live-scorecar
   })
   .filter(Boolean).sort().pop() ?? '';
 const discloseOk = /replay/i.test(readme) && /synthetic/i.test(readme) && /QLOO_ENABLED/i.test(readme) && !!readmeDates.length;
-const fresh = !newestArtifact || readmeDates.sort().pop()! >= newestArtifact.slice(0, 10);
+const newestDisclosed = [...readmeDates].sort().pop() ?? '';
+const fresh = !newestArtifact || newestDisclosed >= newestArtifact.slice(0, 10);
 report(discloseOk && fresh, 'README states the data mode, and its date is not behind the evidence files',
-  `README dates: ${readmeDates.sort().join(', ') || 'none'} · newest tracked evidence: ${newestArtifact || 'none'}`);
+  `README dates: ${[...readmeDates].sort().join(', ') || 'none'} · newest tracked evidence: ${newestArtifact || 'none'}`);
 
 // ── 8. a fresh clone with no key must still produce a run ────────────────────
 process.env.GRAPH_DB = ':memory:';
