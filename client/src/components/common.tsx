@@ -6,6 +6,18 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ModeMix, RuleStatus, TasteMode } from '@/lib/types';
 
+/** True when the visitor asked the OS for less motion; animations stay off. */
+function usePrefersReducedMotion(): boolean {
+  const [still, setStill] = useState(() => (typeof window === 'undefined' ? false : window.matchMedia('(prefers-reduced-motion: reduce)').matches));
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const onChange = (e: MediaQueryListEvent) => setStill(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return still;
+}
+
 const MODE_LABEL: Record<TasteMode, string> = { live: 'LIVE', cached: 'CACHED', replay: 'SAMPLE' };
 const MODE_VARIANT: Record<TasteMode, 'success' | 'warning' | 'secondary'> = {
   live: 'success', cached: 'warning', replay: 'secondary',
@@ -197,7 +209,7 @@ export function TagFrequency({ tags, of }: { tags: [string, number][]; of: numbe
   const max = tags[0][1] || 1;
   return (
     <div className="space-y-1.5">
-      {tags.map(([name, n], i) => (
+      {tags.map(([name, n]) => (
         <div key={name} className="grid grid-cols-[minmax(0,150px)_1fr_auto] items-center gap-2">
           <span className="truncate text-[11px] font-medium text-slate-700" title={name}>{name}</span>
           <MeterBar pct={(n / max) * 100} hint={`${n} of ${of} shown items carry this tag`} />
@@ -211,9 +223,13 @@ export function TagFrequency({ tags, of }: { tags: [string, number][]; of: numbe
 
 /** Counts up to `value` for effect; the settled number is exactly what was passed in. */
 export function CountUp({ value }: { value: number }) {
-  const [shown, setShown] = useState(0);
-  const from = useRef(0);
+  const still = usePrefersReducedMotion();
+  const [shown, setShown] = useState(still ? value : 0);
+  const from = useRef(still ? value : 0);
   useEffect(() => {
+    // Reduced motion is not an animation with duration 0 — the number is simply
+    // the value, so nothing is scheduled and nothing calls setState here.
+    if (still) { from.current = value; return; }
     const t0 = performance.now();
     const start = from.current;
     let raf = 0;
@@ -225,8 +241,54 @@ export function CountUp({ value }: { value: number }) {
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [value]);
-  return <>{shown}</>;
+  }, [value, still]);
+  return <>{still ? value : shown}</>;
+}
+
+/** The arc length is the server's own passed/total pair; nothing is inferred here. */
+export function ScoreRing({ passed, total, ok }: { passed: number; total: number; ok: boolean }) {
+  const pct = total > 0 ? (Math.max(0, Math.min(passed, total)) / total) * 100 : 0;
+  return (
+    <div className="relative h-16 w-16 shrink-0" role="img" aria-label={`${passed} of ${total} checks passed`}>
+      <svg viewBox="0 0 36 36" className="h-16 w-16 -rotate-90">
+        <circle className="tb-ring-track" cx="18" cy="18" r="15.5" fill="none" strokeWidth="3.2" />
+        <circle
+          className="tb-ring-arc" data-st={ok ? 'pass' : 'fail'} cx="18" cy="18" r="15.5" fill="none" strokeWidth="3.2"
+          pathLength={100} strokeDasharray={`${pct} 100`}
+        />
+      </svg>
+      <span className="absolute inset-0 flex flex-col items-center justify-center text-[10px] font-semibold leading-none">
+        <b className="text-sm">{passed}<span className="text-slate-400">/{total}</span></b>
+        <span className="text-[8px] uppercase tracking-wider text-slate-400">checks</span>
+      </span>
+    </div>
+  );
+}
+
+/** The one-line verdict above the checks, so PASS/FAIL is readable at a glance. */
+export function VerdictBanner({ state, title, children }: { state: 'pass' | 'fail' | 'idle'; title: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="tb-verdict" data-st={state}>
+      <span className="text-lg leading-none" aria-hidden>{state === 'pass' ? '✓' : state === 'fail' ? '✕' : '—'}</span>
+      <div className="min-w-0">
+        <div className="text-sm font-bold">{title}</div>
+        {children && <div className="mt-0.5 text-[11px] leading-relaxed opacity-90">{children}</div>}
+      </div>
+    </div>
+  );
+}
+
+/** A pill row for narrowing a list. The counts come from the rows themselves. */
+export function FilterPills({ value, onChange, options }: {
+  value: string; onChange: (v: string) => void; options: { id: string; label: ReactNode }[];
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+      {options.map((o) => (
+        <button key={o.id} className="tb-pill" data-on={value === o.id} onClick={() => onChange(o.id)}>{o.label}</button>
+      ))}
+    </div>
+  );
 }
 
 /** Shimmer placeholder while the pipeline is running. */

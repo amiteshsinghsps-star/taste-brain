@@ -76,7 +76,9 @@ export const api = {
   partners: (body: { pack: string; location: string; proposal_id?: string; mode?: TasteMode }) =>
     post('/api/partners', body).then((r) => j<{ success: boolean; partners: PartnerResult; mode: TasteMode; degrade_reason?: string | null }>(r)),
 
-  ledger: () => fetch(`${BASE}/api/ledger`).then((r) => j<{ success: boolean; entries: LedgerEntry[]; head_hash: string | null; length: number; total: number }>(r)),
+  ledger: (limit?: number) =>
+    fetch(`${BASE}/api/ledger${limit ? `?limit=${encodeURIComponent(String(limit))}` : ''}`)
+      .then((r) => j<{ success: boolean; entries: LedgerEntry[]; head_hash: string | null; length: number; total: number; limit: number }>(r)),
   verify: () => fetch(`${BASE}/api/ledger/verify`)
     .then((r) => j<{
       success: boolean; ok: boolean; length: number; head_hash: string | null;

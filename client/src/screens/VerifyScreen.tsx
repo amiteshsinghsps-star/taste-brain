@@ -6,7 +6,7 @@
 
 import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Empty, Hash, Note, Panel, StatusPill, Time } from '@/components/common';
+import { Hash, Note, Panel, ScoreRing, StatusPill, Time, VerdictBanner } from '@/components/common';
 import { api } from '@/lib/api';
 import { useApp } from '@/lib/app-context';
 import type { DecisionExport, VerifyReport } from '@/lib/types';
@@ -81,7 +81,13 @@ export default function VerifyScreen() {
           </div>
         }
       >
-        {!proposal && <Empty>No run is loaded. The file picker above still works — verify any export, including one taken from another server.</Empty>}
+        {!shown && !error && (
+          <VerdictBanner state="idle" title={proposal ? 'Not verified yet' : 'Nothing verified yet'}>
+            {proposal
+              ? 'Press Verify this run to pull its export and recompute every check over it — the page shows what the verifier returned, never a remembered verdict.'
+              : 'Load a run and press Verify this run, or choose an export file above. The checks run on whatever is handed over, so a file produced by another server verifies here too.'}
+          </VerdictBanner>
+        )}
         {error && <Note tone="bad" title="Verification could not run">{error}</Note>}
       </Panel>
 
@@ -111,17 +117,29 @@ export default function VerifyScreen() {
 
       {report && (
         <Panel
-          title={report.ok ? 'PASS' : 'FAIL'}
+          title={report.error ? 'Verifier result' : `Verification ${report.ok ? 'passed' : 'failed'}`}
           description={<>Every number below was recomputed from the export file, not restated from the run. Computed at <Time iso={report.ran_at} /></>}
-          actions={report.error ? undefined : <span className={`rounded px-2 py-1 text-sm font-semibold ${report.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}>{report.passed}/{report.checks.length} checks</span>}
+          actions={report.error ? undefined : (
+            <div className="flex items-center gap-3">
+              <span className="text-right text-[11px] leading-tight text-slate-500">
+                checks that passed<br /><strong className="text-sm text-slate-800">{report.passed} of {report.checks.length}</strong>
+              </span>
+              <ScoreRing passed={report.passed} total={report.checks.length} ok={report.ok} />
+            </div>
+          )}
         >
           {report.error ? (
             <Note tone="bad" title="Not a decision export">{report.error}</Note>
           ) : (
             <>
-              <ul className="space-y-2.5">
+              <VerdictBanner state={report.ok ? 'pass' : 'fail'} title={report.ok ? 'PASS — the export is internally consistent' : 'FAIL — this export does not hold together'}>
+                {report.ok
+                  ? 'Six recomputations agree with each other. What the page shows is what the hash-protected record says was decided.'
+                  : 'At least one recomputation disagrees with the record beside it. Treat every figure on this run as unproven until the failing check below is explained.'}
+              </VerdictBanner>
+              <ul className="space-y-2">
                 {report.checks.map((c) => (
-                  <li key={c.id} className="rounded-lg border border-slate-200 px-3 py-2">
+                  <li key={c.id} className="tb-check" data-st={c.status === 'pass' ? 'pass' : 'fail'}>
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusPill status={c.status === 'pass' ? 'pass' : 'fail'}>{c.status.toUpperCase()}</StatusPill>
                       <span className="font-medium text-sm text-slate-800">{c.name}</span>

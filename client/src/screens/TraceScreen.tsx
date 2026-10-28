@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { CountUp, Empty, ModeBadge, ModeMixBar, ModeMixLine, Note, Panel, Skeleton, Stat, Time } from '@/components/common';
+import { CountUp, Empty, FilterPills, ModeBadge, ModeMixBar, ModeMixLine, Note, Panel, Skeleton, Stat, Time } from '@/components/common';
 import { NEEDS_RUN, useApp } from '@/lib/app-context';
 
 const DOT: Record<string, string> = {
@@ -13,6 +13,9 @@ const DOT: Record<string, string> = {
 export default function TraceScreen() {
   const { proposal, busy } = useApp();
   const [only, setOnly] = useState<string>('all');
+  // One step's raw JSON open at a time, keyed by its position in the engine's own
+  // list so filtering never moves an open panel to another step.
+  const [raw, setRaw] = useState<number | null>(null);
   const steps = proposal?.trace.steps ?? [];
   const types = [...new Set(steps.map((s) => s.type))];
   // The position in the engine's own step list, kept through the filter, is what
@@ -55,15 +58,14 @@ export default function TraceScreen() {
               </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
-              <span className="text-slate-500">filter:</span>
-              <button onClick={() => setOnly('all')} className="tb-pill" data-on={only === 'all'}>all · {steps.length}</button>
-              {types.map((t) => (
-                <button
-                  key={t} onClick={() => setOnly(t)} className="tb-pill" data-on={only === t}
-                >{t} · {steps.filter((s) => s.type === t).length}</button>
-              ))}
-            </div>
+            <FilterPills
+              value={only}
+              onChange={setOnly}
+              options={[
+                { id: 'all', label: <>all · {steps.length}</> },
+                ...types.map((t) => ({ id: t, label: <>{t} · {steps.filter((s) => s.type === t).length}</> })),
+              ]}
+            />
             <dl className="rounded-md bg-slate-50 px-3 py-2 text-xs">
               <div className="flex items-baseline justify-between gap-3 border-b border-slate-200 py-1">
                 <dt className="text-slate-500">proposal</dt><dd className="font-mono">{proposal.trace.proposal_id}</dd>
@@ -80,21 +82,26 @@ export default function TraceScreen() {
 
             <ol className="relative ml-2 border-l border-slate-300">
               {shown.map(({ s, i }) => (
-                <li key={i} className="group mb-3 ml-4">
-                  <span className={`absolute -left-[7px] mt-1.5 h-3.5 w-3.5 rounded-full transition-transform group-hover:scale-125 ${DOT[s.result ?? 'info'] ?? 'bg-slate-400'}`} aria-hidden />
-                  <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <span className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600">{s.type}</span>
-                    <span className="font-medium">{s.label}</span>
-                    {s.mode && <ModeBadge mode={s.mode} />}
-                    {s.id && <span className="font-mono text-[11px] text-slate-400">{s.id}</span>}
-                    <Time iso={s.at} />
-                    <details className="ml-auto">
-                      <summary className="cursor-pointer list-none text-[10px] text-slate-400 opacity-0 transition-opacity hover:text-indigo-600 group-hover:opacity-100">raw</summary>
-                      <pre className="tb-screen-enter absolute right-4 z-20 mt-1 max-h-64 w-[min(90vw,540px)] overflow-auto rounded-lg border border-slate-200 bg-white p-2.5 font-mono text-[10px] leading-relaxed text-slate-700 shadow-xl">{JSON.stringify(s, null, 2)}</pre>
-                    </details>
+                <li key={i} className="group mb-2 ml-4">
+                  <span className={`absolute -left-[7px] mt-2.5 h-3.5 w-3.5 rounded-full ring-2 ring-white transition-transform group-hover:scale-125 ${DOT[s.result ?? 'info'] ?? 'bg-slate-400'}`} aria-hidden />
+                  <div className="tb-lift rounded-xl border border-slate-200/90 bg-white/70 px-3 py-2">
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600">{s.type}</span>
+                      <span className="font-medium">{s.label}</span>
+                      {s.mode && <ModeBadge mode={s.mode} />}
+                      {s.id && <span className="font-mono text-[11px] text-slate-400">{s.id}</span>}
+                      <Time iso={s.at} />
+                      <button
+                        className="tb-pill ml-auto" data-on={raw === i} aria-expanded={raw === i}
+                        onClick={() => setRaw(raw === i ? null : i)}
+                      >{raw === i ? 'hide raw' : 'raw step'}</button>
+                    </div>
+                    {s.source && <div className="text-[11px] text-slate-500">source: {s.source}</div>}
+                    {s.detail && <div className="mt-0.5 max-w-3xl text-[11px] leading-relaxed text-slate-600">{s.detail}</div>}
+                    {raw === i && (
+                      <pre className="tb-screen-enter mt-1.5 max-h-64 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-2.5 font-mono text-[10px] leading-relaxed text-slate-700">{JSON.stringify(s, null, 2)}</pre>
+                    )}
                   </div>
-                  {s.source && <div className="text-[11px] text-slate-500">source: {s.source}</div>}
-                  {s.detail && <div className="mt-0.5 max-w-3xl text-[11px] leading-relaxed text-slate-600">{s.detail}</div>}
                 </li>
               ))}
             </ol>

@@ -67,11 +67,12 @@ export default function EvidenceScreen() {
 function EvidenceCard({ item }: { item: ProposalItem }) {
   const e = item.evidence;
   return (
-    <article className="rounded-lg border border-slate-200 p-3">
+    <article className="tb-lift rounded-xl border border-slate-200 bg-white/70 p-3">
       <div className="flex flex-wrap items-center gap-2">
         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">{item.rank}</span>
         <span className="font-semibold">{item.name}</span>
         <ModeBadge mode={e.mode} />
+        <span className="ml-auto text-[10px] text-slate-400">Qloo rank {e.qloo_rank}</span>
       </div>
       <dl className="mt-2">
         <KV k="entity id" v={<code className="font-mono text-[11px]">{e.entity_id}</code>} />
