@@ -20,7 +20,7 @@ export default function WhatIfScreen() {
   const [termEntity, setTermEntity] = useState('');
   const [termField, setTermField] = useState('guarantee_usd');
   const [termValue, setTermValue] = useState('');
-  const [result, setResult] = useState<WhatIfResult | null>(null);
+  const [asked, setAsked] = useState<{ id: string; whatif: WhatIfResult } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,10 +48,13 @@ export default function WhatIfScreen() {
         recent_plays: recentPlays.length ? recentPlays : undefined,
         band,
       });
-      setResult(r.whatif);
-    } catch (e) { setError(e instanceof Error ? e.message : String(e)); setResult(null); }
+      setAsked({ id: proposal.proposal_id, whatif: r.whatif });
+    } catch (e) { setError(e instanceof Error ? e.message : String(e)); setAsked(null); }
     finally { setBusy(false); }
   };
+
+  // A what-if belongs to the run it recomputed, so switching rooms retires it.
+  const result = asked && asked.id === proposal.proposal_id ? asked.whatif : null;
 
   return (
     <div className="space-y-5">

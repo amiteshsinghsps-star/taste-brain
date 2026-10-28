@@ -34,11 +34,17 @@ export interface ArmMetrics {
 export function groundedMetrics(p: Proposal, allQlooIds: Set<string>): ArmMetrics {
   const n = p.items.length;
   const grounded = p.items.filter((it) => it.entity_id && allQlooIds.has(it.entity_id)).length;
-  const compliant = p.items.filter((it) => it.rule_results.every((r) => r.pass)).length;
-  const specific = p.items.filter((it) => it.entity_id && allQlooIds.has(it.entity_id)).length;
+  // An item with no rule verdict has not PASSED the rules — it was never tested
+  // by them. Counting `[].every(pass)` as compliance inflated the figure, so the
+  // rate is taken over the items that carry a verdict and the rest is disclosed.
+  const tested = p.items.filter((it) => it.rule_results.length > 0);
+  const compliant = tested.filter((it) => it.rule_results.every((r) => r.pass)).length;
+  const untested = n - tested.length;
+  const specific = grounded;
   return {
-    arm: 'B_grounded', ran: true, note: 'grounded agent: ranking from Qloo, filtered by rules, vetoed by Auditor',
-    grounding_rate: n ? grounded / n : 0, rule_compliance: n ? compliant / n : 0, specificity: n ? specific / n : 0,
+    arm: 'B_grounded', ran: true,
+    note: `grounded agent: ranking from Qloo, filtered by rules, vetoed by Auditor${untested > 0 ? `; ${untested} of ${n} item(s) carried no rule verdict, so the compliance figure is ${compliant}/${tested.length}, not ${compliant}/${n}` : ''}`,
+    grounding_rate: n ? grounded / n : 0, rule_compliance: tested.length ? compliant / tested.length : 0, specificity: n ? specific / n : 0,
     item_count: n, raw_items: p.items.map((it) => it.name),
   };
 }

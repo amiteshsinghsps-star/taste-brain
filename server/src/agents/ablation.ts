@@ -154,7 +154,7 @@ export function ablationHeadline(result: AblationResult): string {
       : r.arm === 'seeds_only' ? "dropping the room's location"
       : r.arm === 'no_qloo' ? 'ordering without Qloo at all'
       : 'shuffling Qloo\'s order';
-    return `${short}: τ ${r.kendall_tau}, ${r.changed_in_top_k ?? 0} of ${kSlice} positions moved`;
+    return `${short}: τ ${r.kendall_tau}, ${r.changed_in_top_k ?? 0} of ${r.k_effective ?? 0} positions moved`;
   });
   const saturated = measured.every((r) => r.overlap_at_k === 1);
   const caveat = saturated

@@ -25,6 +25,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { env, qlooKeyStatus, qlooRestEnabled } from '../config/env';
 import { assertAllowed, AllowlistViolation } from './allowlist';
 import type { QlooEntityResult, QlooTagRef, TasteMode } from '../types';
@@ -60,7 +61,11 @@ function addRestLog(entry: Omit<RestCallLogEntry, 'seq' | 'at'>) {
 // ── Private cache (gitignored) ──────────────────────────────────────────────
 
 function privateCache(): string {
-  const dir = path.resolve(path.join(__dirname, '../../', env.QLOO_PRIVATE_CACHE_DIR));
+  // An absolute setting is a path, not a folder name to append to the repo: joining
+  // it onto __dirname produced a nested bogus path and every live call died on ENOENT.
+  const dir = path.isAbsolute(env.QLOO_PRIVATE_CACHE_DIR)
+    ? env.QLOO_PRIVATE_CACHE_DIR
+    : path.resolve(path.join(__dirname, '../../', env.QLOO_PRIVATE_CACHE_DIR));
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
@@ -85,7 +90,7 @@ function writePrivateCache(file: string, data: unknown): void {
 
 // ── Caches and throttling ───────────────────────────────────────────────────
 
-const _inFlight = new Map<string, Promise<unknown>>();
+const _inFlight = new Map<string, { promise: Promise<unknown>; at: string }>();
 const _memCache = new Map<string, { value: unknown; fetched_at: string }>();
 const MEM_MAX = 300;
 
@@ -280,6 +285,21 @@ function dedupeById(results: QlooEntityResult[]): QlooEntityResult[] {
 
 // ── Core cached fetch ───────────────────────────────────────────────────────
 
+// The Quota Guardian's answer ("this run is served Cached") is only honest if the
+// run really cannot leave the box. A session that was not granted live wraps its
+// calls in withLiveAllowed(false), and cachedFetch refuses the network inside that
+// scope — for every nested call — so a denied run reads stored bytes or nothing.
+const liveScope = new AsyncLocalStorage<{ allowLive: boolean }>();
+
+export function withLiveAllowed<T>(allowLive: boolean, fn: () => Promise<T>): Promise<T> {
+  return liveScope.run({ allowLive }, fn);
+}
+
+/** Anything outside a scope keeps the host default: no caller is silently gated. */
+function liveAllowed(): boolean {
+  return liveScope.getStore()?.allowLive ?? true;
+}
+
 async function cachedFetch(
   workflow: string,
   endpointPath: string,
@@ -297,9 +317,16 @@ async function cachedFetch(
     addRestLog({ workflow, path: endpointPath, status: 200, latency_ms: 0, cache_hit: true, mode: 'cached', entity_count: rawResults(persisted.data).length, inputs_redacted: { params_hash: path.basename(file, '.json'), fetched_at: persisted.fetched_at } });
     return { data: persisted.data, mode: 'cached', fetched_at: persisted.fetched_at };
   }
-  if (_inFlight.has(file)) {
-    const data = await (_inFlight.get(file) as Promise<unknown>);
-    return { data, mode: 'live', fetched_at: new Date().toISOString() };
+  // A run the guardian degraded to Cached may not join another run's fetch either:
+  // those bytes are not a stored answer yet, and stamping them live would describe
+  // a fetch this run was told not to make.
+  if (!liveAllowed()) throw new QlooApiError('live Qloo was not permitted for this run', 0);
+  const inflight = _inFlight.get(file);
+  if (inflight) {
+    // A joined caller waits on the bytes the first caller is fetching right now,
+    // so it reports that fetch's start time — not the time it joined the wait.
+    const data = await inflight.promise;
+    return { data, mode: 'live', fetched_at: inflight.at };
   }
   // The single gate on leaving this box. QLOO_ENABLED=false means the key is
   // present but live is switched off, and a Cached request must then be served
@@ -310,15 +337,20 @@ async function cachedFetch(
   if (!countCall()) throw new QlooApiError('QLOO_QUOTA_EXCEEDED', 0);
 
   const at = new Date().toISOString();
+  const entry: { promise: Promise<unknown>; at: string } = { promise: null as unknown as Promise<unknown>, at };
   const promise = qlooFetch(endpointPath, params).then(({ data, status, latency_ms }) => {
     _networkCalls++;
-    _inFlight.delete(file);
     if (status >= 200 && status < 300) { writePrivateCache(file, data); memSet(file, data, at); }
     addRestLog({ workflow, path: endpointPath, status, latency_ms, cache_hit: false, mode: 'live', entity_count: rawResults(data).length, inputs_redacted: { params_hash: path.basename(file, '.json') } });
     return data;
   });
-  _inFlight.set(file, promise);
-  const data = await promise;
+  // The entry is dropped whichever way the request settles. Leaving a rejected
+  // promise in the map would make every later caller re-await that failure and
+  // the query could never go live again for the life of the process.
+  const clear = () => { if (_inFlight.get(file) === entry) _inFlight.delete(file); };
+  entry.promise = promise.finally(clear);
+  _inFlight.set(file, entry);
+  const data = await entry.promise;
   return { data, mode: 'live', fetched_at: at };
 }
 

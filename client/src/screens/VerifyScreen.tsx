@@ -89,15 +89,15 @@ export default function VerifyScreen() {
         <Panel title="What is being checked" description="The file the checks were computed over, exactly as exported.">
           <div className="grid gap-1.5 rounded-md bg-slate-50 px-3 py-2 text-xs">
             <div className="flex justify-between gap-3"><span className="text-slate-500">schema</span><span className="font-mono">{exp.schema}</span></div>
-            <div className="flex justify-between gap-3"><span className="text-slate-500">proposal</span><span className="font-mono">{exp.provenance.proposal_id}</span></div>
-            <div className="flex justify-between gap-3"><span className="text-slate-500">room</span><span>{exp.provenance.pack} · {exp.provenance.location}</span></div>
-            <div className="flex justify-between gap-3"><span className="text-slate-500">badge on the run</span><span className="font-medium">{exp.provenance.decision_mode}</span></div>
+            <div className="flex justify-between gap-3"><span className="text-slate-500">proposal</span><span className="font-mono">{exp.provenance?.proposal_id ?? 'not stated'}</span></div>
+            <div className="flex justify-between gap-3"><span className="text-slate-500">room</span><span>{exp.provenance ? `${exp.provenance.pack} · ${exp.provenance.location}` : 'not stated'}</span></div>
+            <div className="flex justify-between gap-3"><span className="text-slate-500">badge on the run</span><span className="font-medium">{exp.provenance?.decision_mode ?? 'not stated'}</span></div>
             <div className="flex justify-between gap-3"><span className="text-slate-500">rule set pinned to</span>{exp.rules?.pinned_version ? <Hash value={exp.rules.pinned_version} /> : <span className="text-slate-400">not stated</span>}</div>
             <div className="flex justify-between gap-3"><span className="text-slate-500">ledger entries</span><span>{exp.ledger?.length ?? 0}</span></div>
             <div className="flex justify-between gap-3"><span className="text-slate-500">evidence rows</span><span>{exp.evidence?.entity_ids?.length ?? 0}</span></div>
             <div className="flex justify-between gap-3"><span className="text-slate-500">exported at</span>{exp.exported_at ? <Time iso={exp.exported_at} /> : <span className="text-slate-400">no timestamp</span>}</div>
           </div>
-          {downloadHref && (
+          {downloadHref && exp.provenance?.proposal_id && (
             <p className="mt-2 text-xs">
               <a className="text-indigo-700 underline" href={downloadHref} download={`taste-brain-${exp.provenance.proposal_id}.json`}>
                 Download this export
@@ -113,7 +113,7 @@ export default function VerifyScreen() {
         <Panel
           title={report.ok ? 'PASS' : 'FAIL'}
           description={<>Every number below was recomputed from the export file, not restated from the run. Computed at <Time iso={report.ran_at} /></>}
-          actions={<span className={`rounded px-2 py-1 text-sm font-semibold ${report.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}>{report.passed}/{report.checks.length} checks</span>}
+          actions={report.error ? undefined : <span className={`rounded px-2 py-1 text-sm font-semibold ${report.ok ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800'}`}>{report.passed}/{report.checks.length} checks</span>}
         >
           {report.error ? (
             <Note tone="bad" title="Not a decision export">{report.error}</Note>

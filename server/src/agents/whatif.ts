@@ -74,18 +74,25 @@ export function whatIf(input: WhatIfInput): WhatIfResult {
   const extraTerms = input.offer_terms ?? {};
   const accepted: string[] = [];
   const reasonFor = new Map<string, string>();
+  const unbandable: string[] = [];
 
   for (const c of snapshot.candidates) {
     if (recent.includes(norm(c.name))) {
       reasonFor.set(c.entity_id, `listed by the owner as recently played inside the no-repeat window (${c.name})`);
       continue;
     }
-    if (input.band && c.popularity !== undefined) {
-      const lo = input.band.min ?? -Infinity;
-      const hi = input.band.max ?? Infinity;
-      if (c.popularity < lo || c.popularity > hi) {
-        reasonFor.set(c.entity_id, `popularity ${c.popularity.toFixed(3)} falls outside the requested band [${input.band.min ?? 'no floor'}, ${input.band.max ?? 'no ceiling'}]`);
-        continue;
+    if (input.band) {
+      if (c.popularity === undefined) {
+        // No popularity on the row means the band cannot be tested on it. It
+        // stays in, and the note below has to say how many rows got that pass.
+        unbandable.push(c.entity_id);
+      } else {
+        const lo = input.band.min ?? -Infinity;
+        const hi = input.band.max ?? Infinity;
+        if (c.popularity < lo || c.popularity > hi) {
+          reasonFor.set(c.entity_id, `popularity ${c.popularity.toFixed(3)} falls outside the requested band [${input.band.min ?? 'no floor'}, ${input.band.max ?? 'no ceiling'}]`);
+          continue;
+        }
       }
     }
     const fields = { ...(input.fieldsFor(c.entity_id) ?? {}), ...(extraTerms[c.entity_id] ?? {}) };
@@ -99,7 +106,7 @@ export function whatIf(input: WhatIfInput): WhatIfResult {
   }
 
   if (input.band) {
-    notes.push('the band was re-applied to the rows Qloo already returned. A different band sent to Qloo would also change which rows come back, so this is a filter preview, not a new Qloo answer.');
+    notes.push(`the band was re-applied to the rows Qloo already returned${unbandable.length ? `, but ${unbandable.length} row(s) carry no popularity figure so the band could not be tested on them and they stayed in (${unbandable.slice(0, 5).join(', ')}${unbandable.length > 5 ? ', …' : ''})` : ''}. A different band sent to Qloo would also change which rows come back, so this is a filter preview, not a new Qloo answer.`);
   }
   notes.push(`recomputed from the stored snapshot with 0 Qloo calls; ranking is still Qloo's own order (${snapshot.candidates.length} rows)`);
 

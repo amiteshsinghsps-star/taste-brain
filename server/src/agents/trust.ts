@@ -46,6 +46,20 @@ export interface TrustReport {
   coverage: { verified: number; accepted_but_empty: number; not_usable: number; verified_at: string };
 }
 
+// Both scans below shell out to git and re-read every stored Qloo response.
+// /api/trust is polled, so an uncached call let any visitor make the server spawn
+// a git process and rescan the disk at will, blocking the event loop. Held
+// briefly: the answer describes the checkout, which does not change per request.
+const SCAN_TTL_MS = 30_000;
+const scanCache = new Map<string, { at: number; value: unknown }>();
+function memoizeScan<T>(key: string, run: () => T): T {
+  const hit = scanCache.get(key);
+  if (hit && Date.now() - hit.at < SCAN_TTL_MS) return hit.value as T;
+  const value = run();
+  scanCache.set(key, { at: Date.now(), value });
+  return value;
+}
+
 /**
  * Is any live Qloo payload or key actually tracked? Measured against `git
  * ls-files` rather than asserted, so the check can fail.
@@ -133,7 +147,9 @@ function probeOutcomes(): { probe: string; outcome: string }[] {
 
 export function trustReport(proposal: Proposal | null): TrustReport {
   const checks: TrustCheck[] = [];
-  const entries = graph.readLedger(500);
+  // The whole chain, oldest first: readLedger is ASC-limited, so a bounded read
+  // would verify a prefix and then name its 500th row the head of the ledger.
+  const entries = graph.readLedger(Number.MAX_SAFE_INTEGER);
   const ledger = verifyLedger(entries);
 
   const storedIds = new Set(
@@ -141,8 +157,11 @@ export function trustReport(proposal: Proposal | null): TrustReport {
   );
   const audit = proposal ? auditProposal(proposal, storedIds) : null;
 
-  // 1 — the LLM cannot rank, filter or approve.
-  const rankSteps = proposal?.trace.steps.filter((s) => s.type === 'Proposal' && s.label.toLowerCase().includes('llm')) ?? [];
+  // 1 — the LLM cannot rank, filter or approve. A step only counts against this
+  // when it credits the model with CHANGING the order; the narration step names
+  // the model on purpose and must not trip the guard it is documenting.
+  const LLM_RANKED = /\b(llm|model|gpt)\b[^.\n]{0,60}\b(rank\w*|order\w*|re-?sort\w*|promot\w*|demot\w*)\b|\b(rank\w*|order\w*|re-?sort\w*|promot\w*|demot\w*)\b[^.\n]{0,60}\b(llm|model|gpt)\b/i;
+  const rankSteps = proposal?.trace.steps.filter((s) => LLM_RANKED.test(s.label)) ?? [];
   checks.push({
     id: 'llm-never-ranks',
     claim: 'The model writes explanations only; ranking comes from Qloo and approval comes from a named person.',
@@ -258,8 +277,9 @@ export function trustReport(proposal: Proposal | null): TrustReport {
       : 'the ledger is empty until a proposal is decided',
   });
 
-  // 11 — private cache never enters the repository.
-  const privacy = repoPrivacyScan();
+  // 11 — private cache never enters the repository. The git check is honest about
+  // what git can prove: with no readable checkout here the status is unproven.
+  const privacy = memoizeScan('privacy', repoPrivacyScan);
   checks.push({
     id: 'no-qloo-data-in-repo',
     claim: 'Live Qloo responses are written to the server-side store only; the repository holds synthetic fixtures and counts.',
@@ -268,7 +288,7 @@ export function trustReport(proposal: Proposal | null): TrustReport {
   });
 
   // 12 — nothing in the stored cache was made up.
-  const purity = cachePurityScan();
+  const purity = memoizeScan('purity', cachePurityScan);
   checks.push({
     id: 'cache-purity',
     claim: 'Every row served as "cached" came from a real Qloo response, not from a fixture written into the private cache.',

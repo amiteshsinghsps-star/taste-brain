@@ -14,7 +14,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [locations, setLocations] = useState<PackLocation[]>([]);
   const [location, setLocation] = useState('');
   const [goal, setGoal] = useState('');
-  const [mode, setMode] = useState<TasteMode>('replay');
+  const [mode, setMode] = useState<TasteMode>('live');
   const [approver, setApprover] = useState('');
   const [recentPlays, setRecentPlays] = useState<string[]>([]);
   const [proposal, setProposal] = useState<Proposal | null>(null);
@@ -39,6 +39,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // pack load and re-trigger the effect that calls it.
   const locationsRef = useRef<PackLocation[]>([]);
 
+  // Synchronous guard for run(): the busy state lands a render later, so two
+  // triggers in the same tick would both pass an `if (busy)` check.
+  const runningRef = useRef(false);
+
+  // The pack summaries arrive on their own request, so the locations effect reads
+  // them through a ref instead of depending on them and refetching every rooms
+  // list a second time.
+  const packsRef = useRef<PackSummary[]>([]);
+  useEffect(() => { packsRef.current = packs; }, [packs]);
+
   // A browser reload wipes the in-memory run, but the server still holds it. The
   // room selector moves to the newest stored run's room and the effect below
   // re-serves that room's run — one path, so the two cannot race.
@@ -56,8 +66,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!pack) return;
+    // Guarded like the room-follow effect below: switching pack fast used to let
+    // the slower reply land last and write the previous pack's rooms, then clear
+    // a proposal that had just been restored. packs is read through a ref so this
+    // effect runs once per pack instead of twice (once per packs load).
+    let cancelled = false;
     const keep = adopt.current && adopt.current.pack === pack ? adopt.current : null;
     api.locations(pack).then((r) => {
+      if (cancelled) return;
       locationsRef.current = r.locations;
       setLocations(r.locations);
       const wanted = keep && r.locations.some((l) => l.id === keep.location) ? keep.location : (r.locations[0]?.id ?? '');
@@ -65,15 +81,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const loc = r.locations.find((l) => l.id === wanted);
       setRecentPlays(loc?.recent_plays ?? []);
       if (!keep) {
-        const p = packs.find((x) => x.pack === pack);
+        const p = packsRef.current.find((x) => x.pack === pack);
         if (p?.goal_templates?.length) setGoal(p.goal_templates[0].replace('{n}', '3').replace('{season}', 'autumn'));
         setProposal(null);
         setServedFrom(null);
         restoreRoom(pack);
       }
       adopt.current = null;
-    }).catch((e) => setError(String(e)));
-  }, [pack, packs, restoreRoom]);
+    }).catch((e) => {
+      if (cancelled) return;
+      // A failed room list ends the adoption attempt: leaving adopt.current set
+      // would keep the run-follow effect below returning early forever.
+      adopt.current = null;
+      setError(String(e));
+    });
+    return () => { cancelled = true; };
+  }, [pack, restoreRoom]);
+
+  // The goal template is filled whichever request lands second, packs or rooms.
+  useEffect(() => {
+    if (!pack || !packs.length) return;
+    setGoal((g) => {
+      if (g) return g;
+      const p = packs.find((x) => x.pack === pack);
+      return p?.goal_templates?.length ? p.goal_templates[0].replace('{n}', '3').replace('{season}', 'autumn') : g;
+    });
+  }, [pack, packs]);
 
   // The active run follows the room. Switching rooms must not leave the previous
   // room's proposal on screen under the new room's name.
@@ -100,6 +133,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const run = useCallback(async (opts: RunOptions = {}) => {
     if (!pack || !location || !goal) { setError('pick a pack, a room and a goal first'); return null; }
+    // One run at a time: the keyboard shortcut and the Re-run button both reach
+    // this, and two overlapping runs would spend the Qloo budget twice and leave
+    // the screens describing whichever response happened to land second.
+    if (runningRef.current) return null;
+    runningRef.current = true;
     setBusy(true); setError(null);
     try {
       const r = await api.createProposal({
@@ -116,7 +154,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       setError(e instanceof Error && e.message ? e.message : String(e));
       return null;
-    } finally { setBusy(false); }
+    } finally { runningRef.current = false; setBusy(false); }
   }, [pack, location, goal, mode, recentPlays]);
 
   const decide = useCallback(async (

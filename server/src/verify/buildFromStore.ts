@@ -12,7 +12,10 @@ export class ExportSourceError extends Error {}
  *  contiguous, so a slice that stops mid-chain would fail verification for the
  *  wrong reason. */
 function ledgerForProposal(proposalId: string) {
-  const all = graph.readLedger(500);
+  // The whole chain, not a window: the verifier starts at the genesis link, so a
+  // bounded read would either miss this proposal's entry entirely or hand over a
+  // slice that cannot be proved from the beginning.
+  const all = graph.readLedger(Number.MAX_SAFE_INTEGER);
   const own = all.filter((e) => e.proposal_id === proposalId);
   if (!own.length) return { entries: [], missing: true };
   const maxSeq = Math.max(...own.map((e) => e.seq));

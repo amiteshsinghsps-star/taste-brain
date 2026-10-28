@@ -36,12 +36,12 @@ beforeAll(async () => {
 });
 
 describe('the committed sample export', () => {
-  it('is a real export file and it verifies 5/5', () => {
+  it('is a real export file and it verifies 6/6', () => {
     const raw = JSON.parse(fs.readFileSync(SAMPLE, 'utf8')) as DecisionExport;
     expect(raw.schema).toBe(DECISION_EXPORT_SCHEMA);
     const report = verifyExport(raw);
     expect(report.error).toBeNull();
-    expect(report.checks).toHaveLength(5);
+    expect(report.checks).toHaveLength(6);
     expect(report.ok).toBe(true);
     expect(report.failed).toBe(0);
   });
@@ -55,10 +55,39 @@ describe('the committed sample export', () => {
 });
 
 describe('a freshly built export', () => {
-  it('passes all five checks', () => {
+  it('passes all six checks', () => {
     const report = verifyExport(baseExport);
     expect(report.ok).toBe(true);
-    expect(report.checks.map((c) => c.status)).toEqual(['pass', 'pass', 'pass', 'pass', 'pass']);
+    expect(report.checks.map((c) => c.status)).toEqual(['pass', 'pass', 'pass', 'pass', 'pass', 'pass']);
+  });
+
+  // The chain alone never covered the decision payload, so a self-consistent
+  // fiction used to verify 5/5. These two are the forgery that fix must catch.
+  it('fails when a forged export relabels synthetic fixtures as cached', () => {
+    const report = verifyExport(forge((exp) => {
+      exp.decision.mode = 'cached';
+      exp.provenance.decision_mode = 'cached';
+    }));
+    expect(check(report, 'modes').status).toBe('fail');
+    expect(check(report, 'modes').detail).toMatch(/synthetic fixtures, never fetched/);
+  });
+
+  it('fails when the trace is emptied so no mode claim was exercised', () => {
+    const report = verifyExport(forge((exp) => {
+      exp.decision.trace.steps = [];
+    }));
+    expect(check(report, 'modes').status).toBe('fail');
+    expect(check(report, 'decision_bound').status).toBe('fail');
+  });
+
+  it('fails when the shown items are swapped while the ledger stays untouched', () => {
+    const report = verifyExport(forge((exp) => {
+      exp.decision.items = [];
+      exp.evidence.entity_ids = [];
+      exp.decision.trace.steps = exp.decision.trace.steps.map((s, i) => (s.type === 'QlooEntity' ? { ...s, result: s.result === 'pass' ? 'fail' : 'pass' } : s));
+    }));
+    expect(check(report, 'decision_bound').status).toBe('fail');
+    expect(check(report, 'decision_bound').detail).toMatch(/were changed after the run/);
   });
 
   it('names the rule set it pinned, and the pin is content-derived', () => {

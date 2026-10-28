@@ -101,9 +101,12 @@ export async function coPromotionPartners(opts: {
   }
 
   const made = opts.session.calls.slice(before);
-  const live_reads = made.filter((c) => c.mode === 'live' && !c.cache_hit).length;
-  const from_store = made.length - live_reads;
-  if (from_store) limits.push(`${from_store} of the ${made.length} partner lookups were served from the stored copy — no bytes left this box for those`);
+  // A failed attempt read nothing, so it is neither a live read nor a stored one.
+  const read = made.filter((c) => !c.failed);
+  const live_reads = read.filter((c) => c.mode === 'live' && !c.cache_hit).length;
+  const from_store = read.length - live_reads;
+  if (from_store) limits.push(`${from_store} of the ${read.length} partner lookups were served from the stored copy — no bytes left this box for those`);
+  if (made.length !== read.length) limits.push(`${made.length - read.length} partner lookup(s) failed and read nothing at all — they are counted as neither live nor stored`);
 
   return {
     pack: opts.session.pack,

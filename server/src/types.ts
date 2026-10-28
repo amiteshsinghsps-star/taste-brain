@@ -227,6 +227,8 @@ export interface QlooCallLogEntry {
   inputs_redacted: Record<string, unknown>;
   latency_ms: number;
   cache_hit: boolean;
+  /** The attempt read nothing: no stored answer and no response. */
+  failed?: boolean;
   endpoint: string;
   entity_count: number;
   mode: TasteMode;

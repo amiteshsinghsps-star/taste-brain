@@ -14,18 +14,19 @@ export default function BriefScreen() {
   const { proposal, approver, setApprover } = useApp();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // The brief is stored against the run it was written for, so switching runs
-  // retires it without an effect that resets state after the fact.
-  const [written, setWritten] = useState<{ id: string; brief: ApprovalBrief } | null>(null);
+  // The brief names its approver, so it belongs to the run *and* the signature
+  // it was written for: changing either retires it without a reset effect.
+  const [written, setWritten] = useState<{ id: string; signee: string; brief: ApprovalBrief } | null>(null);
 
   const id = proposal?.proposal_id ?? '';
-  const brief = written && written.id === id ? written.brief : null;
+  const signee = approver.trim() || 'the approver on file';
+  const brief = written && written.id === id && written.signee === signee ? written.brief : null;
 
   const load = () => {
     if (!id) return;
     setBusy(true); setError(null);
-    api.brief(id, approver.trim() || 'the approver on file')
-      .then((r) => { setWritten({ id, brief: r.brief }); setError(null); })
+    api.brief(id, signee)
+      .then((r) => { setWritten({ id, signee, brief: r.brief }); setError(null); })
       .catch((e) => setError(String(e?.message ?? e)))
       .finally(() => setBusy(false));
   };

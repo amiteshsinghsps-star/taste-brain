@@ -8,6 +8,7 @@
 import { evaluateAll, type RuleSubject } from '../agents/rule-checker';
 import { verifyLedger } from '../graph/store';
 import { DECISION_EXPORT_SCHEMA, type DecisionExport, type ExportCandidate } from './export';
+import { rerunHash } from '../trace/builder';
 import type { QlooEntityResult } from '../types';
 
 export type CheckStatus = 'pass' | 'fail';
@@ -143,6 +144,36 @@ function checkRules(exp: DecisionExport): VerifyCheck {
   return { ...base, status: 'pass', detail: `${reevaluated} verdict(s) across ${exp.decision.items.length} item(s) recomputed from the pinned rule set ${exp.rules.pinned_version.slice(0, 16)}…; all match`, first_failing: null };
 }
 
+/**
+ * The chain alone only proves the LEDGER rows were not edited: every other field
+ * of the export is unsigned and can be rewritten into a self-consistent fiction.
+ * The ledger detail is inside the hashed content, and it records the run's
+ * rerun_hash, so re-hashing the exported decision steps against that figure is
+ * what binds each item's Qloo entity id, its rank and its rule verdicts to a
+ * signed record. Display names are not in that hash — rerunHash keys a step on its
+ * id when it has one — so the scope this export claims says so out loud.
+ */
+function checkDecisionBound(exp: DecisionExport): VerifyCheck {
+  const base = { id: 'decision_bound', name: 'The items, order and verdicts shown are the ones the hashed ledger recorded' };
+  const recorded = exp.ledger
+    .map((e) => (e.detail as { rerun_hash?: unknown } | undefined)?.rerun_hash)
+    .filter((h): h is string => typeof h === 'string' && h.length > 0);
+  if (!recorded.length) {
+    return { ...base, status: 'fail', detail: 'no hash-protected ledger entry records a rerun_hash, so nothing binds this ranking to a signed record', first_failing: 'ledger detail.rerun_hash' };
+  }
+  const steps = exp.decision.trace?.steps ?? [];
+  const recomputed = rerunHash(steps);
+  if (!recorded.includes(recomputed)) {
+    return {
+      ...base,
+      status: 'fail',
+      detail: `the ${steps.length} decision step(s) in this export re-hash to ${recomputed}, but the hash-protected ledger records ${recorded.join(' / ')} — items, order or verdicts were changed after the run`,
+      first_failing: `rerun_hash ${recomputed}`,
+    };
+  }
+  return { ...base, status: 'pass', detail: `${steps.length} decision step(s) re-hashed to ${recomputed}, matching the rerun_hash carried inside the hash-protected ledger detail`, first_failing: null };
+}
+
 function checkModes(exp: DecisionExport): VerifyCheck {
   const base = { id: 'modes', name: 'Mode is recorded on every step and the badge does not overstate it' };
   const steps = exp.decision.trace.steps;
@@ -156,8 +187,17 @@ function checkModes(exp: DecisionExport): VerifyCheck {
   }
   const mix: Record<string, number> = { live: 0, cached: 0, replay: 0 };
   for (const s of steps) if (s.mode) mix[s.mode] = (mix[s.mode] ?? 0) + 1;
+  if (!steps.length) {
+    return { ...base, status: 'fail', detail: 'the export carries no trace steps, so "mode recorded on every step" was never exercised', first_failing: 'empty trace' };
+  }
   if (exp.decision.mode === 'live' && mix.live === 0) {
     return { ...base, status: 'fail', detail: `badge says live but not one of ${steps.length} steps was fetched live (${mix.cached} cached, ${mix.replay} replay)`, first_failing: exp.decision.proposal_id };
+  }
+  // Cached claims a stored Qloo answer. If none of the steps are cached or live,
+  // every row came from the synthetic fixtures and the badge overstates — the
+  // same class of lie as a live badge, just one step down.
+  if (exp.decision.mode === 'cached' && mix.cached === 0 && mix.live === 0) {
+    return { ...base, status: 'fail', detail: `badge says cached (a stored Qloo answer) but all ${mix.replay} labelled step(s) are replay — synthetic fixtures, never fetched`, first_failing: exp.decision.proposal_id };
   }
   return { ...base, status: 'pass', detail: `${steps.length} step(s) all labelled: ${mix.live} live, ${mix.cached} cached, ${mix.replay} replay; badge reads "${exp.decision.mode}"`, first_failing: null };
 }
@@ -179,6 +219,7 @@ export function verifyExport(raw: unknown): VerifyReport {
   }
   const checks = [
     checkChain(exp),
+    checkDecisionBound(exp),
     checkGroundedIds(exp),
     checkRanking(exp),
     checkRules(exp),

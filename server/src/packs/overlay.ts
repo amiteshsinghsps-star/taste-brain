@@ -21,7 +21,11 @@ export interface PackOverlay {
   catalogs?: Record<string, { offer_id: string; name: string; qloo_entity_id: string }[]>;
 }
 
-const OVERLAY_DIR = path.resolve(__dirname, '..', '..', env.PACK_OVERLAY_DIR);
+// Same absolute-path rule as the private cache: a setting that is already a path
+// must not be appended to the source tree.
+const OVERLAY_DIR = path.isAbsolute(env.PACK_OVERLAY_DIR)
+  ? env.PACK_OVERLAY_DIR
+  : path.resolve(__dirname, '..', '..', env.PACK_OVERLAY_DIR);
 const cache = new Map<string, PackOverlay | null>();
 
 const COMBINING_MARKS = /[̀-ͯ]/g;

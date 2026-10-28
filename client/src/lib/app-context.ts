@@ -55,4 +55,4 @@ export function useApp(): AppState {
 }
 
 /** Screens that only make sense once a run exists say so instead of showing zeros. */
-export const NEEDS_RUN = 'No run yet. Plan a proposal first — every figure on this screen is computed from a stored run, and none of it is invented here.';
+export const NEEDS_RUN = 'No run yet. Plan a proposal first — every figure on this screen comes from a stored run.';

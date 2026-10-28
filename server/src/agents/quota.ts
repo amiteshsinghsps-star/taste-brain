@@ -80,6 +80,12 @@ export function reserveLiveCall(ip: string | undefined): { ok: boolean; reason: 
   return { ok: true, reason: '', state: quotaState(ip) };
 }
 
+/** The only modes a caller may ask for. An unvalidated string reaching a session
+ *  would skip the guard below (it is keyed on 'live') and spend real quota. */
+export function isTasteMode(v: unknown): v is TasteMode {
+  return v === 'live' || v === 'cached' || v === 'replay';
+}
+
 /** The mode a request actually gets, after the guardian has had its say. */
 export function effectiveMode(requested: TasteMode | undefined, ip: string | undefined): { mode: TasteMode; degraded_from?: TasteMode; reason: string } {
   const base = requested ?? env.DEFAULT_MODE;
@@ -97,7 +103,9 @@ export function effectiveMode(requested: TasteMode | undefined, ip: string | und
   if (state.floor_reached) {
     return { mode: 'replay', degraded_from: 'live', reason: `Monthly call floor reached (${state.monthly_used}/${state.monthly_floor}). Serving labelled Replay data so the key lasts through judging.` };
   }
-  return { mode: 'cached', degraded_from: 'live', reason: `${reason}. Serving the cached copy of the same Qloo result instead — the mode badge says Cached.` };
+  // Cached here means stored bytes only: a run that was denied live never goes out
+  // to the network, so the promise the badge makes is the one the transport keeps.
+  return { mode: 'cached', degraded_from: 'live', reason: `${reason}. Live was refused for this visitor, so the run reads only what is already stored here — Cached if a real Qloo answer is on file, otherwise the labelled synthetic fixtures.` };
 }
 
 export function qlooKeyAvailable(): boolean {

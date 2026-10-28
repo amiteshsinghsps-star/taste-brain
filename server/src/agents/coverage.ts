@@ -70,7 +70,10 @@ function pickProbe(probe: GateFile | null, id: string, claimed: CapabilityRow['s
     : claimed === 'accepted_but_empty'
       ? matches.find((r) => r.status === 200 && r.count === 0)
       : matches.find((r) => r.status >= 400);
-  const row = best ?? matches[0];
+  // No probe row backs the claimed status: show nothing rather than the first
+  // row, which would print a 400 beside a claim that this capability worked.
+  const row = best;
+  if (!row) return { };
   return { http_status: row.status, row_count: row.count, probe_at: probe.verified_at };
 }
 

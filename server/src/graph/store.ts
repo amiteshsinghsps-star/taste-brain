@@ -155,11 +155,19 @@ export const graph = {
     return { ...e, prev_hash, seq: Number(info.lastInsertRowid), hash };
   },
   readLedger(limit = 200): LedgerEntry[] {
-    const rows = db().prepare('SELECT * FROM ledger ORDER BY seq ASC LIMIT ?').all(limit) as any[];
+    // Newest N, returned oldest-first: a bounded read that kept the first rows
+    // would hide the head of the chain, and verification, the ledger screen and
+    // the export all work from the most recent entries.
+    const rows = db().prepare('SELECT * FROM ledger ORDER BY seq DESC LIMIT ?').all(limit) as any[];
+    rows.reverse();
     return rows.map((r) => ({
       seq: r.seq, at: r.at, action: r.action, proposal_id: r.proposal_id, pack: r.pack,
       location: r.location, actor: r.actor, detail: JSON.parse(r.detail), prev_hash: r.prev_hash, hash: r.hash,
     }));
+  },
+  countLedger(): number {
+    const row = db().prepare('SELECT COUNT(*) AS n FROM ledger').get() as { n: number } | undefined;
+    return row?.n ?? 0;
   },
   headHash(): string | null {
     const row = db().prepare('SELECT hash FROM ledger ORDER BY seq DESC LIMIT 1').get() as { hash: string } | undefined;
@@ -206,19 +214,26 @@ export function ledgerHash(e: LedgerHashInput): string {
 export function verifyLedger(entries: LedgerEntry[]): {
   ok: boolean; length: number; head_hash: string | null;
   first_broken_seq: number | null; reason: string | null;
+  /** True when the read starts above entry 1, so the link into the older part of
+   *  the chain was not in scope and cannot be claimed as proved. */
+  partial: boolean;
 } {
+  const partial = entries.length > 0 && entries[0].seq !== 1;
+  const fail = (seq: number | null, why: string) => ({
+    ok: false, length: entries.length, head_hash: entries.at(-1)?.hash ?? null, first_broken_seq: seq, reason: why, partial,
+  });
   let prev = '0'.repeat(64);
-  for (const e of entries) {
-    if (e.prev_hash !== prev) {
-      return { ok: false, length: entries.length, head_hash: entries.at(-1)?.hash ?? null, first_broken_seq: e.seq, reason: `entry ${e.seq} points at ${e.prev_hash.slice(0, 12)}… but the previous entry hashes to ${prev.slice(0, 12)}…` };
+  for (const [i, e] of entries.entries()) {
+    if (!(partial && i === 0) && e.prev_hash !== prev) {
+      return fail(e.seq, `entry ${e.seq} points at ${e.prev_hash.slice(0, 12)}… but the previous entry hashes to ${prev.slice(0, 12)}…`);
     }
     const expect = ledgerHash({ at: e.at, action: e.action, proposal_id: e.proposal_id, pack: e.pack, location: e.location, actor: e.actor, detail: e.detail, prev_hash: e.prev_hash });
     if (expect !== e.hash) {
-      return { ok: false, length: entries.length, head_hash: entries.at(-1)?.hash ?? null, first_broken_seq: e.seq, reason: `entry ${e.seq} content does not match its recorded hash (edited after the fact)` };
+      return fail(e.seq, `entry ${e.seq} content does not match its recorded hash (edited after the fact)`);
     }
     prev = e.hash;
   }
-  return { ok: true, length: entries.length, head_hash: prev === '0'.repeat(64) ? null : prev, first_broken_seq: null, reason: null };
+  return { ok: true, length: entries.length, head_hash: prev === '0'.repeat(64) ? null : prev, first_broken_seq: null, reason: null, partial };
 }
 
 export function resetGraph() {

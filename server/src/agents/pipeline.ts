@@ -291,9 +291,28 @@ export async function runPipeline(input: RunInput): Promise<Proposal> {
   let candidatesMode: TasteMode | null = null;
   const relaxations: string[] = [];
 
+  // The room's own tag guard travels as a query parameter, and the ladder's
+  // first step drops query parameters. No rule re-checks it, so a relaxed run
+  // has to hold the line here or an entity this room excluded ships as
+  // rule-approved and approvable. The whole list is used, unfiltered: these are
+  // exactly the values the constrained query sent, in either scheme Qloo uses
+  // (`urn:tag:genre:indie_rock` or `qlootag:shellfish`).
+  const roomTagGuard = loc.exclude_tag_ids ?? [];
+  const guarded = (e: QlooEntityResult, t: string) => {
+    const last = t.split(':').pop()!.toLowerCase();
+    return (e.qloo_tags ?? []).some((x) => x.id === t || String(x.name ?? '').toLowerCase() === last);
+  };
+  const carriesGuardedTag = (e: QlooEntityResult) => roomTagGuard.some((t) => guarded(e, t));
+
   const attempt = async (opts: Parameters<Session['insights']>[0], label: string) => {
     const r = await session.insights(opts);
-    if (r.entities.length) { candidates = r.entities; candidatesMode = r.mode; return true; }
+    const relaxedGuard = roomTagGuard.some((t) => !(opts.excludeTags ?? []).includes(t));
+    const kept = relaxedGuard ? r.entities.filter((e) => !carriesGuardedTag(e)) : r.entities;
+    if (r.entities.length !== kept.length) {
+      relaxations.push(`${r.entities.length - kept.length} row(s) carry a tag this room excludes; the loosened query returned them and they were held out here, not by a pack rule`);
+      steps.push({ type: 'Filter', label: `room tag guard re-applied locally after loosening`, result: 'fail', mode: r.mode, detail: `${r.entities.length - kept.length} of ${r.entities.length} row(s) dropped: ${r.entities.filter((e) => carriesGuardedTag(e)).map((e) => e.name).slice(0, 3).join(', ')}`, at: nowIso() });
+    }
+    if (kept.length) { candidates = kept; candidatesMode = r.mode; return true; }
     relaxations.push(`${label} returned no rows`);
     return false;
   };
@@ -349,8 +368,18 @@ export async function runPipeline(input: RunInput): Promise<Proposal> {
   // A run that asked for live but found every answer already in the private cache
   // made no live read, so a LIVE badge would overstate it — the label follows the
   // bytes that actually crossed the wire, and every rule step is stamped with it.
-  const fetched_now = session.calls.filter((c) => c.mode === 'live' && !c.cache_hit).length;
-  const mode: TasteMode = session.mode === 'live' && fetched_now === 0 ? 'cached' : session.mode;
+  // And when nothing Qloo-shaped was used at all — every row came from a committed
+  // synthetic fixture — 'cached' would overstate too: that badge claims a stored
+  // Qloo answer. The label follows the source the run really read, whichever mode
+  // it was granted, because a Cached run whose cache missed used fixtures.
+  const read = session.calls.filter((c) => !c.failed);
+  const fetched_now = read.filter((c) => c.mode === 'live' && !c.cache_hit).length;
+  const real_stored = read.filter((c) => c.mode === 'cached').length;
+  const from_fixtures = read.filter((c) => c.mode === 'replay').length;
+  const mode: TasteMode = fetched_now > 0 ? 'live'
+    : real_stored > 0 ? 'cached'
+      : from_fixtures > 0 ? 'replay'
+        : session.mode === 'replay' ? 'replay' : 'cached';
   const { rules, changed } = rulesForRun(pack.rules, loc.rule_overrides, input.rule_overrides, {
     rule_ids: loc.rule_ids,
     recentPlays: input.recent_plays ?? loc.recent_plays ?? [],
@@ -384,11 +413,14 @@ export async function runPipeline(input: RunInput): Promise<Proposal> {
     const llmOut = await narrate(`In one sentence, explain why "${top.name}" fits the ${pack.copy.audience_label} of ${loc.name}. Use only these grounded facts: Qloo rank ${top.qloo_rank}, ${top.evidence.primary_genres.join(', ')}. Do not add any other name, number or statistic.`);
     if (llmOut) {
       const grounded = checkNarrativeGrounding(llmOut, [top.name, ...items.slice(1, 5).map((i) => i.name), ...top.tags, ...top.evidence.primary_genres]);
-      if (grounded.ok) {
+      // The Auditor already ran on the template explanation, so model text
+      // replacing it has to clear the same language lint before it ships.
+      const linted = grounded.ok ? lintAudienceLanguage(llmOut) : grounded;
+      if (grounded.ok && linted.ok) {
         top.explanation = llmOut;
-        steps.push({ type: 'Proposal', label: 'narrative written by the LLM over grounded facts', result: 'info', mode: top.mode, detail: 'checked against stored results; ranking untouched', at: nowIso() });
+        steps.push({ type: 'Proposal', label: 'narrative written by the LLM over grounded facts', result: 'info', mode: top.mode, detail: 'checked against stored results and the audience-language lint; ranking untouched', at: nowIso() });
       } else {
-        steps.push({ type: 'Filter', label: 'LLM narrative discarded', result: 'fail', mode: top.mode, detail: grounded.reason, at: nowIso() });
+        steps.push({ type: 'Filter', label: 'LLM narrative discarded', result: 'fail', mode: top.mode, detail: grounded.ok ? linted.reason : grounded.reason, at: nowIso() });
       }
     }
   }
@@ -399,10 +431,14 @@ export async function runPipeline(input: RunInput): Promise<Proposal> {
 
   const proposal: Proposal = {
     proposal_id, pack: input.pack, location: loc.id, goal: input.goal, mode,
-    degrade_reason: session.degrade_reason
+    degrade_reason: (session.degrade_reason && mode !== session.mode
+      ? `${session.degrade_reason} In the end this run found no stored Qloo answer for it either: every row came from the committed synthetic fixtures, so the badge says Replay.`
+      : session.degrade_reason)
       || (session.mode === 'live' && mode === 'cached'
         ? "Live was allowed and asked for, but every answer was already in this server's stored copy — the run made no live read, so it is labelled Cached."
-        : null),
+        : session.mode === 'live' && mode === 'replay'
+          ? 'Live was allowed and asked for, but no Qloo answer was usable for this run: every row came from the committed synthetic fixtures. It is labelled Replay, not Cached, because nothing here is a stored Qloo answer.'
+          : null),
     created_at: nowIso(), status: 'pending', items, unsupported, rejections,
     unresolved_seeds: resolved.unresolved,
     relaxations,
@@ -528,6 +564,24 @@ export function runFromSnapshot(input: RunInput): Proposal | null {
   graph.upsertNode('Proposal', proposal_id, { pack: input.pack, location: loc.id, goal: input.goal, status: 'pending', created_at: proposal.created_at, mode: servedMode, served_from: snapshot.proposal_id });
   for (const it of evaluated.items) graph.addEdge(proposal_id, 'SUPPORTED_BY', it.entity_id);
   graph.saveProposal({ id: proposal_id, pack: input.pack, location: loc.id, goal: input.goal, mode: servedMode, created_at: proposal.created_at, status: 'pending', payload: proposal });
+  // The snapshot a Finals run was served from is stored again under the new
+  // proposal id. Without it the Auditor cannot find the rows this run actually
+  // displayed, so "grounded items" reports a failure on a run that is grounded,
+  // and the Ablation Lab and the exporter both refuse a Finals proposal.
+  graph.saveSnapshot({
+    proposal_id, pack: input.pack, location: loc.id, goal: input.goal,
+    // servedMode, not the source snapshot's fetch mode: this run made zero Qloo
+    // calls, and the stored-runs list badges what it lists. Inheriting 'live'
+    // would show a no-call replay as a live run.
+    mode: servedMode,
+    created_at: proposal.created_at,
+    resolved_seeds: snapshot.resolved_seeds, seed_inputs: snapshot.seed_inputs, location_query: snapshot.location_query,
+    rules, candidates: snapshot.candidates, variants: snapshot.variants,
+    recent_plays: input.recent_plays ?? snapshot.recent_plays ?? loc.recent_plays ?? [],
+    audience_tags: audienceTags,
+    item_ids: evaluated.items.map((i) => i.entity_id),
+    rerun_hash: trace.rerun_hash,
+  });
   graph.appendLedger({
     at: proposal.created_at, action: 'proposed', proposal_id, pack: input.pack, location: loc.id,
     actor: 'taste-brain',

@@ -16,7 +16,7 @@ import { env, qlooRestEnabled } from '../config/env';
 import { graph } from '../graph/store';
 import * as rest from './rest-client';
 import { AllowlistViolation } from './allowlist';
-import { effectiveMode } from '../agents/quota';
+import { effectiveMode, isTasteMode } from '../agents/quota';
 import type { QlooEntityResult, QlooTagRef, TasteMode } from '../types';
 
 const FIXTURES_DIR = path.join(__dirname, 'fixtures');
@@ -39,6 +39,9 @@ export interface SessionCallLog {
   variant: string;
   mode: TasteMode;
   cache_hit: boolean;
+  /** The attempt produced nothing: no stored answer was read and no bytes arrived.
+   *  Consumers must not count such a row toward any source claim. */
+  failed?: boolean;
   endpoint: string;
   entity_count: number;
   /** Wall time of the adapter call, including any network wait it triggered. */
@@ -131,7 +134,11 @@ export function hasReplayFixture(pack: string, location: string): boolean {
 type SessionState = Pick<Session, 'pack' | 'location' | 'mode' | 'degrade_reason' | 'calls' | 'violations' | 'relaxations' | 'live_calls'>;
 
 export function createSession(opts: SessionOptions): Session {
-  const eff = effectiveMode(opts.requestedMode, opts.ip);
+  // Only the three real modes reach the guardian: an unrecognised string would
+  // otherwise sail past its 'live' check, skip the reservation and report back as
+  // though it were a data source.
+  const requested = isTasteMode(opts.requestedMode) ? opts.requestedMode : undefined;
+  const eff = effectiveMode(requested, opts.ip);
   let mode: TasteMode = eff.mode;
   if (mode === 'live' && !qlooRestEnabled()) {
     mode = 'cached';
@@ -163,6 +170,13 @@ export function createSession(opts: SessionOptions): Session {
   const logCall = _logSink;
   /** Bumped only when bytes crossed the wire, so a cache hit cannot claim a miss. */
   const netNow = () => rest.networkCallCount();
+  /**
+   * A run the Quota Guardian did not grant live must not leave the box, whatever
+   * the host's global switch says. The permission is scoped to the call so every
+   * nested fetch inside the REST client sees it, and a cache miss then falls to the
+   * synthetic fixture with an honest Replay stamp instead of spending the key.
+   */
+  const netGated = <T>(fn: () => Promise<T>): Promise<T> => rest.withLiveAllowed(s.mode === 'live', fn);
 
   // helper kept tiny: seeds are passed through closure set by insights/audience calls
 
@@ -182,8 +196,18 @@ export function createSession(opts: SessionOptions): Session {
         unresolved.push({ input: label, candidates: [] });
         continue;
       }
+      // Seed resolution is a real /search call, so it spends the per-run budget
+      // like every other one. Counting only insights/compare made the cap read as
+      // more headroom than the run actually had.
+      if (s.mode === 'live' && s.live_calls >= env.QLOO_MAX_CALLS_PER_RUN) {
+        logCall({ workflow: 'resolve_seed', variant: 'default', mode: 'replay', cache_hit: false, failed: true, endpoint: 'budget', entity_count: 0, inputs_redacted: inputs, note: `per-run budget of ${env.QLOO_MAX_CALLS_PER_RUN} calls reached` }, t0);
+        s.relaxations.push(`per-run budget of ${env.QLOO_MAX_CALLS_PER_RUN} calls reached before resolving "${label}"; the seed was left unresolved rather than fetched over budget`);
+        unresolved.push({ input: label, candidates: [] });
+        continue;
+      }
       try {
-        const r = await rest.resolveEntity(label, type);
+        if (s.mode === 'live') s.live_calls++;
+        const r = await netGated(() => rest.resolveEntity(label, type));
         // The step is stamped with where the answer came in, not what was asked for.
         const served: TasteMode = netNow() === n0 ? 'cached' : 'live';
         modes.push(served);
@@ -192,14 +216,17 @@ export function createSession(opts: SessionOptions): Session {
         else if (r.status === 'needs_input') unresolved.push({ input: label, candidates: (r.candidates ?? []).map((c) => c.name) });
         else unresolved.push({ input: label, candidates: [] });
       } catch (err: any) {
-        const served: TasteMode = netNow() === n0 ? 'cached' : 'live';
-        modes.push(served);
-        logCall({ workflow: 'resolve_seed', variant: 'default', mode: served, cache_hit: served === 'cached', endpoint: '/search', entity_count: 0, inputs_redacted: inputs, note: String(err?.message ?? err).slice(0, 80) }, t0);
+        // Nothing was read: the attempt failed before (or without) a response. A
+        // quiet socket says cached, but a throw that fetched no bytes is neither a
+        // stored answer nor a live one, so it is stamped as a failure.
+        modes.push('replay');
+        logCall({ workflow: 'resolve_seed', variant: 'default', mode: 'replay', cache_hit: false, failed: true, endpoint: '/search', entity_count: 0, inputs_redacted: inputs, note: String(err?.message ?? err).slice(0, 80) }, t0);
         unresolved.push({ input: label, candidates: [] });
       }
     }
     // Seeds given as ids touch no network, so an empty mode list is not a live read.
-    const mode = modes.includes('live') ? 'live' : modes.length || s.mode !== 'replay' ? 'cached' : 'replay';
+    // Attempts that all failed read nothing either — that is Replay, not a stored answer.
+    const mode = modes.includes('live') ? 'live' : modes.includes('cached') ? 'cached' : modes.length || s.mode === 'replay' ? 'replay' : 'cached';
     return { ids, names, unresolved, mode };
   };
 
@@ -209,24 +236,27 @@ export function createSession(opts: SessionOptions): Session {
     const inputs = { seed_count: seeds.length, location_supplied: Boolean(locationQuery) };
     const fx = readFixture(s.pack, s.location, 'audience_tags');
     if (s.mode === 'replay') {
-      logCall({ workflow: 'audience_tags', variant: 'default', mode: 'replay', cache_hit: true, endpoint: 'fixture', entity_count: fx.length, inputs_redacted: inputs }, t0);
+      logCall({ workflow: 'audience_tags', variant: 'default', mode: 'replay', cache_hit: false, endpoint: 'fixture', entity_count: fx.length, inputs_redacted: inputs }, t0);
       return { tags: fx.map((f) => ({ id: f.entity_id, name: f.name, type: 'urn:tag' })), mode: 'replay' };
     }
     try {
       if (s.mode === 'live') s.live_calls++;
-      const { tags, mode } = await rest.describeAudience(seeds, locationQuery);
+      const { tags, mode } = await netGated(() => rest.describeAudience(seeds, locationQuery));
       logCall({ workflow: 'audience_tags', variant: 'default', mode, cache_hit: netNow() === n0, endpoint: '/v2/insights', entity_count: tags.length, inputs_redacted: inputs }, t0);
       if (tags.length) return { tags, mode };
+      // The stored portrait is a committed SYNTHETIC fixture, so it is stamped
+      // 'replay' wherever it stands in for a live answer. Calling it 'cached'
+      // would claim a real Qloo response that was never fetched.
       if (fx.length) {
-        s.relaxations.push('audience tags came back empty live; used the stored portrait for this room');
-        return { tags: fx.map((f) => ({ id: f.entity_id, name: f.name, type: 'urn:tag' })), mode: 'cached' };
+        s.relaxations.push('audience tags came back empty live; used the synthetic portrait for this room (Replay data, not a Qloo answer)');
+        return { tags: fx.map((f) => ({ id: f.entity_id, name: f.name, type: 'urn:tag' })), mode: 'replay' };
       }
       return { tags: [], mode };
     } catch (err: any) {
       if (err instanceof AllowlistViolation) { s.violations.push(`${err.endpoint} → ${err.param}: ${err.detail}`); throw err; }
       if (fx.length) {
-        logCall({ workflow: 'audience_tags', variant: 'default', mode: 'cached', cache_hit: true, endpoint: 'fallback', entity_count: fx.length, inputs_redacted: inputs, note: String(err?.message ?? err).slice(0, 80) }, t0);
-        return { tags: fx.map((f) => ({ id: f.entity_id, name: f.name, type: 'urn:tag' })), mode: 'cached' };
+        logCall({ workflow: 'audience_tags', variant: 'default', mode: 'replay', cache_hit: false, endpoint: 'fixture', entity_count: fx.length, inputs_redacted: inputs, note: String(err?.message ?? err).slice(0, 80) }, t0);
+        return { tags: fx.map((f) => ({ id: f.entity_id, name: f.name, type: 'urn:tag' })), mode: 'replay' };
       }
       throw err;
     }
@@ -274,20 +304,20 @@ export function createSession(opts: SessionOptions): Session {
 
     if (s.mode === 'replay') {
       const fx = fixtureFor(s.pack, s.location, workflow, variant);
-      logCall({ workflow, variant, mode: 'replay', cache_hit: true, endpoint: 'fixture', entity_count: fx.length, inputs_redacted: inputs }, t0);
+      logCall({ workflow, variant, mode: 'replay', cache_hit: false, endpoint: 'fixture', entity_count: fx.length, inputs_redacted: inputs }, t0);
       return { entities: fx, mode: 'replay' };
     }
 
     if (s.mode === 'live' && s.live_calls >= env.QLOO_MAX_CALLS_PER_RUN) {
       const fx = fixtureFor(s.pack, s.location, workflow, variant);
-      s.relaxations.push(`per-run budget of ${env.QLOO_MAX_CALLS_PER_RUN} calls reached before "${variant}"; served the stored copy`);
-      logCall({ workflow, variant, mode: 'cached', cache_hit: true, endpoint: 'budget', entity_count: fx.length, inputs_redacted: inputs }, t0);
-      return { entities: fx, mode: 'cached' };
+      s.relaxations.push(`per-run budget of ${env.QLOO_MAX_CALLS_PER_RUN} calls reached before "${variant}"; served the synthetic fixture (Replay data, not a Qloo answer)`);
+      logCall({ workflow, variant, mode: 'replay', cache_hit: false, endpoint: 'budget', entity_count: fx.length, inputs_redacted: inputs }, t0);
+      return { entities: fx, mode: 'replay' };
     }
 
     try {
       if (s.mode === 'live') s.live_calls++;
-      const r = await buildLive();
+      const r = await netGated(() => buildLive());
       logCall({ workflow, variant, mode: r.mode, cache_hit: netNow() === n0, endpoint: '/v2/insights', entity_count: r.entities.length, inputs_redacted: inputs }, t0);
       return r;
     } catch (err: any) {
@@ -297,11 +327,11 @@ export function createSession(opts: SessionOptions): Session {
       }
       const fx = fixtureFor(s.pack, s.location, workflow, variant);
       if (fx.length) {
-        logCall({ workflow, variant, mode: 'cached', cache_hit: true, endpoint: 'fallback', entity_count: fx.length, inputs_redacted: inputs, note: String(err?.message ?? err).slice(0, 80) }, t0);
-        s.relaxations.push(`"${variant}" failed live (${String(err?.message ?? err).slice(0, 60)}); served the stored copy`);
-        return { entities: fx, mode: 'cached' };
+        logCall({ workflow, variant, mode: 'replay', cache_hit: false, endpoint: 'fixture', entity_count: fx.length, inputs_redacted: inputs, note: String(err?.message ?? err).slice(0, 80) }, t0);
+        s.relaxations.push(`"${variant}" failed live (${String(err?.message ?? err).slice(0, 60)}); served the synthetic fixture (Replay data, not a Qloo answer)`);
+        return { entities: fx, mode: 'replay' };
       }
-      logCall({ workflow, variant, mode: s.mode, cache_hit: false, endpoint: 'fallback', entity_count: 0, inputs_redacted: inputs, note: String(err?.message ?? err).slice(0, 80) }, t0);
+      logCall({ workflow, variant, mode: s.mode, cache_hit: false, failed: true, endpoint: 'fallback', entity_count: 0, inputs_redacted: inputs, note: String(err?.message ?? err).slice(0, 80) }, t0);
       throw err;
     }
   };
@@ -311,17 +341,19 @@ export function createSession(opts: SessionOptions): Session {
     const n0 = netNow();
     const inputs = { a_seed_count: (a.entities ?? []).length, b_seed_count: (b.entities ?? []).length, a_location_supplied: Boolean(a.location), b_location_supplied: Boolean(b.location) };
     if (s.mode === 'replay' || !qlooRestEnabled()) {
-      logCall({ workflow: 'compare', variant: 'default', mode: s.mode === 'replay' ? 'replay' : 'cached', cache_hit: true, endpoint: 'fixture', entity_count: 0, inputs_redacted: inputs }, t0);
-      return { shared: [], distinguishing: [], mode: s.mode };
+      // No comparison was read and no fixture stands in for one: an empty answer
+      // is synthetic, so calling it 'cached' would claim a stored Qloo comparison.
+      logCall({ workflow: 'compare', variant: 'default', mode: 'replay', cache_hit: false, endpoint: 'fixture', entity_count: 0, inputs_redacted: inputs }, t0);
+      return { shared: [], distinguishing: [], mode: 'replay' };
     }
     try {
       if (s.mode === 'live') s.live_calls++;
-      const r = await rest.compareAudiences(a, b);
+      const r = await netGated(() => rest.compareAudiences(a, b));
       logCall({ workflow: 'compare', variant: 'default', mode: r.mode, cache_hit: netNow() === n0, endpoint: '/v2/analysis/compare', entity_count: r.shared.length + r.distinguishing.length, inputs_redacted: inputs }, t0);
       return r;
     } catch (err: any) {
       if (err instanceof AllowlistViolation) { s.violations.push(`${err.endpoint} → ${err.param}: ${err.detail}`); throw err; }
-      logCall({ workflow: 'compare', variant: 'default', mode: s.mode, cache_hit: false, endpoint: '/v2/analysis/compare', entity_count: 0, inputs_redacted: inputs, note: String(err?.message ?? err).slice(0, 80) }, t0);
+      logCall({ workflow: 'compare', variant: 'default', mode: s.mode, cache_hit: false, failed: true, endpoint: '/v2/analysis/compare', entity_count: 0, inputs_redacted: inputs, note: String(err?.message ?? err).slice(0, 80) }, t0);
       return { shared: [], distinguishing: [], mode: s.mode };
     }
   };
@@ -350,7 +382,11 @@ export function createSession(opts: SessionOptions): Session {
  */
 export function servedMode(session: Session): TasteMode {
   if (session.mode !== 'live') return session.mode;
-  return session.calls.some((c) => c.mode === 'live' && !c.cache_hit) ? 'live' : 'cached';
+  // A failed attempt read nothing, so it cannot make the run live or cached.
+  const read = session.calls.filter((c) => !c.failed);
+  if (read.some((c) => c.mode === 'live' && !c.cache_hit)) return 'live';
+  if (read.some((c) => c.mode === 'cached')) return 'cached';
+  return read.length ? 'replay' : 'cached';
 }
 
 /**

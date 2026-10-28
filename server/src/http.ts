@@ -5,6 +5,8 @@
 
 import express from 'express';
 import cors from 'cors';
+import fs from 'node:fs';
+import path from 'node:path';
 import { env, qlooKeyStatus, qlooRestEnabled } from './config/env';
 import { listPackIds, loadPack, getLocations, getLocation, getCatalog, findOffer, hasReplayFixture } from './packs/loader';
 import { runPipeline, runFromSnapshot, decide, type RunInput } from './agents/pipeline';
@@ -20,7 +22,7 @@ import { coPromotionPartners } from './agents/partners';
 import { approvalBrief } from './agents/brief';
 import { trustReport } from './agents/trust';
 import { coverageBoard } from './agents/coverage';
-import { quotaState, healthBuckets, qlooKeyAvailable } from './agents/quota';
+import { quotaState, healthBuckets, qlooKeyAvailable, isTasteMode } from './agents/quota';
 import { ALLOWED_PARAMS } from './qloo/allowlist';
 import { sanitizeName } from './agents/auditor';
 import { withModeMix, stampProposal } from './trace/builder';
@@ -78,6 +80,21 @@ function nameList(v: unknown): string[] | undefined {
   return v.slice(0, 40).map((x) => sanitizeName(String(x ?? ''))).filter(Boolean);
 }
 
+/**
+ * The stored run an ask-about-room screen recomputes from. A snapshot carries the
+ * room it was taken in, so a caller naming another room's run must be refused
+ * rather than answered with rules and rows that describe somewhere else.
+ */
+function roomSnapshot(proposal_id: unknown, pack: string, location: string): { snap: RunSnapshot | null; error: string | null } {
+  const named = proposal_id && isId(String(proposal_id), 40) ? String(proposal_id) : '';
+  const snap = named ? graph.getSnapshot(named) : graph.latestSnapshotFor(pack, location);
+  if (!snap) return { snap: null, error: 'no stored run for this room yet — run a proposal first' };
+  if (named && (snap.pack !== pack || snap.location !== location)) {
+    return { snap: null, error: `run ${named} was made for ${snap.pack}/${snap.location}, not ${pack}/${location}: its rules and rows do not describe this room` };
+  }
+  return { snap, error: null };
+}
+
 let lastEval: unknown = null;
 
 export function createApp() {
@@ -86,8 +103,14 @@ export function createApp() {
   app.use((_req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'no-referrer');
-    // The API only ever returns JSON, so a fetched document must never render.
-    res.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+    next();
+  });
+  // The API only ever returns JSON, so a fetched document must never render. The
+  // static client is left out: 'default-src none' would refuse its own scripts.
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/healthz')) {
+      res.setHeader('Content-Security-Policy', "default-src 'none'; frame-ancestors 'none'");
+    }
     next();
   });
   app.use(express.json({ limit: '64kb' }));
@@ -289,7 +312,7 @@ export function createApp() {
 
   // A FAIL here is a valid verdict, not an error, so the HTTP status stays 200 and
   // the report carries the outcome. The same verifyExport() backs the CLI.
-  app.post('/api/verify', (req, res) => {
+  app.post('/api/verify', rateLimit, (req, res) => {
     res.json({ success: true, report: verifyExport(req.body) });
   });
 
@@ -355,8 +378,8 @@ export function createApp() {
       if (!isId(pack) || !isId(location)) return res.status(400).json({ success: false, message: 'pack and location must be short alphanumeric ids' });
       const q = safeString(query, 80);
       if (!q) return res.status(400).json({ success: false, message: 'query must be a name to look for' });
-      const snap: RunSnapshot | null = proposal_id && isId(String(proposal_id), 40) ? graph.getSnapshot(String(proposal_id)) : graph.latestSnapshotFor(pack, location);
-      if (!snap) return res.status(404).json({ success: false, message: 'no stored run for this room yet — run a proposal first' });
+      const { snap, error } = roomSnapshot(proposal_id, pack, location);
+      if (!snap) return res.status(404).json({ success: false, message: error });
       const loc = getLocation(pack, location);
       const allowLive = req.body?.check_entity === true;
       const livePossible = allowLive && qlooKeyAvailable() && env.QLOO_ENABLED;
@@ -368,7 +391,7 @@ export function createApp() {
         query: q,
         fieldsFor: (entityId, name) => fieldsFor(pack, location, entityId, name ?? q),
         excluded_ids: loc.exclude_entity_ids ?? [],
-        recent_plays: (req.body?.recent_plays ?? loc.recent_plays ?? []) as string[],
+        recent_plays: nameList(req.body?.recent_plays) ?? loc.recent_plays ?? [],
         resolveLive: livePossible
           ? async (name) => {
               // One search call, only when the operator explicitly asked to check
@@ -389,8 +412,8 @@ export function createApp() {
     try {
       const { pack, location, rule_overrides, offer_terms, recent_plays, band, proposal_id } = req.body ?? {};
       if (!isId(pack) || !isId(location)) return res.status(400).json({ success: false, message: 'pack and location must be short alphanumeric ids' });
-      const snap: RunSnapshot | null = proposal_id && isId(String(proposal_id), 40) ? graph.getSnapshot(String(proposal_id)) : graph.latestSnapshotFor(pack, location);
-      if (!snap) return res.status(404).json({ success: false, message: 'no stored run for this room yet — run a proposal first' });
+      const { snap, error } = roomSnapshot(proposal_id, pack, location);
+      if (!snap) return res.status(404).json({ success: false, message: error });
       if (!band && !rule_overrides && !offer_terms && !recent_plays) {
         return res.status(400).json({ success: false, message: 'nothing to recompute: pass a threshold, a term, a band or a recent-play list' });
       }
@@ -417,8 +440,11 @@ export function createApp() {
     try {
       const { pack, location, proposal_id } = req.body ?? {};
       if (!isId(pack) || !isId(location)) return res.status(400).json({ success: false, message: 'pack and location must be short alphanumeric ids' });
-      const snap: RunSnapshot | null = proposal_id && isId(String(proposal_id), 40) ? graph.getSnapshot(String(proposal_id)) : graph.latestSnapshotFor(pack, location);
-      if (!snap) return res.status(404).json({ success: false, message: 'no stored run for this room yet — run a proposal first' });
+      const { snap, error } = roomSnapshot(proposal_id, pack, location);
+      if (!snap) return res.status(404).json({ success: false, message: error });
+      if (req.body?.mode !== undefined && !isTasteMode(req.body.mode)) {
+        return res.status(400).json({ success: false, message: 'mode must be live, cached or replay' });
+      }
       const loc = getLocation(pack, location);
       const session = createSession({ pack, location, requestedMode: req.body?.mode, ip: req.ip });
       // Replay makes no /search lookup, so nothing resolves — but the room's
@@ -451,20 +477,30 @@ export function createApp() {
   // ── F15 Decision ledger ────────────────────────────────────────────────────
   app.get('/api/ledger', (_req, res) => {
     const entries = graph.readLedger(300);
-    res.json({ success: true, entries, head_hash: graph.headHash(), length: entries.length });
+    res.json({ success: true, entries, head_hash: graph.headHash(), length: entries.length, total: graph.countLedger() });
   });
 
   app.get('/api/ledger/verify', (_req, res) => {
-    const entries = graph.readLedger(500);
+    // The whole chain: a bounded read could only ever prove the part it held, and
+    // a note claiming every link was checked would then be false.
+    const entries = graph.readLedger(Number.MAX_SAFE_INTEGER);
     const v = verifyLedger(entries);
-    res.json({ success: true, ...v, note: v.ok ? `${v.length} entr${v.length === 1 ? 'y' : 'ies'}, every hash recomputed and every link checked` : 'the chain is broken: an entry was changed after it was written' });
+    res.json({
+      success: true,
+      ...v,
+      note: v.ok
+        ? v.partial
+          ? `${v.length} entr${v.length === 1 ? 'y' : 'ies'} re-hashed from entry ${entries[0].seq} onward; the links inside that range were checked, older entries were not in this read`
+          : `${v.length} entr${v.length === 1 ? 'y' : 'ies'}, every hash recomputed and every link checked from the first entry`
+        : 'the chain is broken: an entry was changed after it was written',
+    });
   });
 
   // ── F49 Coverage Board ─────────────────────────────────────────────────────
   app.get('/api/coverage', (_req, res) => res.json({ success: true, board: coverageBoard() }));
 
   // ── F47 Trust Center ───────────────────────────────────────────────────────
-  app.get('/api/trust', (_req, res) => {
+  app.get('/api/trust', rateLimit, (_req, res) => {
     const report = trustReport(latestProposal());
     res.json({ success: true, report, allowlist: ALLOWED_PARAMS });
   });
@@ -479,6 +515,21 @@ export function createApp() {
   // ── Qloo call logs: modes, endpoints, counts. Never headers, keys or payloads ─
   app.get('/api/qloo/log', (_req, res) => res.json({ success: true, log: callLog() }));
   app.get('/api/qloo/rest-log', (_req, res) => res.json({ success: true, log: getRestLog() }));
+
+  // In production, serve the built client from server/public when it is present.
+  // This is registered here, not after createApp returns: the catch-all below is
+  // what answers every unmatched request, so a static mount added later would sit
+  // behind it and the client could never load.
+  const publicDir = path.join(__dirname, '..', 'public');
+  if (fs.existsSync(publicDir)) {
+    app.use(express.static(publicDir));
+    // Single-page app: anything that is not an API route is the shell's own route.
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api') || req.path.startsWith('/healthz')) return next();
+      const index = path.join(publicDir, 'index.html');
+      if (fs.existsSync(index)) res.sendFile(index); else next();
+    });
+  }
 
   app.use((_req, res) => res.status(404).json({ success: false, message: 'Route not found' }));
   app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

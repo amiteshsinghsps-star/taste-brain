@@ -23,7 +23,8 @@ function fmtVal(v: unknown): string {
   return JSON.stringify(v ?? null);
 }
 
-function detailText(detail: Record<string, unknown>): string {
+function detailText(detail: Record<string, unknown> | null | undefined): string {
+  if (!detail || typeof detail !== 'object') return 'no detail recorded';
   const keys = Object.keys(detail);
   if (!keys.length) return 'no detail recorded';
   return keys.map((k) => `${k}: ${fmtVal(detail[k])}`).join('  ·  ');
@@ -31,13 +32,14 @@ function detailText(detail: Record<string, unknown>): string {
 
 export default function LedgerScreen() {
   const [entries, setEntries] = useState<LedgerEntry[] | null>(null);
+  const [total, setTotal] = useState<number | null>(null);
   const [verify, setVerify] = useState<VerifyResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
     Promise.all([api.ledger(), api.verify()])
-      .then(([l, v]) => { setEntries(l.entries); setVerify(v); setError(null); })
+      .then(([l, v]) => { setEntries(l.entries); setTotal(typeof l.total === 'number' ? l.total : null); setVerify(v); setError(null); })
       .catch((e) => setError(String(e)))
       .finally(() => setBusy(false));
   }, []);
@@ -53,7 +55,7 @@ export default function LedgerScreen() {
       {error && <Note tone="bad" title="The ledger could not be read">{error}</Note>}
 
       <Panel
-        title="Decision ledger (F15)"
+        title="Decision ledger"
         description="Every proposal, decision, term and rule change is written here once, chained by hash to the entry before it."
         actions={<Button size="sm" variant="outline" onClick={reload} disabled={busy}>{busy ? 'Reloading…' : 'Reload'}</Button>}
       >
@@ -77,7 +79,7 @@ export default function LedgerScreen() {
 
       <Panel
         title="Entries"
-        description="Newest first. Each row shows its own hash and the prev_hash it links to, so the chain can be followed by eye."
+        description="Written order, oldest first on the page, so each row's prev_hash is the row above it and the chain can be followed by eye."
       >
         {!entries ? (
           <Empty>{busy ? 'Reading the ledger…' : 'The ledger has not loaded.'}</Empty>
@@ -88,6 +90,11 @@ export default function LedgerScreen() {
           </Empty>
         ) : (
           <div className="overflow-x-auto">
+            {total !== null && total > entries.length && (
+              <p className="mb-1.5 text-[11px] text-slate-500">
+                The server returns its newest {entries.length} entries; this ledger holds {total} in all.
+              </p>
+            )}
             <table className="w-full border-collapse text-left text-xs">
               <thead>
                 <tr className="text-[11px] uppercase tracking-wide text-slate-500">

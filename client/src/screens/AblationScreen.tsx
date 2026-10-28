@@ -19,10 +19,11 @@ export default function AblationScreen() {
   const id = proposal?.proposal_id ?? '';
   const load = () => {
     if (!id) return;
+    setBusy(true);
     api.ablation(id).then((r) => { setData(r); setError(null); }).catch((e) => setError(String(e?.message ?? e))).finally(() => setBusy(false));
   };
-  useEffect(load, [id]);
-  const reload = () => { setBusy(true); load(); };
+  useEffect(() => { load(); }, [id]);
+  const reload = () => load();
 
   return (
     <div className="space-y-5">
@@ -36,8 +37,8 @@ export default function AblationScreen() {
           <>
             <Note tone="good" title="Measured">{data.headline}</Note>
             <p className="text-[11px] text-slate-500">
-              k = {data.ablation.k} · the run pooled {data.ablation.candidate_pool} candidate(s), so each arm is compared over the
-              {' '}top {Math.min(data.ablation.k, data.ablation.candidate_pool)} · computed {data.ablation.computed_at} from run{' '}
+              k = {data.ablation.k} · the run pooled {data.ablation.candidate_pool} candidate(s) · each arm is compared over the
+              top-k it actually returned, printed in the positions-changed column · computed {data.ablation.computed_at} from run{' '}
               {data.ablation.proposal_id} · source mode {data.ablation.source_mode}. Zero Qloo calls: every arm reads the snapshot.
             </p>
 
@@ -49,7 +50,7 @@ export default function AblationScreen() {
                     <th className="pr-3">rows in arm</th>
                     <th className="pr-3">overlap@k with the real list</th>
                     <th className="pr-3">Kendall τ</th>
-                    <th className="pr-3">positions changed</th>
+                    <th className="pr-3">positions changed / that arm's k</th>
                     <th>the order it gives</th>
                   </tr>
                 </thead>

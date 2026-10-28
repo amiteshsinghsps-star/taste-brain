@@ -314,4 +314,31 @@ describe('hostile input at the boundary', () => {
     });
     expect(res.status).toBeGreaterThanOrEqual(400);
   });
+
+  it('a recent-play list of non-strings is answered, not crashed on', async () => {
+    const r = await post('/api/whynot', {
+      pack: 'venues', location: 'venue_redroom', query: 'Vex', recent_plays: [123, { a: 1 }, null],
+    });
+    expect(r.status).toBe(200);
+    expect(r.body.answer.verdict).toBeTruthy();
+  });
+
+  it("another room's run is refused instead of answered with its rules", async () => {
+    const foreign = await runRedRoom();
+    const r = await post('/api/whynot', {
+      pack: 'retail', location: 'store_2', query: 'Any Brand', proposal_id: foreign.proposal_id,
+    });
+    expect(r.status).toBe(404);
+    expect(r.body.message).toMatch(/not retail\/store_2/);
+    for (const route of ['/api/whatif', '/api/partners']) {
+      const x = await post(route, { pack: 'retail', location: 'store_2', proposal_id: foreign.proposal_id, rule_overrides: { margin_floor: 1 } });
+      expect(x.status, route).toBe(404);
+    }
+  });
+
+  it('an unrecognised mode is refused where a mode may be passed', async () => {
+    const r = await post('/api/partners', { pack: 'venues', location: 'venue_redroom', mode: 'banana' });
+    expect(r.status).toBe(400);
+    expect(r.body.message).toMatch(/live, cached or replay/);
+  });
 });

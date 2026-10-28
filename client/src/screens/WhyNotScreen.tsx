@@ -24,19 +24,23 @@ export default function WhyNotScreen() {
   const { proposal } = useApp();
   const [query, setQuery] = useState('');
   const [checkEntity, setCheckEntity] = useState(false);
-  const [answer, setAnswer] = useState<WhyNotAnswer | null>(null);
-  const [liveState, setLiveState] = useState<{ used: boolean; declined: boolean } | null>(null);
+  // An answer belongs to the run it was read out of, so switching rooms retires
+  // it instead of leaving the previous run's verdict under the new run's name.
+  const [asked, setAsked] = useState<{ id: string; answer: WhyNotAnswer; used: boolean; declined: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!proposal) return <div className="space-y-5"><Panel title="Why is X not on the list?" mode="replay"><Empty>{NEEDS_RUN}</Empty></Panel></div>;
+  if (!proposal) return <div className="space-y-5"><Panel title="Why is X not on the list?"><Empty>{NEEDS_RUN}</Empty></Panel></div>;
+  const answer = asked && asked.id === proposal.proposal_id ? asked.answer : null;
+  const liveState = asked && asked.id === proposal.proposal_id
+    ? { used: asked.used, declined: asked.declined }
+    : null;
 
   const ask = async () => {
-    setBusy(true); setError(null); setAnswer(null);
+    setBusy(true); setError(null); setAsked(null);
     try {
       const r = await api.whyNot({ pack: proposal.pack, location: proposal.location, query: query.trim(), proposal_id: proposal.proposal_id, check_entity: checkEntity });
-      setAnswer(r.answer);
-      setLiveState({ used: r.live_check_used, declined: r.live_check_declined === true });
+      setAsked({ id: proposal.proposal_id, answer: r.answer, used: r.live_check_used, declined: r.live_check_declined === true });
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
     finally { setBusy(false); }
   };
@@ -85,8 +89,8 @@ export default function WhyNotScreen() {
         )}
 
         <div className="text-[11px] leading-relaxed text-slate-500">
-          Try the act the venue’s guarantee ceiling refused, or one from the no-repeat window: both are refused for a reason
-          this screen can quote verbatim. A name Qloo has never heard of gets an honest “not returned”, not an invented excuse.
+          Try an act the venue’s guarantee ceiling refused, or one from the already-played list: this screen quotes the exact
+          reason. A name Qloo has never heard of gets an honest “not returned” — never a made-up excuse.
         </div>
       </Panel>
     </div>

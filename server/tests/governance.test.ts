@@ -56,6 +56,28 @@ describe('Decision ledger (F15)', () => {
     expect(relayed.ok).toBe(false);
     expect(relayed.first_broken_seq).toBe(forged[1].seq);
   });
+
+  it('a bounded read keeps the newest end, so the head is never hidden', () => {
+    for (let i = 0; i < 5; i++) {
+      graph.appendLedger({
+        at: new Date().toISOString(), action: 'proposed', proposal_id: `p_window_${i}`,
+        pack: 'venues', location: 'venue_redroom', actor: 'operator:test', detail: { window: i },
+      });
+    }
+    const window = graph.readLedger(3);
+    expect(window.length).toBe(3);
+    // Oldest first inside the window, and the window ends at the real head.
+    expect(window.map((e) => e.seq)).toEqual([window[0].seq, window[0].seq + 1, window[0].seq + 2]);
+    expect(window[2].hash).toBe(graph.headHash());
+    // A slice that starts above entry 1 cannot claim the older links: it says so.
+    const v = verifyLedger(window);
+    expect(v.ok).toBe(true);
+    expect(v.partial).toBe(true);
+    // Tampering with the newest entry is inside the window, and is caught there.
+    const forged = window.map((e) => ({ ...e }));
+    forged[2].detail = { ...forged[2].detail, tampered: true };
+    expect(verifyLedger(forged).ok).toBe(false);
+  });
 });
 
 describe('Run snapshots and Finals Mode (F48)', () => {

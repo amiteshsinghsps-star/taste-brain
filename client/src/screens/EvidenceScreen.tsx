@@ -2,7 +2,9 @@
 // claim rests on, where it came from, when it was fetched, and which part is
 // ours rather than Qloo's.
 
-import { Chips, Empty, FetchedAt, KV, ModeBadge, Note, Panel, StatusPill } from '@/components/common';
+import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Chips, CountUp, Empty, FetchedAt, JsonBlock, KV, ModeBadge, Note, Panel, Stat, StatusPill } from '@/components/common';
 import { num } from '@/lib/format';
 import { NEEDS_RUN, useApp } from '@/lib/app-context';
 import type { ProposalItem } from '@/lib/types';
@@ -10,6 +12,11 @@ import type { ProposalItem } from '@/lib/types';
 export default function EvidenceScreen() {
   const { proposal } = useApp();
   const items = proposal?.items ?? [];
+  const [q, setQ] = useState('');
+  const shown = items.filter((i) => {
+    const n = q.trim().toLowerCase();
+    return !n || i.name.toLowerCase().includes(n) || i.evidence.endpoint.toLowerCase().includes(n) || i.evidence.workflow.toLowerCase().includes(n);
+  });
 
   return (
     <div className="space-y-5">
@@ -21,9 +28,22 @@ export default function EvidenceScreen() {
         {!proposal ? <Empty>{NEEDS_RUN}</Empty> : items.length === 0 ? (
           <Empty>This run returned nothing that cleared every applicable rule, so there is no evidence card to show. The refusals and their flip points are on the Plan screen.</Empty>
         ) : (
-          <div className="grid gap-3 lg:grid-cols-2">
-            {items.map((it) => <EvidenceCard key={it.entity_id} item={it} />)}
-          </div>
+          <>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <Stat value={<CountUp value={items.length} />} label="evidence cards" hint="one per shown item" />
+              <Stat value={<CountUp value={items.filter((i) => i.evidence.mode === 'live').length} />} label="read from Qloo now" />
+              <Stat value={<CountUp value={items.filter((i) => i.evidence.mode === 'cached').length} />} label="from stored answers" />
+              <Stat value={<CountUp value={proposal.rejections.length} />} label="refused, with reasons" />
+            </div>
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="filter cards by name, endpoint or workflow…" className="h-8 w-72 text-xs" />
+            {!shown.length ? (
+              <Empty>No evidence card matches “{q}”.</Empty>
+            ) : (
+              <div className="grid gap-3 lg:grid-cols-2">
+                {shown.map((it) => <EvidenceCard key={it.entity_id} item={it} />)}
+              </div>
+            )}
+          </>
         )}
 
         {proposal && proposal.rejections.length > 0 && (
@@ -79,6 +99,7 @@ function EvidenceCard({ item }: { item: ProposalItem }) {
       <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">
         The explanation under these fields is written for this item only. {item.approval_blocked ? 'This item is visible but cannot be approved until the missing term is entered.' : 'Every rule that could be proven on the data on file passed.'}
       </p>
+      <div className="mt-2"><JsonBlock obj={e} label="raw evidence JSON" /></div>
     </article>
   );
 }

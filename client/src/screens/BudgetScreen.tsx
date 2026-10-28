@@ -28,16 +28,23 @@ function redactedInputs(inputs: Record<string, unknown> | null | undefined): str
 
 export default function BudgetScreen() {
   const [health, setHealth] = useState<HealthInfo | null>(null);
-  const [rest, setRest] = useState<RestCallLogEntry[]>([]);
-  const [qloo, setQloo] = useState<QlooCallLogEntry[]>([]);
+  // null means "not loaded": an empty log and a failed fetch are different facts,
+  // and printing "no call has been made" for a fetch that never arrived would
+  // turn a missing answer into a claim about the server.
+  const [rest, setRest] = useState<RestCallLogEntry[] | null>(null);
+  const [qloo, setQloo] = useState<QlooCallLogEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const fail = (what: string) => (e: unknown) =>
+    setError((prev) => (prev ? `${prev}; ${what}: ${String(e)}` : `${what}: ${String(e)}`));
 
   const load = () => {
     // No state is written before the awaits: an effect that reset these first
     // would render the panel twice on every mount.
-    api.health().then((r) => { setHealth(r); setError(null); }).catch((e) => setError(String(e)));
-    api.restLog().then((r) => setRest(r.log)).catch((e) => setError(String(e)));
-    api.qlooLog().then((r) => setQloo(r.log)).catch((e) => setError(String(e)));
+    setError(null);
+    api.health().then(setHealth).catch(fail('health'));
+    api.restLog().then((r) => setRest(r.log)).catch(fail('REST log'));
+    api.qlooLog().then((r) => setQloo(r.log)).catch(fail('call log'));
   };
   useEffect(() => { load(); }, []);
 
@@ -47,7 +54,7 @@ export default function BudgetScreen() {
 
       <Panel
         title="Budget and guards"
-        description="Live traffic is metered per visitor and globally; a monthly floor switches live paths to Cached, then Replay. These are the server's own figures."
+        description="Live calls are metered per visitor and globally. When the monthly floor is reached, new live calls stop and stored answers are used. These are the server's own figures."
         actions={<Button size="sm" variant="outline" onClick={load}>Reload</Button>}
       >
         {!health ? (
@@ -104,11 +111,13 @@ export default function BudgetScreen() {
         title="Every Qloo call this session"
         description="Each live REST call and each adapter call the server made, with status, latency, mode and cache hit."
       >
-        {rest.length === 0 && qloo.length === 0 ? (
+        {rest === null && qloo === null ? (
+          <Empty>Reading the server's call logs…</Empty>
+        ) : rest?.length === 0 && qloo?.length === 0 ? (
           <Empty>No Qloo call has been made from this server since it started. Run a proposal in Live or Cached mode.</Empty>
         ) : (
           <>
-            {rest.length > 0 && (
+            {(rest?.length ?? 0) > 0 && (
               <div>
                 <div className="mb-1 text-xs font-semibold text-slate-700">REST log</div>
                 <table className="w-full border-collapse text-left text-xs">
@@ -120,7 +129,7 @@ export default function BudgetScreen() {
                     </tr>
                   </thead>
                   <tbody>
-                    {rest.map((r) => (
+                    {(rest ?? []).map((r) => (
                       <tr key={r.seq} className="border-t border-slate-100 align-top">
                         <td className="py-1 pr-2 text-slate-400">{r.seq}</td>
                         <td className="py-1 pr-2"><Time iso={r.at} /></td>
@@ -138,7 +147,7 @@ export default function BudgetScreen() {
               </div>
             )}
 
-            {qloo.length > 0 && (
+            {(qloo?.length ?? 0) > 0 && (
               <div>
                 <div className="mb-1 text-xs font-semibold text-slate-700">Adapter log</div>
                 <table className="w-full border-collapse text-left text-xs">
@@ -150,7 +159,7 @@ export default function BudgetScreen() {
                     </tr>
                   </thead>
                   <tbody>
-                    {qloo.map((c) => (
+                    {(qloo ?? []).map((c) => (
                       <tr key={`${c.at}:${c.pack}:${c.seq}`} className="border-t border-slate-100 align-top">
                         <td className="py-1 pr-2 text-slate-400">{c.seq}</td>
                         <td className="py-1 pr-2"><Time iso={c.at} /></td>
@@ -158,8 +167,8 @@ export default function BudgetScreen() {
                         <td className="py-1 pr-2 text-slate-600">{c.variant ?? '—'}</td>
                         <td className="py-1 pr-2 font-mono text-[11px] text-slate-600">{c.endpoint ?? '—'}</td>
                         <td className="py-1 pr-2">{c.entity_count ?? 0}</td>
-                        <td className="py-1 pr-2"><ModeBadge mode={c.mode} /></td>
-                        <td className="py-1 pr-2">{c.cache_hit ? 'hit' : 'miss'}</td>
+                        <td className="py-1 pr-2">{c.failed ? <span className="text-slate-500">no read</span> : <ModeBadge mode={c.mode} />}</td>
+                        <td className="py-1 pr-2">{c.failed ? '—' : c.cache_hit ? 'hit' : 'miss'}</td>
                         <td className="py-1 pr-2">{c.latency_ms}</td>
                         <td className="py-1 text-slate-600">{redactedInputs(c.inputs_redacted) || '—'}{c.note ? <span className="text-slate-400"> · {c.note}</span> : null}</td>
                       </tr>

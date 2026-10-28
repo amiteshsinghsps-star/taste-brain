@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Chips, Empty, Hash, Note, Panel, StatusPill, Time } from '@/components/common';
 import { api } from '@/lib/api';
+import { useApp } from '@/lib/app-context';
 import type { TrustCheck, TrustReport } from '@/lib/types';
 
 function CheckPill({ status }: { status: TrustCheck['status'] }) {
@@ -15,6 +16,7 @@ function CheckPill({ status }: { status: TrustCheck['status'] }) {
 }
 
 export default function TrustScreen() {
+  const { proposal } = useApp();
   const [report, setReport] = useState<TrustReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -38,7 +40,7 @@ export default function TrustScreen() {
 
       {report && (
         <Panel
-          title="Trust Center (F47)"
+          title="Trust Center"
           description={<span className="flex items-center gap-2">Report generated at <Time iso={report.generated_at} /></span>}
           actions={<Button size="sm" variant="outline" onClick={reload} disabled={busy}>{busy ? 'Reloading…' : 'Reload'}</Button>}
         >
@@ -47,10 +49,20 @@ export default function TrustScreen() {
             <span className="rounded bg-red-50 px-2 py-1 text-red-800">fail · {report.failed}</span>
             <span className="rounded bg-amber-50 px-2 py-1 text-amber-900">unproven · {report.unproven}</span>
           </div>
-          {report.proposal_id === null && (
+          {report.proposal_id === null ? (
             <Note tone="warn" title="No run to check against yet">
               The checks run against the most recent stored run; there is none yet on this server. The counts and results below
               reflect that — several guardrails are marked unproven until a proposal exists.
+            </Note>
+          ) : (
+            <div className="mt-2 text-[11px] text-slate-500">
+              These checks were run against the newest stored run: <code className="font-mono">{report.proposal_id}</code>.
+            </div>
+          )}
+          {report.proposal_id !== null && proposal && proposal.proposal_id !== report.proposal_id && (
+            <Note tone="warn" title="Not the run on your other screens">
+              The run open elsewhere ({proposal.proposal_id}) is not the one this report audited. The checks describe
+              {report.proposal_id} — open the run named above before quoting them.
             </Note>
           )}
         </Panel>
@@ -206,7 +218,7 @@ export default function TrustScreen() {
       )}
 
       {!report && !error && (
-        <Panel title="Trust Center (F47)" description="Loading the report.">
+        <Panel title="Trust Center" description="Loading the report.">
           <Empty>Reading the trust report…</Empty>
         </Panel>
       )}

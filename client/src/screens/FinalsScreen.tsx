@@ -3,7 +3,7 @@
 // request, replays one as the active proposal. No number here is computed client
 // side; every figure is the server's stored value.
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Empty, ModeBadge, Note, Panel, Time } from '@/components/common';
 import { num } from '@/lib/format';
@@ -20,6 +20,7 @@ export default function FinalsScreen() {
   const [rows, setRows] = useState<SnapshotRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [servingId, setServingId] = useState<string | null>(null);
+  const servingRef = useRef<string | null>(null);
   const [served, setServed] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -34,6 +35,11 @@ export default function FinalsScreen() {
   const reload = () => { setLoading(true); load(); };
 
   const serve = useCallback(async (row: SnapshotRow) => {
+    // servingId lands a render later, so two clicks in one tick would otherwise
+    // both start a run and the active proposal would end up whichever replied
+    // last rather than the row that was clicked.
+    if (servingRef.current) return;
+    servingRef.current = row.proposal_id;
     setServingId(row.proposal_id); setServed(null); setError(null);
     try {
       const result = await api.createProposal({
@@ -49,18 +55,18 @@ export default function FinalsScreen() {
         : `Served ${row.proposal_id}, but the engine did not mark it served_from = snapshot.`);
     } catch (e) {
       setError(String(e));
-    } finally { setServingId(null); }
+    } finally { servingRef.current = null; setServingId(null); }
   }, [adoptRun, setError]);
 
   return (
     <div className="space-y-5">
       <Panel
-        title="Finals Mode — re-serve captured runs (F48)"
-        description="On demo day the app never depends on the network. It replays runs captured earlier on this server."
+        title="Finals Mode — re-serve captured runs"
+        description="On demo day the app never depends on the network. It serves runs captured earlier on this server."
       >
         <Note tone="info" title="What Finals Mode guarantees">
           <div>No Qloo call is made when a stored run is served.</div>
-          <div>The rows captured in that run are replayed exactly as they were stored.</div>
+          <div>The rows from that run are shown exactly as they were stored.</div>
           <div>Every step keeps the mode it was captured in — nothing is upgraded to live.</div>
         </Note>
         <Note tone="warn" title="The honest limit">
@@ -108,7 +114,7 @@ export default function FinalsScreen() {
                     <td className="py-1 pr-2"><Time iso={row.created_at} /></td>
                     <td className="py-1 pr-2">{count(row.items)}</td>
                     <td className="py-1">
-                      <Button size="sm" onClick={() => serve(row)} disabled={servingId === row.proposal_id}>
+                      <Button size="sm" onClick={() => serve(row)} disabled={servingId !== null}>
                         {servingId === row.proposal_id ? 'Serving…' : 'Serve this stored run'}
                       </Button>
                     </td>

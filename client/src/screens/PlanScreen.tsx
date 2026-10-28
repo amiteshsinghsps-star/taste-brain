@@ -2,10 +2,10 @@
 // judge lands on: pick a room, state a goal, run the fixed pipeline, read what
 // Qloo returned and what the venue's own rules did to it.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Chips, Empty, FetchedAt, KV, ModeBadge, ModeMixLine, Note, Panel, StatusPill } from '@/components/common';
+import { Chips, CountUp, Empty, FetchedAt, JsonBlock, KV, MeterBar, ModeBadge, ModeMixLine, Note, Panel, Radar, Skeleton, Stat, StatusPill, TagFrequency } from '@/components/common';
 import { num } from '@/lib/format';
 import { useApp } from '@/lib/app-context';
 import type { NeedsTerm, ProposalItem } from '@/lib/types';
@@ -18,8 +18,8 @@ export default function PlanScreen() {
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
       <Panel
-        title="1 · Room, goal and window"
-        description="Same engine, different Vertical Pack. A pack is configuration — nothing here is code."
+        title="1 · Choose room, goal and options"
+        description="Pick a vertical pack, a room and a goal, then run the agent."
       >
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-slate-500">Vertical pack</label>
@@ -27,10 +27,10 @@ export default function PlanScreen() {
             {packs.map((p) => (
               <button
                 key={p.pack} onClick={() => setPack(p.pack)}
-                className={`cursor-pointer rounded-lg border px-2.5 py-1.5 text-left ${pack === p.pack ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 hover:border-slate-300'}`}
+                className={`cursor-pointer rounded-xl border px-3 py-2 text-left transition-all ${pack === p.pack ? 'tb-nav-active border-transparent text-white shadow-md' : 'border-slate-200 bg-white/80 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md'}`}
               >
                 <div className="text-sm font-semibold">{p.display_name}</div>
-                <div className="text-[11px] text-slate-500">one unit = {p.unit}</div>
+                <div className={`text-[11px] ${pack === p.pack ? 'text-indigo-100' : 'text-slate-500'}`}>one unit = {p.unit}</div>
               </button>
             ))}
           </div>
@@ -38,25 +38,19 @@ export default function PlanScreen() {
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-slate-500">Room</label>
-          <select value={location} onChange={(e) => setLocation(e.target.value)} className="w-full cursor-pointer rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+          <select value={location} onChange={(e) => setLocation(e.target.value)} className="w-full cursor-pointer rounded-lg border border-slate-300 bg-white/80 px-2.5 py-1.5 text-sm shadow-sm transition-colors hover:border-indigo-300 focus:border-indigo-400 focus:outline-none focus:ring-3 focus:ring-indigo-500/15">
             {locations.map((l) => <option key={l.id} value={l.id}>{l.name} · {l.city}</option>)}
           </select>
           {currentLocation && (
-            <dl className="rounded-md bg-slate-50 px-2.5 py-1.5">
+            <dl className="rounded-xl border border-slate-200/70 bg-white/70 px-3 py-2 shadow-sm">
               <KV k="capacity tier" v={currentLocation.capacity_tier ?? 'not stated in the pack'} />
               <KV k="taste seeds" v={currentLocation.seeds.join(', ')} />
               <KV k="rules this room enforces" v={currentLocation.rule_ids?.join(', ') ?? 'all of the pack’s'} />
               <KV k="catalogue on file" v={`${currentLocation.catalog}`} />
-              <KV k="committed replay fixture" v={currentLocation.replay_fixture === undefined ? 'not reported by the server' : currentLocation.replay_fixture ? 'yes — this room runs offline' : 'no — this room has no stored offline result set'} />
             </dl>
           )}
-          {currentLocation?.replay_fixture === false && app.mode === 'replay' && (
-            <Note tone="warn" title="Replay will return nothing for this room">
-              Replay serves only what is committed in <code>server/src/qloo/fixtures</code>, and this room is not in there. Its candidates are real Qloo data, so run it in CACHED — from the stored copy on this server — rather than reading an empty list as &ldquo;Qloo had nothing&rdquo;.
-            </Note>
-          )}
           {currentLocation?.data_provenance && (
-            <Note tone={/SYNTHETIC/i.test(currentLocation.data_provenance) ? 'warn' : 'info'} title="Data provenance for this room">
+            <Note tone="info" title="Where this room’s data came from">
               {currentLocation.data_provenance}
             </Note>
           )}
@@ -70,7 +64,7 @@ export default function PlanScreen() {
               <button
                 key={i}
                 onClick={() => app.setGoal(g.replace('{n}', '3').replace('{season}', 'autumn'))}
-                className="cursor-pointer rounded bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600 hover:bg-slate-200"
+                className="tb-chip cursor-pointer px-2.5 py-1 text-[11px] font-medium transition-transform hover:-translate-y-px"
               >{g}</button>
             ))}
           </div>
@@ -79,7 +73,7 @@ export default function PlanScreen() {
         <RecentPlays />
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={() => app.run()} disabled={app.busy || !location}>
+          <Button onClick={() => app.run()} disabled={app.busy || !location} className="tb-hero">
             {app.busy ? 'Running the pipeline…' : 'Run the agent'}
           </Button>
           <span className="text-[11px] text-slate-500">mode: {app.mode.toUpperCase()}</span>
@@ -90,7 +84,9 @@ export default function PlanScreen() {
       </Panel>
 
       <div className="space-y-5">
-        {app.proposal ? (
+        {app.busy && !app.proposal ? (
+          <Panel title="2 · What the agent proposes" description="The pipeline is running — seeds, audience, candidates, rules, auditor."><Skeleton lines={5} /></Panel>
+        ) : app.proposal ? (
           <>
             {app.proposal.degrade_reason && (
               <Note tone="warn" title={`This run is labelled ${app.proposal.mode.toUpperCase()}`}>
@@ -125,7 +121,7 @@ function RecentPlays() {
   };
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium text-slate-500">No-repeat window (V4) — who has already played here</label>
+      <label className="text-xs font-medium text-slate-500">Already played here — exclude these</label>
       <div className="flex gap-2">
         <Input value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={60} placeholder="act name from your own book" />
         <Button variant="outline" onClick={add}>Add</Button>
@@ -183,15 +179,81 @@ function Audience() {
   );
 }
 
+const SORTS = [
+  ['qloo', 'Qloo order', (a: ProposalItem, b: ProposalItem) => a.rank - b.rank],
+  ['fit', 'Fit (derived)', (a: ProposalItem, b: ProposalItem) => b.fit - a.fit],
+  ['pop', 'Popularity', (a: ProposalItem, b: ProposalItem) => (b.popularity ?? -1) - (a.popularity ?? -1)],
+  ['fol', 'Followers', (a: ProposalItem, b: ProposalItem) => (b.followers ?? -1) - (a.followers ?? -1)],
+  ['obsc', 'Obscurity', (a: ProposalItem, b: ProposalItem) => (b.obscurity ?? -1) - (a.obscurity ?? -1)],
+  ['name', 'Name', (a: ProposalItem, b: ProposalItem) => a.name.localeCompare(b.name)],
+] as const;
+type SortId = (typeof SORTS)[number][0];
+
 function Items({ onRefused }: { onRefused: (m: string) => void }) {
-  const { proposal, run, decide, approver, setApprover, modeInfo } = useApp();
+  const { proposal, run, decide, approver, setApprover, modeInfo, busy: running } = useApp();
   const [picked, setPicked] = useState<string[]>([]);
+  const [cmp, setCmp] = useState<string[]>([]);
   const [terms, setTerms] = useState<Record<string, Record<string, number>>>({});
   const [busy, setBusy] = useState(false);
+  const [q, setQ] = useState('');
+  const [sort, setSort] = useState<SortId>('qloo');
+  const [only, setOnly] = useState<'all' | 'ok' | 'blocked'>('all');
+  const [view, setView] = useState<'cards' | 'table'>('cards');
+  const [detail, setDetail] = useState<ProposalItem | null>(null);
+  const [cmpOpen, setCmpOpen] = useState(false);
+  const cmpRef = useRef<HTMLDialogElement>(null);
   const items = proposal?.items ?? [];
   const blocked = items.filter((i) => i.approval_blocked);
 
   const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+  const toggleCmp = (id: string) => setCmp((c) => (c.includes(id) ? c.filter((x) => x !== id) : c.length >= 3 ? [...c.slice(1), id] : [...c, id]));
+
+  const shown = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    const sortFn = SORTS.find((s) => s[0] === sort)![2];
+    return items
+      .filter((i) => !needle || i.name.toLowerCase().includes(needle) || i.type.toLowerCase().includes(needle) || i.tags.some((t) => t.toLowerCase().includes(needle)))
+      .filter((i) => only === 'all' || (only === 'ok' ? !i.approval_blocked : i.approval_blocked))
+      .slice()
+      .sort(sortFn);
+  }, [items, q, sort, only]);
+
+  const tagFreq = useMemo(() => {
+    const c = new Map<string, number>();
+    for (const i of items) for (const t of i.tags) c.set(t, (c.get(t) ?? 0) + 1);
+    return [...c.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+  }, [items]);
+
+  const cmpItems = useMemo(
+    () => items.filter((i) => cmp.includes(i.entity_id)).sort((a, b) => cmp.indexOf(a.entity_id) - cmp.indexOf(b.entity_id)),
+    [items, cmp],
+  );
+  useEffect(() => { if (cmpOpen) cmpRef.current?.showModal(); else cmpRef.current?.close(); }, [cmpOpen]);
+  useEffect(() => { if (cmpItems.length < 2) setCmpOpen(false); }, [cmpItems.length]);
+  // A different run is a different set of rows. Selections, comparison marks and
+  // typed-in offer terms all name entity ids from the run they were made on, so
+  // they are cleared when the run changes — otherwise Approve sends the previous
+  // room's ids to the decision endpoint.
+  const runId = proposal?.proposal_id ?? '';
+  useEffect(() => { setDetail(null); setPicked([]); setCmp([]); setTerms({}); setCmpOpen(false); }, [runId]);
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { setDetail(null); setCmpOpen(false); } };
+    window.addEventListener('keydown', esc);
+    return () => window.removeEventListener('keydown', esc);
+  }, []);
+
+  const RADAR_COLORS = ['#4f46e5', '#059669', '#d97706'];
+  const radarSeries = cmpItems.map((i, k) => ({
+    name: i.name,
+    color: RADAR_COLORS[k % RADAR_COLORS.length],
+    values: [
+      i.fit / Math.max(0.001, ...cmpItems.map((x) => x.fit)),
+      (Math.min(...cmpItems.map((x) => x.qloo_rank)) - 1) / Math.max(1, i.qloo_rank - 1),
+      (i.popularity ?? 0) / Math.max(1, ...cmpItems.map((x) => x.popularity ?? 0)),
+      (i.obscurity ?? 0) / Math.max(0.001, ...cmpItems.map((x) => x.obscurity ?? 0)),
+      (i.followers ?? 0) / Math.max(1, ...cmpItems.map((x) => x.followers ?? 0)),
+    ],
+  }));
 
   const act = async (outcome: 'approved' | 'rejected', ids?: string[]) => {
     setBusy(true); onRefused('');
@@ -207,25 +269,199 @@ function Items({ onRefused }: { onRefused: (m: string) => void }) {
       description="Order is Qloo's own. Fit is derived by Taste Brain from that order and is labelled as such on every card."
       mode={proposal?.mode}
       actions={modeInfo?.qloo_rest_active
-        ? <Button size="sm" variant="outline" onClick={() => run({ mode: 'live' })} disabled={busy}>Re-run live</Button>
+        ? <Button size="sm" variant="outline" onClick={() => run({ mode: 'live' })} disabled={busy || running}>Re-run live</Button>
         : <span className="text-[11px] text-slate-500" title="Live Qloo is switched off on this host, so a visitor cannot spend the team key with one click.">live re-run off on this host</span>}
     >
       <ModeMixLine mix={proposal?.trace.mode_mix} />
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Stat value={<CountUp value={items.length} />} label="suggested" hint="items that passed every rule this run" />
+        <Stat value={<CountUp value={items.length - blocked.length} />} label="ready to approve" hint="not waiting on a missing term" />
+        <Stat value={<CountUp value={blocked.length} />} label="waiting on a term" hint="visible but blocked until you enter the missing number" />
+        <Stat value={<CountUp value={proposal?.rejections.length ?? 0} />} label="refused by rules" hint="see the refusal list below — each names its rule" />
+      </div>
+
       {!items.length ? (
         <Empty>Nothing qualified. The engine is showing an empty result because that is the honest result — see the refusals below and the flip points they name.</Empty>
-      ) : items.map((it) => (        <ItemCard
-          key={it.entity_id}
-          item={it}
-          picked={picked.includes(it.entity_id)}
-          onPick={() => toggle(it.entity_id)}
-          terms={terms[it.entity_id] ?? {}}
-          onTerm={(field, value) => setTerms((t) => ({ ...t, [it.entity_id]: { ...(t[it.entity_id] ?? {}), [field]: value } }))}
-        />
-      ))}
+      ) : (
+        <>
+          {tagFreq.length > 0 && (
+            <details className="rounded-xl border border-slate-200/80 bg-white/60 px-3 py-2" open>
+              <summary className="cursor-pointer text-xs font-semibold text-slate-700">What these picks have in common — taste tags across this run</summary>
+              <div className="mt-2"><TagFrequency tags={tagFreq} of={items.length} /></div>
+            </details>
+          )}
+
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200/80 bg-white/60 px-3 py-2">
+            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="filter by name, type or tag…" className="h-8 w-48 text-xs" />
+            <div className="flex flex-wrap items-center gap-1.5">
+              {(['all', 'ok', 'blocked'] as const).map((o) => (
+                <button key={o} className="tb-pill" data-on={only === o} onClick={() => setOnly(o)}>
+                  {o === 'all' ? 'all' : o === 'ok' ? 'ready' : 'waiting on term'}
+                </button>
+              ))}
+              <span className="mx-1 h-4 w-px bg-slate-200" aria-hidden />
+              {(['cards', 'table'] as const).map((v) => (
+                <button key={v} className="tb-pill" data-on={view === v} onClick={() => setView(v)} title={v === 'cards' ? 'rich cards' : 'compact sortable table'}>
+                  {v === 'cards' ? '▤ cards' : '☰ table'}
+                </button>
+              ))}
+            </div>
+            <label className="ml-auto flex items-center gap-1.5 text-[11px] text-slate-500">sort by
+              <select value={sort} onChange={(e) => setSort(e.target.value as SortId)} className="cursor-pointer rounded-lg border border-slate-300 bg-white/80 px-2 py-1 text-xs">
+                {SORTS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+              </select>
+            </label>
+          </div>
+
+          {!shown.length && <Empty>No shown item matches “{q}”{only !== 'all' ? ' in this filter' : ''}. The run itself is unchanged.</Empty>}
+          {view === 'table' ? (
+            <div className="overflow-x-auto rounded-xl border border-slate-200/80">
+              <table className="w-full border-collapse text-left text-xs">
+                <thead>
+                  <tr className="bg-slate-50/70 text-[10px] uppercase tracking-wider text-slate-500">
+                    <th className="px-2 py-1.5">#</th><th className="px-2 py-1.5">name</th><th className="px-2 py-1.5">fit</th>
+                    <th className="px-2 py-1.5">qloo rank</th><th className="px-2 py-1.5">popularity</th><th className="px-2 py-1.5">followers</th>
+                    <th className="px-2 py-1.5">rules</th><th className="px-2 py-1.5">mode</th><th className="px-2 py-1.5" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {shown.map((it) => (
+                    <tr key={it.entity_id} className="border-t border-slate-100 transition-colors hover:bg-indigo-50/40">
+                      <td className="px-2 py-1.5 font-bold text-slate-400">{it.rank}</td>
+                      <td className="px-2 py-1.5">
+                        <button className="cursor-pointer font-semibold text-left hover:underline" onClick={() => setDetail(it)} title="open the detail drawer">{it.name}</button>
+                        <div className="text-[10px] text-slate-400">{it.type}{it.approval_blocked ? ' · waiting on a term' : ''}</div>
+                      </td>
+                      <td className="w-24 px-2 py-1.5"><MeterBar pct={Math.round(it.fit * 100)} hint={it.evidence.fit_note} /></td>
+                      <td className="px-2 py-1.5 tabular-nums">{it.qloo_rank}</td>
+                      <td className="px-2 py-1.5 tabular-nums">{num(it.popularity)}</td>
+                      <td className="px-2 py-1.5 tabular-nums">{num(it.followers, 0)}</td>
+                      <td className="px-2 py-1.5 tabular-nums">{it.rule_results.filter((r) => r.status === 'pass').length}/{it.rule_results.length}</td>
+                      <td className="px-2 py-1.5"><ModeBadge mode={it.mode} /></td>
+                      <td className="px-2 py-1.5 text-right">
+                        <button className="tb-pill" data-on={cmp.includes(it.entity_id)} onClick={() => toggleCmp(it.entity_id)}>⇄</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            shown.map((it) => (
+              <ItemCard
+                key={it.entity_id}
+                item={it}
+                picked={picked.includes(it.entity_id)}
+                onPick={() => toggle(it.entity_id)}
+                comparing={cmp.includes(it.entity_id)}
+                onCompare={() => toggleCmp(it.entity_id)}
+                onDetail={() => setDetail(it)}
+                terms={terms[it.entity_id] ?? {}}
+                onTerm={(field, value) => setTerms((t) => ({ ...t, [it.entity_id]: { ...(t[it.entity_id] ?? {}), [field]: value } }))}
+              />
+            ))
+          )}
+
+          {detail && (
+            <>
+              <div className="tb-overlay print:hidden" onClick={() => setDetail(null)} />
+              <aside className="tb-drawer p-4 print:hidden" aria-label={`detail for ${detail.name}`}>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="text-lg font-bold leading-tight">{detail.name}</div>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                      <span>rank {detail.rank}</span><ModeBadge mode={detail.mode} />{detail.rising ? <span>rising: {detail.rising}</span> : null}
+                    </div>
+                  </div>
+                  <button className="tb-pill" onClick={() => setDetail(null)}>close ✕</button>
+                </div>
+                <div className="mt-3"><MeterBar pct={Math.round(detail.fit * 100)} caption={`fit ${Math.round(detail.fit * 100)} — derived by Taste Brain from Qloo order`} hint={detail.evidence.fit_note} /></div>
+                <p className="mt-3 text-sm leading-relaxed text-slate-700">{detail.explanation}</p>
+                <div className="mt-3"><Chips items={detail.tags} title="tags" /></div>
+                <dl className="mt-3 rounded-lg border border-slate-200 bg-slate-50/70 px-2.5 py-1.5">
+                  <KV k="qloo rank" v={detail.qloo_rank} />
+                  <KV k="popularity" v={num(detail.popularity)} />
+                  <KV k="obscurity" v={num(detail.obscurity, 1)} />
+                  <KV k="followers" v={num(detail.followers, 0)} />
+                  <KV k="local lift" v={typeof detail.local_lift === 'number' ? `${detail.local_lift > 0 ? '+' : ''}${detail.local_lift}` : 'not computed'} />
+                  <KV k="endpoint" v={<code className="font-mono text-[11px]">{detail.evidence.endpoint}</code>} />
+                  <KV k="workflow" v={detail.evidence.workflow} />
+                  <KV k="fetched at" v={<FetchedAt iso={detail.evidence.fetched_at} mode={detail.evidence.mode} />} />
+                </dl>
+                <div className="mt-3 space-y-1">
+                  <div className="text-xs font-semibold text-slate-700">Rule checks</div>
+                  {detail.rule_results.map((r) => (
+                    <div key={r.rule_id} className="flex items-start gap-2 text-[11px]" title={`${r.reason} — ${r.source}`}>
+                      <StatusPill status={r.status}>{r.rule_id}</StatusPill>
+                      <span className="min-w-0 text-slate-600">{r.reason}</span>
+                    </div>
+                  ))}
+                </div>
+                {detail.evidence.explainability && (
+                  <Note tone="info" title="Qloo’s own words">“{detail.evidence.explainability}”</Note>
+                )}
+                {detail.needs_terms.length > 0 && (
+                  <Note tone="warn" title="Term required before approval">{detail.needs_terms.map((t) => t.label).join(' · ')}</Note>
+                )}
+                <div className="mt-3"><JsonBlock obj={detail} /></div>
+              </aside>
+            </>
+          )}
+
+          {cmpItems.length >= 2 && (
+            <div className="tb-tray print:hidden">
+              <span className="text-[11px] font-semibold text-slate-600">{cmpItems.map((i) => i.name).join(' · ')}</span>
+              <button className="tb-pill" data-on="true" onClick={() => setCmpOpen(true)}>Compare side by side</button>
+              <button className="cursor-pointer text-[11px] text-slate-400 underline" onClick={() => setCmp([])}>clear</button>
+            </div>
+          )}
+
+          {cmpItems.length >= 2 && (
+            <dialog
+              ref={cmpRef}
+              className="tb-dialog h-fit max-h-[85vh] w-[min(96vw,980px)] overflow-auto rounded-2xl border border-slate-200 bg-white p-0 text-slate-800 shadow-2xl"
+              onClick={(e) => { if (e.target === e.currentTarget) setCmpOpen(false); }}
+              onClose={() => setCmpOpen(false)}
+            >
+              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/90 px-4 py-2.5 backdrop-blur">
+                <div className="text-sm font-bold">Side by side — every value below is this run’s own data</div>
+                <button className="tb-pill" onClick={() => setCmpOpen(false)}>close ✕</button>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-4 border-b border-slate-100 px-4 py-3">
+                <Radar axes={['fit', 'qloo rank', 'popularity', 'obscurity', 'followers']} series={radarSeries} />
+                <div className="space-y-1 text-[11px]">
+                  {radarSeries.map((s) => (
+                    <div key={s.name} className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: s.color }} aria-hidden /><span className="font-medium text-slate-700">{s.name}</span></div>
+                  ))}
+                  <p className="max-w-56 text-[10px] leading-relaxed text-slate-400">Each axis is scaled to the best value among the compared picks (Qloo rank inverted — 1st place scores full). A comparison shape, not an absolute score.</p>
+                </div>
+              </div>
+              <div className="grid gap-3 p-4" style={{ gridTemplateColumns: `repeat(${cmpItems.length}, minmax(0, 1fr))` }}>
+                {cmpItems.map((i) => (
+                  <div key={i.entity_id} className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+                    <div className="text-sm font-bold leading-tight">{i.name}</div>
+                    <div className="text-[11px] text-slate-500">{i.type} · <ModeBadge mode={i.mode} className="ml-1 inline-flex align-middle" /></div>
+                    <MeterBar pct={Math.round(i.fit * 100)} caption={`fit ${Math.round(i.fit * 100)} — derived by Taste Brain from Qloo order`} />
+                    <KV k="qloo rank" v={i.qloo_rank} />
+                    <KV k="popularity" v={num(i.popularity)} />
+                    <KV k="obscurity" v={num(i.obscurity, 1)} />
+                    <KV k="followers" v={num(i.followers, 0)} />
+                    <KV k="local lift" v={typeof i.local_lift === 'number' ? `${i.local_lift > 0 ? '+' : ''}${i.local_lift}` : 'not computed'} />
+                    <KV k="rules" v={`${i.rule_results.filter((r) => r.status === 'pass').length}/${i.rule_results.length} pass`} />
+                    <div><Chips items={i.tags.slice(0, 8)} title="tags" /></div>
+                    {i.evidence.explainability && <p className="text-[11px] italic leading-relaxed text-slate-600">“{i.evidence.explainability}” — Qloo's own words</p>}
+                  </div>
+                ))}
+              </div>
+            </dialog>
+          )}
+        </>
+      )}
 
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-semibold">Human decision (F7)</span>
+          <span className="text-sm font-semibold">Human decision</span>
           <span className="ml-auto text-[11px] text-slate-500">status: <strong>{proposal?.status}</strong></span>
         </div>
         <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
@@ -236,10 +472,10 @@ function Items({ onRefused }: { onRefused: (m: string) => void }) {
           <label className="text-xs text-slate-500">approver</label>
           <Input value={approver} onChange={(e) => setApprover(e.target.value)} maxLength={80} placeholder="your name — required" className={`w-44 ${approver.trim() ? '' : 'border-amber-400'}`} />
           {!approver.trim() && <span className="text-[11px] text-amber-700">no approver named yet: Approve and Reject stay refused until you type one</span>}
-          <Button size="sm" disabled={busy} onClick={() => act('approved', picked.length ? picked : undefined)}>
+          <Button size="sm" disabled={busy || running} onClick={() => act('approved', picked.length ? picked : undefined)}>
             {picked.length ? `Approve ${picked.length} selected` : 'Approve all'}
           </Button>
-          <Button size="sm" variant="outline" disabled={busy} onClick={() => act('rejected', picked.length ? picked : undefined)}>Reject</Button>
+          <Button size="sm" variant="outline" disabled={busy || running} onClick={() => act('rejected', picked.length ? picked : undefined)}>Reject</Button>
           {picked.length > 0 && <button className="cursor-pointer text-[11px] text-slate-500 underline" onClick={() => setPicked([])}>clear selection</button>}
         </div>
       </div>
@@ -247,27 +483,35 @@ function Items({ onRefused }: { onRefused: (m: string) => void }) {
   );
 }
 
-function ItemCard({ item, picked, onPick, terms, onTerm }: {
+function ItemCard({ item, picked, onPick, comparing, onCompare, onDetail, terms, onTerm }: {
   item: ProposalItem;
   picked: boolean;
   onPick: () => void;
+  comparing: boolean;
+  onCompare: () => void;
+  onDetail: () => void;
   terms: Record<string, number>;
   onTerm: (field: string, value: number) => void;
 }) {
   const [open, setOpen] = useState(false);
   const lift = item.local_lift;
   return (
-    <article className={`rounded-lg border p-3 ${item.approval_blocked ? 'border-amber-300 bg-amber-50/40' : 'border-slate-200'}`}>
+    <article className={`rounded-lg border p-3 transition-all hover:shadow-md ${item.approval_blocked ? 'border-amber-300 bg-amber-50/40' : 'border-slate-200 bg-white/80 hover:border-indigo-200'} ${comparing ? 'ring-2 ring-indigo-300' : ''}`}>
       <div className="flex flex-wrap items-center gap-2">
         <input type="checkbox" checked={picked} onChange={onPick} className="h-3.5 w-3.5 cursor-pointer accent-indigo-600" aria-label={`select ${item.name}`} />
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700" title={`Qloo rank ${item.qloo_rank}`}>{item.rank}</span>
-        <span className="font-semibold">{item.name}</span>
+        <button
+          onClick={onCompare} title={comparing ? 'remove from compare' : 'compare with another pick (up to 3)'} aria-label={`compare ${item.name}`}
+          className={`cursor-pointer rounded px-1 text-[10px] font-bold ${comparing ? 'tb-nav-active' : 'border border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-600'}`}
+        >⇄</button>
+        <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${item.rank === 1 ? 'tb-medal tb-medal-gold' : item.rank === 2 ? 'tb-medal tb-medal-silver' : item.rank === 3 ? 'tb-medal tb-medal-bronze' : 'tb-medal'}`} title={`Qloo rank ${item.qloo_rank}`}>{item.rank}</span>
+        <button className="cursor-pointer font-semibold hover:underline" onClick={onDetail} title="open the detail drawer">{item.name}</button>
         <span className="text-[11px] text-slate-500">{item.type}</span>
         <ModeBadge mode={item.mode} />
         {item.rising && <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[11px] text-sky-800" title="derived by Taste Brain from Qloo's trend vs default order">rising: {item.rising}</span>}
         {typeof lift === 'number' && <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[11px] text-sky-800" title="derived by Taste Brain: rank with location minus rank without it">local lift {lift > 0 ? '+' : ''}{lift}</span>}
-        <span className="ml-auto text-[11px] text-slate-500" title={item.evidence.fit_note}>fit {Math.round(item.fit * 100)} (derived)</span>
+        <span className="ml-auto w-28 shrink-0 text-right text-[11px] text-slate-500" title={item.evidence.fit_note}>fit {Math.round(item.fit * 100)} (derived)</span>
       </div>
+      <div className="mt-1.5"><MeterBar pct={Math.round(item.fit * 100)} hint={item.evidence.fit_note} /></div>
 
       <p className="mt-1.5 text-sm leading-relaxed text-slate-700">{item.explanation}</p>
 
@@ -300,7 +544,7 @@ function ItemCard({ item, picked, onPick, terms, onTerm }: {
       )}
 
       <div className="mt-2 flex items-center gap-3 text-[11px] text-slate-500">
-        <button className="cursor-pointer underline" onClick={() => setOpen((o) => !o)}>{open ? 'hide' : 'show'} the evidence card (F14)</button>
+        <button className="cursor-pointer underline" onClick={() => setOpen((o) => !o)}>{open ? 'hide' : 'show'} the evidence card</button>
         <span>term entered above is stored against your room and written to the ledger when you approve — it is never attributed to Qloo</span>
       </div>
       {open && (
@@ -329,7 +573,7 @@ function Excluded() {
   const { rejections, unsupported } = proposal;
   if (!rejections.length && !unsupported.length && !flips.length) return null;
   return (
-    <Panel title="What was refused, and what would change it" description="F40 flip points are computed against the same rules that did the refusing — a threshold you could actually move.">
+    <Panel title="What was refused, and what would change it" description="Each flip point shows the exact threshold that would turn a refusal into a pass.">
       {rejections.length > 0 && (
         <div className="space-y-1.5">
           <div className="text-xs font-semibold text-red-800">Rejected by the venue’s own rules ({rejections.length})</div>

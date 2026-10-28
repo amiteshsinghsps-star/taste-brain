@@ -43,9 +43,8 @@ export default function PartnersScreen() {
         {!proposal ? <Empty>{NEEDS_RUN}</Empty> : (
           <>
             <Note tone="warn" title="What this screen is not">
-              Audience overlap only. Nothing here says a company has agreed to a promotion, and no partner is invented to
-              fill the screen. Contact details and terms are yours to find; the engine stops at “this entity answers to the
-              same taste signal as this room’s audience”.
+              These are audience-overlap matches only. Nothing here means a company has agreed to a promotion, and no partner
+              is added to fill the screen — the engine stops at “this entity answers to the same taste signal as this room’s audience”.
             </Note>
 
             {error && <Note tone="bad" title="Refused">{error}</Note>}
@@ -59,7 +58,7 @@ export default function PartnersScreen() {
               </div>
             )}
 
-            {!data && !busy && !error && <Empty>Not asked yet. Pressing Ask Qloo spends one call per entity type against the run budget — in Replay mode it reads the stored partner rows.</Empty>}
+            {!data && !busy && !error && <Empty>Not asked yet. “Ask Qloo” spends one call per entity type against the run budget.</Empty>}
 
             {data && rows.length === 0 && <Empty>{data.partners.note}</Empty>}
 

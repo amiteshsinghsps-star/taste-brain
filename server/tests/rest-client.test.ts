@@ -260,3 +260,32 @@ describe('host gate: live Qloo off', () => {
     }
   }, 30_000);
 });
+
+// ── Per-run live gate (the Quota Guardian's "Cached" must mean no network) ──
+
+describe('per-run live gate', () => {
+  it('refuses the network for a run that was not granted live, cache miss included', async () => {
+    const calls = captureFetch(MOCK_SINGLE_ENTITY);
+    const { search, withLiveAllowed, networkCallCount } = await import('../src/qloo/rest-client');
+    const netBefore = networkCallCount();
+    const err: any = await withLiveAllowed(false, () => search('Denied Brand')).then(() => null, (e) => e);
+    expect(err?.name).toBe('QlooApiError');
+    expect(calls.length).toBe(0);
+    expect(networkCallCount()).toBe(netBefore);
+    // The gate is a scope, not a switch: outside it the same call still goes out.
+    await withLiveAllowed(true, () => search('Granted Brand')).catch(() => {});
+    expect(calls.length).toBeGreaterThan(0);
+  }, 30_000);
+
+  it('still reads a stored answer inside the gate and fetches nothing', async () => {
+    captureFetch(MOCK_SINGLE_ENTITY);
+    const { search, withLiveAllowed, networkCallCount } = await import('../src/qloo/rest-client');
+    await search('Already Stored Brand');                       // this answer lands in the scratch cache
+    const second = captureFetch(MOCK_MULTI_ENTITY);             // must never be reached
+    const netBefore = networkCallCount();
+    const rows = await withLiveAllowed(false, () => search('Already Stored Brand'));
+    expect(rows.length).toBe(1);
+    expect(second.length).toBe(0);
+    expect(networkCallCount()).toBe(netBefore);
+  }, 30_000);
+});

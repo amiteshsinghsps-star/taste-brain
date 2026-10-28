@@ -2,11 +2,17 @@
 // header that always tells you which mode the data came in and what is left of
 // the budget. Screens never hold state of their own beyond their inputs.
 
-import { Component, useEffect, useState, type FC, type ReactNode } from 'react';
+import { Component, useCallback, useEffect, useRef, useState, type FC, type ReactNode } from 'react';
 import { ModeBadge, ModeMixLine } from '@/components/common';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { AppProvider } from '@/lib/state';
 import { useApp } from '@/lib/app-context';
 import type { TasteMode } from '@/lib/types';
+import {
+  CommandPalette, HelpModal, QuotaBar, ServerDot,
+  ToastHost, pushToast, useClickOutside, useHealth, useLocalStorage,
+} from '@/components/shell-extras';
 import PlanScreen from '@/screens/PlanScreen';
 import EvidenceScreen from '@/screens/EvidenceScreen';
 import TraceScreen from '@/screens/TraceScreen';
@@ -59,17 +65,42 @@ const NAV: { group: string; items: [string, string, FC][] }[] = [
 ];
 
 const MODE_HINT: Record<TasteMode, string> = {
-  live: 'Ask Qloo now, inside the call budget. Falls back to Cached, then Replay, and says so.',
-  cached: 'Use the private stored answer; the live call is not repeated.',
-  replay: 'Synthetic fixtures only. Runs with no key and never claims to be live.',
+  live: 'Ask Qloo now, within the call budget. Falls back to stored answers when needed.',
+  cached: 'Use the stored Qloo answer — no new API call.',
+  replay: 'Offline sample data, for testing only.',
 };
 
 const LIVE_OFF_HINT = 'Live is switched off on this host, so no visitor can spend the team key by accident. '
   + 'The key custodian turns it on in the host environment for a planned warm-up or the finals, then off again.';
 
+const ACCENTS = ['indigo', 'violet', 'fuchsia', 'rose', 'amber', 'orange', 'emerald', 'teal', 'sky', 'slate'] as const;
+const TAB_ICON: Record<string, string> = {
+  plan: '🎯', evidence: '🔍', trace: '🧾', brief: '📝',
+  whynot: '❓', whatif: '🔀', partners: '🤝',
+  ablation: '🧪', trust: '🛡️', verify: '🔐', breakit: '💥', coverage: '🗺️', ledger: '📒',
+  budget: '⏱️', finals: '🎬', lift: '📈', about: 'ℹ️',
+  Decide: '🎯', Question: '❓', 'Prove it': '🔬', Operate: '🛠',
+};
+const ACCENT_STOPS: Record<(typeof ACCENTS)[number], [string, string]> = {
+  indigo: ['#4f46e5', '#7c3aed'], violet: ['#7c3aed', '#4f46e5'], fuchsia: ['#c026d3', '#7c3aed'],
+  rose: ['#e11d48', '#be185d'], amber: ['#d97706', '#ea580c'], orange: ['#ea580c', '#db2777'],
+  emerald: ['#059669', '#0d9488'], teal: ['#0d9488', '#0891b2'], sky: ['#0284c7', '#4f46e5'], slate: ['#475569', '#334155'],
+};
+const DENSITIES = [['cozy', 'M'], ['compact', 'S'], ['comfortable', 'L']] as const;
+
 function Shell() {
   const app = useApp();
   const [tab, setTab] = useState(() => (typeof window === 'undefined' ? 'plan' : window.location.hash.replace('#', '') || 'plan'));
+  const health = useHealth();
+  const [palette, setPalette] = useState(false);
+  const [help, setHelp] = useState(false);
+  const [accent, setAccent] = useLocalStorage<typeof ACCENTS[number]>('tb.accent', 'indigo');
+  const [density, setDensity] = useLocalStorage<typeof DENSITIES[number][0]>('tb.density', 'cozy');
+  const [theme, setTheme] = useLocalStorage<'light' | 'dark' | 'system'>('tb.theme', 'light');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [quickOpen, setQuickOpen] = useState(false);
+  const settingsRef = useClickOutside<HTMLDivElement>(settingsOpen, () => setSettingsOpen(false));
+  const quickRef = useClickOutside<HTMLDivElement>(quickOpen, () => setQuickOpen(false));
 
   useEffect(() => { window.location.hash = tab; }, [tab]);
 
@@ -82,25 +113,116 @@ function Shell() {
     return () => window.removeEventListener('hashchange', follow);
   }, []);
 
-  const Screen = NAV.flatMap((g) => g.items).find(([id]) => id === tab)?.[2] ?? PlanScreen;
+  // Appearance prefs live on <html> so root font-size and accent vars apply globally.
+  useEffect(() => {
+    const el = document.documentElement;
+    el.dataset.accent = accent;
+    el.classList.toggle('tb-compact', density === 'compact');
+    el.classList.toggle('tb-comfortable', density === 'comfortable');
+  }, [accent, density]);
+
+  // Lights-out: explicit wins; 'system' follows the OS and keeps following it.
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const apply = () => document.documentElement.classList.toggle('tb-moon', theme === 'dark' || (theme === 'system' && mq.matches));
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, [theme]);
+
+  // Toast when a run finishes. The busy flag dropping is the one honest signal
+  // that the engine produced (or refused) a result.
+  const prevBusy = useRef(false);
+  useEffect(() => {
+    if (prevBusy.current && !app.busy) {
+      if (app.error) pushToast('The engine refused this run — see the Plan screen', 'bad');
+      else if (app.proposal) pushToast(`Run ${app.proposal.mode.toUpperCase()}: ${app.proposal.items.length} item(s), ${app.proposal.rejections.length} rejection(s)`, 'ok');
+    }
+    prevBusy.current = app.busy;
+  }, [app.busy]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const allTabs = NAV.flatMap((g) => g.items);
+  const flatIds = allTabs.map(([id]) => id);
+  const Screen = allTabs.find(([id]) => id === tab)?.[2] ?? PlanScreen;
+  const activeGroup = NAV.find((g) => g.items.some(([id]) => id === tab)) ?? NAV[0];
   const info = app.modeInfo;
 
+  const go = useCallback((id: string) => setTab(id), []);
+
+  // Keyboard: Ctrl/Cmd+K palette, Alt+1..4 groups, Alt+arrows walk all screens,
+  // ? opens help, Esc closes overlays. Typing in a field never triggers them.
+  useEffect(() => {
+    const on = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setPalette((p) => !p); return; }
+      const typing = /^(input|textarea|select)$/i.test((e.target as HTMLElement)?.tagName ?? '');
+      if (typing) { if (e.key === 'Escape') { setPalette(false); setHelp(false); } return; }
+      if (e.key === '?') { e.preventDefault(); setHelp(true); return; }
+      if (e.key === 'Escape') { setPalette(false); setHelp(false); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void app.run(); return; }
+      if (e.altKey && (e.key === 't' || e.key === 'T')) { setTheme((t) => t === 'light' ? 'dark' : t === 'dark' ? 'system' : 'light'); return; }
+      if (e.altKey && /^[1-4]$/.test(e.key)) { const g = NAV[Number(e.key) - 1]; if (g) setTab(g.items[0][0]); return; }
+      if (e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+        e.preventDefault();
+        const i = flatIds.indexOf(tab);
+        const ni = (i + (e.key === 'ArrowRight' ? 1 : flatIds.length - 1) + flatIds.length) % flatIds.length;
+        setTab(flatIds[ni]);
+      }
+    };
+    window.addEventListener('keydown', on);
+    return () => window.removeEventListener('keydown', on);
+  }, [tab, flatIds]);
+
+  const copyJson = async () => {
+    if (!app.proposal) { pushToast('No active run to copy yet', 'info'); return; }
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(app.proposal, null, 2));
+      pushToast('Active run JSON copied to clipboard', 'ok');
+    } catch { pushToast('Clipboard blocked by the browser', 'bad'); }
+  };
+
+  const labelOf = (id: string) => allTabs.find(([t]) => t === id)?.[1] ?? id;
+
+  const cycleAccent = () => setAccent((a) => ACCENTS[(ACCENTS.indexOf(a) + 1) % ACCENTS.length] as typeof ACCENTS[number]);
+  const paletteActions = [
+    { id: 'act-run', label: 'Run the agent (Plan)', hint: 'Ctrl+↵', run: () => { setTab('plan'); void app.run(); } },
+    { id: 'act-theme', label: 'Cycle theme: light → dark → auto', hint: 'Alt+T', run: () => setTheme((t) => t === 'light' ? 'dark' : t === 'dark' ? 'system' : 'light') },
+    { id: 'act-accent', label: `Next accent palette (now: ${accent})`, hint: '⚙', run: cycleAccent },
+    { id: 'act-copy', label: 'Copy the active run as JSON', hint: '⌘', run: () => void copyJson() },
+    { id: 'act-print', label: 'Print this screen (evidence only)', hint: 'Ctrl+P', run: () => window.print() },
+    { id: 'act-help', label: 'Keyboard shortcuts', hint: '?', run: () => setHelp(true) },
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <div className="min-h-screen text-slate-900">
+      {app.busy && <div className="tb-beam-line fixed left-0 top-0 z-50 w-full print:hidden" aria-label="run in progress" />}
+
+      <header className="sticky top-0 z-10 border-b border-slate-200/70 bg-white/70 shadow-[0_1px_20px_-8px_rgba(15,23,42,0.15)] backdrop-blur-xl print:hidden">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
-          <div className="mr-auto">
-            <h1 className="text-lg font-bold tracking-tight">Taste Brain</h1>
-            <p className="text-xs text-slate-500">decision governance for taste-driven rooms — rules from the business, taste from Qloo, a trace for every call</p>
+          <div className="mr-auto flex items-center gap-3">
+            <div className="tb-orb" aria-hidden>TB</div>
+            <div>
+              <h1 className="tb-brand-text text-xl font-extrabold tracking-tight">Taste Brain</h1>
+              <p className="text-[11px] text-slate-500">decision governance for taste-driven rooms — rules from the business, taste from Qloo, a trace for every call</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <ServerDot h={health} />
+            <QuotaBar h={health} />
           </div>
 
           {app.proposal && (
-            <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] text-slate-600">
+            <div className="flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/80 px-3 py-1 text-[11px] text-slate-600 shadow-sm">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
               <span>active run</span>
               <code className="font-mono">{app.proposal.proposal_id}</code>
               <ModeBadge mode={app.proposal.mode} />
               <ModeMixLine mix={app.proposal.trace.mode_mix} compact />
               <span>{app.proposal.items.length} item(s) · {app.proposal.status}</span>
+              <button onClick={copyJson} className="cursor-pointer rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-200" title="Copy the full run as JSON">copy JSON</button>
               {app.servedFrom === 'snapshot' && <span className="rounded bg-indigo-100 px-1.5 py-0.5 font-semibold text-indigo-700">FINALS MODE</span>}
               {app.servedFrom === 'restored' && <span className="rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-800" title="Re-served from the store — this room's newest stored run, nothing new was computed">restored from the store</span>}
             </div>
@@ -108,55 +230,163 @@ function Shell() {
 
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] text-slate-500">request mode</span>
-            {(['replay', 'cached', 'live'] as TasteMode[]).map((m) => {
-              const off = m === 'live' && info !== null && !info.qloo_rest_active;
-              return (
-                <button
-                  key={m} disabled={off} onClick={() => app.setMode(m)}
-                  className={off ? 'cursor-not-allowed' : 'cursor-pointer'}
-                  title={off ? LIVE_OFF_HINT : MODE_HINT[m]}
-                >
-                  <span className={app.mode === m && !off ? '' : 'opacity-45'}><ModeBadge mode={m} /></span>
-                </button>
-              );
-            })}
+            <div className="flex items-center gap-1 rounded-full border border-slate-200/80 bg-slate-100/80 p-1">
+              {(['cached', 'live'] as TasteMode[]).map((m) => {
+                const off = m === 'live' && info !== null && !info.qloo_rest_active;
+                return (
+                  <button
+                    key={m} disabled={off} onClick={() => app.setMode(m)}
+                    className={off ? 'cursor-not-allowed' : 'cursor-pointer'}
+                    title={off ? LIVE_OFF_HINT : MODE_HINT[m]}
+                  >
+                    <span className={app.mode === m && !off ? '' : 'opacity-45'}><ModeBadge mode={m} /></span>
+                  </button>
+                );
+              })}
+            </div>
             {info !== null && !info.qloo_rest_active && (
               <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600" title={LIVE_OFF_HINT}>live off on this host</span>
             )}
           </div>
 
           <div className="flex items-center gap-2 text-[11px] text-slate-500">
-            <span title="The key lives in the server environment and is never sent to this browser">qloo key: <strong>{info?.qloo_key ?? '—'}</strong></span>
+            <span title="The key lives in the server environment and is never sent to this browser">qloo key: <strong className={info?.qloo_key === 'set' ? 'text-emerald-600' : ''}>{info?.qloo_key ?? '—'}</strong></span>
             {info?.finals_mode && <span className="rounded bg-indigo-600 px-1.5 py-0.5 font-semibold text-white">FINALS MODE ON</span>}
           </div>
         </div>
 
-        <nav className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-1 px-5 pb-2">
-          {NAV.map((g) => (
-            <div key={g.group} className="flex items-center gap-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{g.group}</span>
-              {g.items.map(([id, label]) => (
+        <nav className="mx-auto flex max-w-7xl flex-col gap-2 px-5 pb-3">
+          {/* Level 1: the four big tabs */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {NAV.map((g, gi) => {
+              const on = activeGroup.group === g.group;
+              return (
                 <button
-                  key={id} onClick={() => setTab(id)}
-                  className={`cursor-pointer rounded-md px-2.5 py-1 text-xs ${tab === id ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
-                >{label}</button>
-              ))}
+                  key={g.group}
+                  onClick={() => setTab(g.items[0][0])}
+                  title={`${g.items.map(([, l]) => l).join(' · ')} (Alt+${gi + 1})`}
+                  className={`cursor-pointer rounded-xl px-4 py-1.5 text-sm font-semibold transition-all ${on ? 'tb-nav-active' : 'text-slate-600 bg-white/70 border border-slate-200/80 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md'}`}
+                >
+                  <span className="mr-1.5" aria-hidden>{TAB_ICON[g.group]}</span>{g.group}
+                  <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${on ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500'}`}>{g.items.length}</span>
+                </button>
+              );
+            })}
+
+            <div className="ml-auto flex items-center gap-2">
+              <div className="relative" ref={quickRef}>
+                <button onClick={() => setQuickOpen((v) => !v)} title="run the agent from any screen"
+                  className="cursor-pointer rounded-full border border-slate-200/80 bg-white/70 px-2.5 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-100">⚡ quick run</button>
+                {quickOpen && (
+                  <div className="tb-screen-enter absolute right-0 top-9 z-40 w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
+                    <div className="mb-2 text-xs font-bold text-slate-700">Quick run</div>
+                    <label className="text-[10px] font-medium text-slate-500">pack</label>
+                    <select value={app.pack} onChange={(e) => app.setPack(e.target.value)} className="mb-1.5 w-full cursor-pointer rounded-lg border border-slate-300 px-2 py-1 text-xs">
+                      {app.packs.map((p) => <option key={p.pack} value={p.pack}>{p.display_name}</option>)}
+                    </select>
+                    <label className="text-[10px] font-medium text-slate-500">room</label>
+                    <select value={app.location} onChange={(e) => app.setLocation(e.target.value)} className="mb-1.5 w-full cursor-pointer rounded-lg border border-slate-300 px-2 py-1 text-xs">
+                      {app.locations.map((l) => <option key={l.id} value={l.id}>{l.name} · {l.city}</option>)}
+                    </select>
+                    <label className="text-[10px] font-medium text-slate-500">goal</label>
+                    <Input value={app.goal} onChange={(e) => app.setGoal(e.target.value)} maxLength={256} className="mb-2 text-xs" />
+                    <Button
+                      className="tb-hero w-full cursor-pointer" size="sm"
+                      disabled={app.busy || !app.location || !app.goal.trim()}
+                      onClick={() => { setQuickOpen(false); setTab('plan'); void app.run(); }}
+                    >{app.busy ? 'running…' : 'Run the agent'}</Button>
+                    <p className="mt-1.5 text-[10px] text-slate-400">Uses the same engine and budget as the Plan screen; opens results there.</p>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => setTheme(theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light')}
+                title={`theme: ${theme} — click to cycle light / dark / system`}
+                className="cursor-pointer rounded-full border border-slate-200/80 bg-white/70 px-2 py-1 text-[11px] hover:bg-slate-100"
+              >{theme === 'system' ? '☾ auto' : theme === 'dark' ? '☾' : '☀'}</button>
+
+              <div className="relative" ref={settingsRef}>
+                <button onClick={() => setSettingsOpen((v) => !v)} title="display settings"
+                  className={`cursor-pointer rounded-full border border-slate-200/80 px-2 py-1 text-[11px] ${settingsOpen ? 'tb-nav-active' : 'bg-white/70 hover:bg-slate-100'}`}>⚙</button>
+                {settingsOpen && (
+                  <div className="tb-screen-enter absolute right-0 top-9 z-40 w-72 rounded-2xl border border-slate-200 bg-white p-3 text-xs shadow-2xl">
+                    <div className="mb-2 font-bold text-slate-700">Display settings</div>
+                    <div className="mb-1 text-[10px] uppercase tracking-wider text-slate-400">theme</div>
+                    <div className="mb-2 flex gap-1">
+                      {(['light', 'dark', 'system'] as const).map((t) => (
+                        <button key={t} onClick={() => setTheme(t)}
+                          className={`cursor-pointer flex-1 rounded-lg border px-2 py-1 ${theme === t ? 'tb-nav-active border-transparent' : 'border-slate-200 hover:bg-slate-50'}`}>{t}</button>
+                      ))}
+                    </div>
+                    <div className="mb-1 text-[10px] uppercase tracking-wider text-slate-400">accent palette</div>
+                    <div className="mb-2 grid grid-cols-5 gap-2">
+                      {ACCENTS.map((a) => (
+                        <button key={a} onClick={() => setAccent(a)} aria-label={`accent ${a}`} title={a} data-on={accent === a}
+                          className="tb-swatch"
+                          style={{ background: `linear-gradient(135deg, ${ACCENT_STOPS[a][0]}, ${ACCENT_STOPS[a][1]})` }} />
+                      ))}
+                    </div>
+                    <div className="mb-1 text-[10px] uppercase tracking-wider text-slate-400">text size</div>
+                    <div className="mb-2 flex gap-1">
+                      {DENSITIES.map(([d, l]) => (
+                        <button key={d} onClick={() => setDensity(d)}
+                          className={`cursor-pointer flex-1 rounded-lg border px-2 py-1 ${density === d ? 'tb-nav-active border-transparent' : 'border-slate-200 hover:bg-slate-50'}`}>{l === 'M' ? 'medium' : l === 'S' ? 'small' : 'large'}</button>
+                      ))}
+                    </div>
+                    <p className="mt-1 text-[10px] text-slate-400">Saved on this device only.</p>
+                  </div>
+                )}
+              </div>
+
+              <button onClick={() => setPalette(true)} title="command palette (Ctrl+K)"
+                className="cursor-pointer rounded-full border border-slate-200/80 bg-white/70 px-2.5 py-1 text-[10px] font-semibold text-slate-500 hover:bg-slate-100">⌘K</button>
+              <button onClick={() => setHelp(true)} title="keyboard shortcuts (?)"
+                className="cursor-pointer rounded-full border border-slate-200/80 bg-white/70 px-2 py-1 text-[10px] font-bold text-slate-500 hover:bg-slate-100">?</button>
             </div>
-          ))}
+          </div>
+
+          {/* Level 2: the screens inside the active tab */}
+          <div className="tb-screen-enter flex w-fit flex-wrap items-center gap-1 rounded-full border border-slate-200/80 bg-slate-100/70 p-1">
+            {activeGroup.items.map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setTab(id)}
+                className={`cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition-all ${tab === id ? 'bg-white text-indigo-700 shadow-sm ring-1 ring-indigo-200' : 'text-slate-600 hover:bg-white/60 hover:text-slate-900'}`}
+              ><span className="mr-1" aria-hidden>{TAB_ICON[id]}</span>{label}</button>
+            ))}
+          </div>
         </nav>
+        <div className="tb-beam-line" aria-hidden />
+        <div className="h-0.5 w-full" aria-hidden style={{ background: 'linear-gradient(90deg, transparent, var(--tb-g1), var(--tb-g2), var(--tb-g3), transparent)' }} />
       </header>
 
-      <main className="mx-auto max-w-7xl px-5 py-6">
+      {/* breadcrumb */}
+      <div className="mx-auto flex max-w-7xl items-center gap-2 px-5 pt-4 text-[11px] text-slate-500 print:hidden">
+        <button onClick={() => setTab('plan')} className="cursor-pointer hover:text-indigo-600">home</button>
+        <span>›</span>
+        <span className="font-semibold text-slate-600">{activeGroup.group}</span>
+        <span>›</span>
+        <span className={tab === 'plan' ? '' : 'text-slate-800'}>{labelOf(tab)}</span>
+      </div>
+
+      <main className="tb-screen-enter mx-auto max-w-7xl px-5 py-6" key={tab}>
         <ScreenBoundary key={tab}>
           <Screen />
         </ScreenBoundary>
       </main>
 
       <footer className="mx-auto max-w-7xl px-5 pb-8 text-[11px] leading-relaxed text-slate-500">
-        Taste Brain · Qloo Agentic Hackathon. Live Qloo for taste, the venue’s own SOP for rules, a named person for the
-        decision, and a hash-chained ledger for everything in between. Replay data is synthetic and labelled; nothing is
-        presented as live that is not.
+        <div className="flex flex-wrap items-center gap-x-3 border-t border-slate-200/70 pt-4">
+          <span>Taste Brain · Qloo Agentic Hackathon. Qloo supplies the taste data, the venue’s own rules enforce the decisions,
+          and every approve or refuse is recorded in a tamper-evident ledger.</span>
+        </div>
       </footer>
+
+      <CommandPalette open={palette} onClose={() => setPalette(false)} go={go} actions={paletteActions}
+        entries={NAV.flatMap((g) => g.items.map(([id, label]) => ({ id, label, group: g.group })))} />
+      <HelpModal open={help} onClose={() => setHelp(false)} />
+      <ToastHost />
     </div>
   );
 }

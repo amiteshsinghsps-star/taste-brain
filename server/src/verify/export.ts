@@ -60,16 +60,18 @@ export interface DecisionExport {
 export function exportHonestScope(mode: TasteMode): DecisionExport['honest_scope'] {
   return {
     proves: [
-      'the ledger chain recomputes to the stated head hash, so no record was edited after it was written',
+      'the ledger chain recomputes to the stated head hash, so no ledger record was edited after it was written',
+      'which acts were chosen, in which ranks and on which rule verdicts: those re-hash to the rerun_hash carried inside the hash-protected ledger records, so the decision shown is the decision that was signed',
       "every shown item cites a Qloo entity id that exists in this run's stored evidence",
       'the order of the proposal is the order Qloo returned, not a re-sort by this app',
       'each rule verdict re-evaluates to the recorded result under the pinned rule set',
-      'live / cached / replay is recorded on every step, and the run badge does not claim more than its steps show',
+      'live / cached / replay is recorded on every step, and the run badge claims no stronger source than its steps show',
     ],
     does_not_prove: [
       "that Qloo's own data is correct — this checks integrity and internal consistency, not Qloo's accuracy",
       `that the ${mode} bytes were fetched when the file says they were; timestamps are as recorded by the server that wrote this file`,
       'that a named approver is who they claim to be — the approver is recorded, not authenticated',
+      'that an item display name is the wording Qloo returned: the hash binds the entity id, the rank and the verdict, and a name is free text beside them',
     ],
   };
 }

@@ -250,7 +250,10 @@ export interface HealthInfo {
 export interface QlooCallLogEntry {
   seq: number; workflow: string; variant: string;
   inputs_redacted: Record<string, unknown>; latency_ms: number;
-  cache_hit: boolean; endpoint: string; entity_count: number;
+  cache_hit: boolean;
+  /** The attempt read nothing at all: neither a stored answer nor a response. */
+  failed?: boolean;
+  endpoint: string; entity_count: number;
   mode: TasteMode; at: string; note?: string; pack?: string; location?: string;
 }
 

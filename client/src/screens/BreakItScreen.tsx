@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Empty, Note, Panel, StatusPill, Time } from '@/components/common';
+import { Empty, ModeBadge, Note, Panel, StatusPill, Time } from '@/components/common';
 import { api } from '@/lib/api';
 import type { AttackOutcome, BreakItReport } from '@/lib/types';
 
@@ -91,7 +91,7 @@ export default function BreakItScreen() {
 
       <Panel
         title="Break-it Challenge (W6)"
-        description="Press a button and the engine tries to break itself, live, against the same checks that guard a real run. The scoreboard counts the attacks you have run this session."
+        description="Press a button and the engine runs its real defences on the spot — not a recording of a past verdict. The data they act on is the synthetic Replay sample, so nothing here can touch a live run or spend the key. The scoreboard counts the attacks you have run this session."
         actions={(
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={runAll} disabled={busy !== null}>
@@ -116,7 +116,7 @@ export default function BreakItScreen() {
         </div>
         {board && (
           <div className="mt-3 grid gap-1.5 rounded-md bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
-            <div><span className="font-medium text-slate-800">Sandbox:</span> {board.sandbox.basis}</div>
+            <div className="flex flex-wrap items-center gap-2"><span><span className="font-medium text-slate-800">Sandbox:</span> {board.sandbox.basis}</span><ModeBadge mode={board.sandbox.mode} /></div>
             <div>
               <span className="font-medium text-slate-800">Ledger:</span> written {board.sandbox.real_ledger_written ? 'yes' : 'no'};
               {' '}stored chain {board.sandbox.real_ledger_still_intact === null ? 'has no entries to compare against yet' : board.sandbox.real_ledger_still_intact ? 'still verifies' : 'BROKEN — stop and look'}
@@ -134,7 +134,7 @@ export default function BreakItScreen() {
         </Note>
       </Panel>
 
-      <Panel title="The six attacks" description="Each button calls the real defence. Nothing is pre-recorded.">
+      <Panel title="The six attacks" description="Each button calls the real defence now. Nothing is pre-recorded; the rows it attacks are Replay data.">
         <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {ORDER.map((id) => (
             <li key={id}>
