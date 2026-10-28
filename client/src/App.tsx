@@ -9,10 +9,9 @@ import { Input } from '@/components/ui/input';
 import { AppProvider } from '@/lib/state';
 import { useApp } from '@/lib/app-context';
 import type { TasteMode } from '@/lib/types';
-import {
-  CommandPalette, HelpModal, QuotaBar, ServerDot,
-  ToastHost, pushToast, useClickOutside, useHealth, useLocalStorage,
-} from '@/components/shell-extras';
+import { CommandPalette, HelpModal, QuotaBar, ServerDot, ToastHost } from '@/components/shell-extras';
+import { pushToast } from '@/lib/toast-bus';
+import { useClickOutside, useHealth, useLocalStorage } from '@/lib/shell-hooks';
 import PlanScreen from '@/screens/PlanScreen';
 import EvidenceScreen from '@/screens/EvidenceScreen';
 import TraceScreen from '@/screens/TraceScreen';
@@ -149,6 +148,13 @@ function Shell() {
 
   const go = useCallback((id: string) => setTab(id), []);
 
+  // The keyboard listener is re-bound per tab, so the two values it needs that
+  // change on their own account (the run trigger, the theme setter) are read
+  // through refs rather than by re-registering the listener on every state tick.
+  const runRef = useRef(app.run);
+  const setThemeRef = useRef(setTheme);
+  useEffect(() => { runRef.current = app.run; setThemeRef.current = setTheme; });
+
   // Keyboard: Ctrl/Cmd+K palette, Alt+1..4 groups, Alt+arrows walk all screens,
   // ? opens help, Esc closes overlays. Typing in a field never triggers them.
   useEffect(() => {
@@ -158,8 +164,8 @@ function Shell() {
       if (typing) { if (e.key === 'Escape') { setPalette(false); setHelp(false); } return; }
       if (e.key === '?') { e.preventDefault(); setHelp(true); return; }
       if (e.key === 'Escape') { setPalette(false); setHelp(false); return; }
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void app.run(); return; }
-      if (e.altKey && (e.key === 't' || e.key === 'T')) { setTheme((t) => t === 'light' ? 'dark' : t === 'dark' ? 'system' : 'light'); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); void runRef.current(); return; }
+      if (e.altKey && (e.key === 't' || e.key === 'T')) { setThemeRef.current((t) => t === 'light' ? 'dark' : t === 'dark' ? 'system' : 'light'); return; }
       if (e.altKey && /^[1-4]$/.test(e.key)) { const g = NAV[Number(e.key) - 1]; if (g) setTab(g.items[0][0]); return; }
       if (e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
         e.preventDefault();
@@ -383,8 +389,10 @@ function Shell() {
         </div>
       </footer>
 
-      <CommandPalette open={palette} onClose={() => setPalette(false)} go={go} actions={paletteActions}
-        entries={NAV.flatMap((g) => g.items.map(([id, label]) => ({ id, label, group: g.group })))} />
+      {palette && (
+        <CommandPalette onClose={() => setPalette(false)} go={go} actions={paletteActions}
+          entries={NAV.flatMap((g) => g.items.map(([id, label]) => ({ id, label, group: g.group })))} />
+      )}
       <HelpModal open={help} onClose={() => setHelp(false)} />
       <ToastHost />
     </div>

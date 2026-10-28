@@ -77,7 +77,7 @@ function EvidenceCard({ item }: { item: ProposalItem }) {
   return (
     <article className="tb-arm tb-lift tb-status" data-st={item.approval_blocked ? 'empty' : 'ok'}>
       <div className="flex flex-wrap items-center gap-2">
-        <span className={`tb-medal ${item.rank === 1 ? 'tb-medal-gold' : item.rank === 2 ? 'tb-medal-silver' : item.rank === 3 ? 'tb-medal-bronze' : ''}`} title={`Qloo rank ${e.qloo_rank}`}>{item.rank}</span>
+        <span className={`tb-medal flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${item.rank === 1 ? 'tb-medal-gold' : item.rank === 2 ? 'tb-medal-silver' : item.rank === 3 ? 'tb-medal-bronze' : ''}`} title={`Qloo rank ${e.qloo_rank}`}>{item.rank}</span>
         <span className="font-semibold">{item.name}</span>
         <ModeBadge mode={e.mode} />
         <span className="ml-auto text-[10px] text-slate-400">Qloo rank {e.qloo_rank}</span>

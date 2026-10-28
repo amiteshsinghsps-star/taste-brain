@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Chips, Empty, MeterBar, ModeBadge, Note, Panel, Stat } from '@/components/common';
+import { Chips, Empty, MeterBar, ModeBadge, Note, Panel, Skeleton, Stat } from '@/components/common';
 import { num, pct } from '@/lib/format';
 import { NEEDS_RUN, useApp } from '@/lib/app-context';
 import { api } from '@/lib/api';
@@ -39,7 +39,7 @@ export default function AblationScreen() {
         mode={data?.ablation.source_mode}
         actions={<Button size="sm" variant="outline" onClick={reload} disabled={busy || !id}>{busy ? 'Computing…' : 'Recompute'}</Button>}
       >
-        {!id ? <Empty>{NEEDS_RUN}</Empty> : error ? <Note tone="bad" title="No ablation">{error}</Note> : !data ? <Empty>Computing arms from the stored run…</Empty> : (
+        {!id ? <Empty>{NEEDS_RUN}</Empty> : error ? <Note tone="bad" title="No ablation">{error}</Note> : !data ? <Skeleton lines={5} /> : (
           <>
             <Note tone="good" title="Measured">{data.headline}</Note>
 

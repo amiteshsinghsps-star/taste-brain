@@ -385,16 +385,21 @@ html.tb-moon .hover\:bg-white:hover, html.tb-moon .hover\:bg-white\/60:hover { b
 html.tb-moon .border-slate-100, html.tb-moon .border-slate-200, html.tb-moon .border-slate-200\/70,
 html.tb-moon .border-slate-200\/80, html.tb-moon .border-slate-200\/90, html.tb-moon .border-slate-300, html.tb-moon .border-slate-300\/80 { border-color: rgba(148, 163, 184, 0.22); }
 html.tb-moon .bg-indigo-50 { background-color: #1f2a4d; }
-html.tb-moon .text-indigo-700, html.tb-moon .text-indigo-600 { color: #a5b4fc; }
+html.tb-moon .text-indigo-700, html.tb-moon .text-indigo-600, html.tb-moon .text-indigo-500 { color: #a5b4fc; }
 html.tb-moon .bg-indigo-100 { background-color: #27345f; }
 html.tb-moon .bg-emerald-50 { background-color: #0a2a22; }
 html.tb-moon .text-emerald-700, html.tb-moon .text-emerald-600, html.tb-moon .text-emerald-800 { color: #6ee7b7; }
+html.tb-moon .text-emerald-600\/80 { color: rgba(110, 231, 183, 0.8); }
 html.tb-moon .bg-emerald-100 { background-color: #0f3b2e; }
 html.tb-moon .bg-amber-50 { background-color: #33230a; }
 html.tb-moon .text-amber-700, html.tb-moon .text-amber-800, html.tb-moon .text-amber-900 { color: #fcd34d; }
 html.tb-moon .bg-amber-100 { background-color: #4a3208; }
 html.tb-moon .bg-red-50 { background-color: #3b1212; }
 html.tb-moon .text-red-600, html.tb-moon .text-red-700, html.tb-moon .text-red-800, html.tb-moon .text-red-900 { color: #fca5a5; }
+html.tb-moon .text-rose-600 { color: #fda4af; }
+/* The outline badge ships text-slate-950 on a translucent paper fill — near-black
+   on near-black once the theme flips. */
+html.tb-moon .text-slate-950 { color: #e2e8f0; }
 html.tb-moon .bg-red-100 { background-color: #4a1616; }
 html.tb-moon .bg-sky-100 { background-color: #0c3350; }
 html.tb-moon .text-sky-800 { color: #7dd3fc; }

@@ -75,12 +75,12 @@ export default function PartnersScreen() {
                   )}
                   <div className="grid gap-2.5 lg:grid-cols-2">
                     {rows.map((r) => (
-                      <article key={r.entity_id} className="tb-arm">
+                      <article key={r.entity_id} className="tb-arm tb-lift tb-status" data-st={r.shared_tags.length ? 'ok' : 'empty'}>
                         <div className="flex flex-wrap items-center gap-2">
+                          <span className={`tb-medal flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${r.qloo_rank === 1 ? 'tb-medal-gold' : r.qloo_rank === 2 ? 'tb-medal-silver' : r.qloo_rank === 3 ? 'tb-medal-bronze' : ''}`} title="Qloo's own order">{r.qloo_rank}</span>
                           <span className="text-sm font-bold text-slate-800">{r.name}</span>
                           <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">{r.type} · {r.variant}</span>
                           <ModeBadge mode={r.mode} />
-                          <span className="ml-auto text-[11px] text-slate-500">Qloo rank <strong className="font-semibold tabular-nums text-slate-700">{r.qloo_rank}</strong></span>
                         </div>
                         <div className="mt-2">
                           <MeterBar

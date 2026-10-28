@@ -13,7 +13,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [pack, setPack] = useState('venues');
   const [locations, setLocations] = useState<PackLocation[]>([]);
   const [location, setLocation] = useState('');
-  const [goal, setGoal] = useState('');
+  const [typedGoal, setGoal] = useState('');
   const [mode, setMode] = useState<TasteMode>('live');
   const [approver, setApprover] = useState('');
   const [recentPlays, setRecentPlays] = useState<string[]>([]);
@@ -21,6 +21,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [servedFrom, setServedFrom] = useState<'snapshot' | 'restored' | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // The pack's own first goal template, filled for three acts this autumn. It is
+  // derived, so it lands whenever the pack summaries do — no effect re-filling it.
+  const goal = typedGoal || (packs.find((x) => x.pack === pack)?.goal_templates?.[0] ?? '').replace('{n}', '3').replace('{season}', 'autumn');
 
   useEffect(() => {
     api.mode().then((m) => { setModeInfo(m); setMode(m.default_mode); }).catch(() => {});
@@ -42,12 +46,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Synchronous guard for run(): the busy state lands a render later, so two
   // triggers in the same tick would both pass an `if (busy)` check.
   const runningRef = useRef(false);
-
-  // The pack summaries arrive on their own request, so the locations effect reads
-  // them through a ref instead of depending on them and refetching every rooms
-  // list a second time.
-  const packsRef = useRef<PackSummary[]>([]);
-  useEffect(() => { packsRef.current = packs; }, [packs]);
 
   // A browser reload wipes the in-memory run, but the server still holds it. The
   // room selector moves to the newest stored run's room and the effect below
@@ -81,8 +79,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const loc = r.locations.find((l) => l.id === wanted);
       setRecentPlays(loc?.recent_plays ?? []);
       if (!keep) {
-        const p = packsRef.current.find((x) => x.pack === pack);
-        if (p?.goal_templates?.length) setGoal(p.goal_templates[0].replace('{n}', '3').replace('{season}', 'autumn'));
+        setGoal('');
         setProposal(null);
         setServedFrom(null);
         restoreRoom(pack);
@@ -97,16 +94,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     });
     return () => { cancelled = true; };
   }, [pack, restoreRoom]);
-
-  // The goal template is filled whichever request lands second, packs or rooms.
-  useEffect(() => {
-    if (!pack || !packs.length) return;
-    setGoal((g) => {
-      if (g) return g;
-      const p = packs.find((x) => x.pack === pack);
-      return p?.goal_templates?.length ? p.goal_templates[0].replace('{n}', '3').replace('{season}', 'autumn') : g;
-    });
-  }, [pack, packs]);
 
   // The active run follows the room. Switching rooms must not leave the previous
   // room's proposal on screen under the new room's name.

@@ -1,30 +1,12 @@
 // Shell-level UI features: command palette, toasts, confetti, health polling,
 // keyboard help. None of these compute engine data — they navigate and notify.
+// The hooks that back them live in @/lib/shell-hooks and @/lib/toast-bus.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
-export function useLocalStorage<T>(key: string, initial: T) {
-  const [val, setVal] = useState<T>(() => {
-    try { const s = window.localStorage.getItem(key); return s ? (JSON.parse(s) as T) : initial; }
-    catch { return initial; }
-  });
-  useEffect(() => {
-    try { window.localStorage.setItem(key, JSON.stringify(val)); } catch { /* storage full or blocked */ }
-  }, [key, val]);
-  return [val, setVal] as const;
-}
+import { subscribeToasts, type ToastItem, type Tone } from '@/lib/toast-bus';
+import type { Health } from '@/lib/shell-hooks';
 
 /* ── Toasts ─────────────────────────────────────────────────────────────── */
-
-type Tone = 'ok' | 'bad' | 'info';
-interface ToastItem { id: number; msg: string; tone: Tone }
-const listeners = new Set<(t: ToastItem) => void>();
-let toastSeq = 1;
-
-export function pushToast(msg: string, tone: Tone = 'info') {
-  const t = { id: toastSeq++, msg, tone };
-  listeners.forEach((f) => f(t));
-}
 
 const TONE_CLS: Record<Tone, string> = {
   ok: 'border-emerald-200 bg-emerald-50 text-emerald-800',
@@ -34,14 +16,10 @@ const TONE_CLS: Record<Tone, string> = {
 
 export function ToastHost() {
   const [list, setList] = useState<ToastItem[]>([]);
-  useEffect(() => {
-    const add = (t: ToastItem) => {
-      setList((l) => [...l.slice(-3), t]);
-      setTimeout(() => setList((l) => l.filter((x) => x.id !== t.id)), 3400);
-    };
-    listeners.add(add);
-    return () => { listeners.delete(add); };
-  }, []);
+  useEffect(() => subscribeToasts((t) => {
+    setList((l) => [...l.slice(-3), t]);
+    setTimeout(() => setList((l) => l.filter((x) => x.id !== t.id)), 3400);
+  }), []);
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 print:hidden">
       {list.map((t) => (
@@ -54,42 +32,6 @@ export function ToastHost() {
 }
 
 /* ── Health polling: server dot + quota bar ─────────────────────────────── */
-
-export interface Health {
-  ok: boolean;
-  latency_ms: number | null;
-  visitor_hour: { used: number; limit: number } | null;
-  global_day: { used: number; limit: number } | null;
-  live: boolean;
-}
-
-export function useHealth(periodMs = 25_000): Health {
-  const [h, setH] = useState<Health>({ ok: false, latency_ms: null, visitor_hour: null, global_day: null, live: false });
-  useEffect(() => {
-    let dead = false;
-    const poll = async () => {
-      const t0 = performance.now();
-      try {
-        const r = await fetch('/api/health');
-        const b = await r.json();
-        if (dead) return;
-        setH({
-          ok: r.ok,
-          latency_ms: Math.round(performance.now() - t0),
-          visitor_hour: b.quota?.visitor_hour ?? null,
-          global_day: b.quota?.global_day ?? null,
-          live: !!b.qloo_rest_active,
-        });
-      } catch {
-        if (!dead) setH((p) => ({ ...p, ok: false, latency_ms: null }));
-      }
-    };
-    poll();
-    const id = setInterval(poll, periodMs);
-    return () => { dead = true; clearInterval(id); };
-  }, [periodMs]);
-  return h;
-}
 
 export function ServerDot({ h }: { h: Health }) {
   return (
@@ -135,9 +77,8 @@ export function QuotaBar({ h }: { h: Health }) {
 export interface PaletteAction { id: string; label: string; hint: string; run: () => void }
 
 export function CommandPalette({
-  open, onClose, entries, go, actions = [],
+  onClose, entries, go, actions = [],
 }: {
-  open: boolean;
   onClose: () => void;
   entries: { id: string; label: string; group: string }[];
   go: (id: string) => void;
@@ -147,9 +88,12 @@ export function CommandPalette({
   const [sel, setSel] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Mounted only while the palette is up, so a fresh query and selection are the
+  // initial state rather than a reset effect, and focusing is the only job here.
   useEffect(() => {
-    if (open) { setQ(''); setSel(0); setTimeout(() => inputRef.current?.focus(), 30); }
-  }, [open]);
+    const t = setTimeout(() => inputRef.current?.focus(), 30);
+    return () => clearTimeout(t);
+  }, []);
 
   type Row = { kind: 'screen'; id: string; label: string; group: string } | { kind: 'action'; id: string; label: string; hint: string; run: () => void };
 
@@ -168,11 +112,12 @@ export function CommandPalette({
     if (r.kind === 'action') { onClose(); r.run(); } else { go(r.id); onClose(); }
   }, [go, onClose]);
 
-  useEffect(() => { if (sel >= rows.length) setSel(0); }, [rows.length, sel]);
+  // Filtering can shrink the list under the cursor; clamping during render beats
+  // an effect that re-renders to fix the same number.
+  const active = sel < rows.length ? sel : 0;
 
   const GROUP_ICON: Record<string, string> = { Decide: '🎯', Question: '❓', 'Prove it': '🔬', Operate: '🛠' };
 
-  if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-slate-900/40 pt-24 backdrop-blur-sm print:hidden" onMouseDown={onClose}>
       <div
@@ -187,7 +132,7 @@ export function CommandPalette({
             if (e.key === 'Escape') onClose();
             if (e.key === 'ArrowDown') { e.preventDefault(); setSel((s) => (s + 1) % Math.max(1, rows.length)); }
             if (e.key === 'ArrowUp') { e.preventDefault(); setSel((s) => (s - 1 + rows.length) % Math.max(1, rows.length)); }
-            if (e.key === 'Enter' && rows[sel]) pick(rows[sel]);
+            if (e.key === 'Enter' && rows[active]) pick(rows[active]);
           }}
           placeholder="Jump to a screen or run an action… (type to filter)"
           className="w-full border-b border-slate-100 px-4 py-3 text-sm outline-none placeholder:text-slate-400"
@@ -202,10 +147,10 @@ export function CommandPalette({
               {r.kind === 'action' ? (
                 <button
                   onClick={() => pick(r)} onMouseEnter={() => setSel(i)}
-                  className={`flex w-full cursor-pointer items-center gap-2 px-4 py-1.5 text-left text-sm ${i === sel ? 'tb-nav-active' : 'text-slate-700 hover:bg-slate-50'}`}
+                  className={`flex w-full cursor-pointer items-center gap-2 px-4 py-1.5 text-left text-sm ${i === active ? 'tb-nav-active' : 'text-slate-700 hover:bg-slate-50'}`}
                 >
                   ⚙ {r.label}
-                  <span className={`tb-kbd ml-auto ${i === sel ? 'opacity-90' : ''}`}>{r.hint}</span>
+                  <span className={`tb-kbd ml-auto ${i === active ? 'opacity-90' : ''}`}>{r.hint}</span>
                 </button>
               ) : (
                 <>
@@ -215,11 +160,11 @@ export function CommandPalette({
                   <button
                     onClick={() => pick(r)}
                     onMouseEnter={() => setSel(i)}
-                    className={`flex w-full cursor-pointer items-baseline gap-2 px-4 py-1.5 text-left text-sm ${i === sel ? 'tb-nav-active' : 'text-slate-700 hover:bg-slate-50'}`}
+                    className={`flex w-full cursor-pointer items-baseline gap-2 px-4 py-1.5 text-left text-sm ${i === active ? 'tb-nav-active' : 'text-slate-700 hover:bg-slate-50'}`}
                   >
-                    {i === sel && <span className="mr-0.5 text-xs" aria-hidden>{GROUP_ICON[r.group] ?? '›'}</span>}
+                    {i === active && <span className="mr-0.5 text-xs" aria-hidden>{GROUP_ICON[r.group] ?? '›'}</span>}
                     {r.label}
-                    {i !== sel && <span className="tb-chip ml-auto px-1.5 py-0 text-[10px] opacity-70">{r.group}</span>}
+                    {i !== active && <span className="tb-chip ml-auto px-1.5 py-0 text-[10px] opacity-70">{r.group}</span>}
                   </button>
                 </>
               )}
@@ -232,22 +177,6 @@ export function CommandPalette({
       </div>
     </div>
   );
-}
-
-/* ── Small helpers ──────────────────────────────────────────────────────── */
-
-/** Click-outside dismiss for header popovers. */
-export function useClickOutside<T extends HTMLElement>(open: boolean, onClose: () => void) {
-  const ref = useRef<T>(null);
-  useEffect(() => {
-    if (!open) return;
-    const on = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('mousedown', on);
-    document.addEventListener('keydown', esc);
-    return () => { document.removeEventListener('mousedown', on); document.removeEventListener('keydown', esc); };
-  }, [open, onClose]);
-  return ref;
 }
 
 /* ── Keyboard help overlay ──────────────────────────────────────────────── */

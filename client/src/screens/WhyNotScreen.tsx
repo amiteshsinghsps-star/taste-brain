@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Empty, Note, Panel, VerdictBanner } from '@/components/common';
+import { Empty, Note, Panel, Skeleton, VerdictBanner } from '@/components/common';
 import { NEEDS_RUN, useApp } from '@/lib/app-context';
 import { api } from '@/lib/api';
 import type { WhyNotAnswer } from '@/lib/types';
@@ -95,8 +95,13 @@ export default function WhyNotScreen() {
               <span>Proven from: {answer.proven_from}</span>
             </VerdictBanner>
 
-            <div className="tb-arm">
-              {answer.detail.map((d, i) => <div key={i} className="text-xs leading-relaxed text-slate-700">{d}</div>)}
+            <div className="tb-arm space-y-1.5">
+              {answer.detail.map((d, i) => (
+                <div key={i} className="flex gap-2 text-xs leading-relaxed text-slate-700">
+                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-slate-400" aria-hidden />
+                  <span className="min-w-0">{d}</span>
+                </div>
+              ))}
               {(answer.entity_id || answer.qloo_rank !== null) && (
                 <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
                   {answer.entity_id && <span>entity id <code className="font-mono text-slate-700">{answer.entity_id}</code></span>}
@@ -112,11 +117,12 @@ export default function WhyNotScreen() {
                 <p className="mt-0.5 text-[11px] text-slate-500">
                   <code className="font-mono">{answer.flip.rule_id}</code> · metric <code className="font-mono">{answer.flip.metric}</code>
                 </p>
-                <div className="mt-2.5 grid grid-cols-2 gap-2">
+                <div className="mt-2.5 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
                   <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">
                     <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">the rule is set at</div>
                     <div className="text-lg font-bold tabular-nums text-slate-800">{answer.flip.current_threshold.toLocaleString('en-US')}</div>
                   </div>
+                  <span className="text-lg text-slate-400" aria-hidden>→</span>
                   <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">
                     <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">it would need</div>
                     <div className="text-lg font-bold tabular-nums text-indigo-700">{answer.flip.required_threshold.toLocaleString('en-US')}</div>
@@ -131,6 +137,7 @@ export default function WhyNotScreen() {
           </div>
         )}
 
+        {busy && <Skeleton lines={3} />}
         {!answer && !busy && (
           <Empty>Type a name. The engine will say which of its own steps left it out — or that Qloo never returned it, which is a different answer and is labelled as such.</Empty>
         )}

@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Empty, FilterPills, Hash, JsonBlock, Note, Panel, Skeleton, Time } from '@/components/common';
+import { CountUp, Empty, FilterPills, Hash, JsonBlock, Note, Panel, Skeleton, Stat, Time, VerdictBanner } from '@/components/common';
 import { api } from '@/lib/api';
 import type { LedgerEntry } from '@/lib/types';
 
@@ -48,7 +48,7 @@ export default function LedgerScreen() {
   const [total, setTotal] = useState<number | null>(null);
   const [verify, setVerify] = useState<VerifyResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(true);
   const [limit, setLimit] = useState<number>(50);
   const [newestFirst, setNewestFirst] = useState(true);
   const [only, setOnly] = useState('all');
@@ -88,6 +88,10 @@ export default function LedgerScreen() {
   // simply the newest row on the page, which may be a bounded read's newest.
   const headSeq = entries?.find((e) => e.hash === verify?.head_hash)?.seq;
 
+  // Row counts and seq numbers read straight off the entries the server listed.
+  const seqs = (entries ?? []).map((e) => e.seq);
+  const span = seqs.length ? `${Math.min(...seqs)} – ${Math.max(...seqs)}` : 'none listed';
+
   return (
     <div className="space-y-5">
       {error && <Note tone="bad" title="The ledger could not be read">{error}</Note>}
@@ -98,33 +102,32 @@ export default function LedgerScreen() {
         actions={<Button size="sm" variant="outline" onClick={reload} disabled={busy}>{busy ? 'Reloading…' : 'Reload'}</Button>}
       >
         {verify && (
-          verify.ok
-            ? (
-              <Note tone="good" title="Chain verified">
-                <div>{verify.note}.</div>
-                {verify.head_hash && <div className="mt-1 flex items-center gap-2">head hash <Hash value={verify.head_hash} /></div>}
-                {/* The server's own sentence about how strong that chain is. */}
-                <div className="mt-1 text-[11px] text-slate-600">{verify.keyless_note}</div>
-              </Note>
-            )
-            : (
-              <Note tone="bad" title="Chain broken">
-                <div>{verify.note}.</div>
-                <div>First broken at seq <strong>{verify.first_broken_seq ?? '—'}</strong>.</div>
-                {verify.reason && <div>Reason: {verify.reason}</div>}
-              </Note>
-            )
+          <VerdictBanner
+            state={verify.ok ? 'pass' : 'fail'}
+            title={verify.ok ? 'The server recomputed the whole chain and every link holds' : `Chain broken — first mismatch at seq ${verify.first_broken_seq ?? '—'}`}
+          >
+            <div>{verify.note}.</div>
+            {verify.ok && verify.head_hash && (
+              <div className="mt-1 flex items-center gap-2">head hash <Hash value={verify.head_hash} /></div>
+            )}
+            {!verify.ok && verify.reason && <div>Reason: {verify.reason}</div>}
+            {/* The server's own sentence about how strong that chain is. */}
+            <div className="mt-1 text-[11px]">{verify.keyless_note}</div>
+          </VerdictBanner>
         )}
         {verify && (
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="tb-arm flex flex-wrap items-center gap-2">
             <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${verify.keyed ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
               {verify.keyed ? 'keyed chain (HMAC)' : 'unkeyed chain (sha256)'}
             </span>
-            <span className="text-[10px] text-slate-500">
+            <span className="text-[11px] text-slate-500">
               {verify.keyed
                 ? 'new entries are hashed with a key only this host holds'
                 : 'a key only this host holds, or a head hash published elsewhere, is what would stop the whole file being rewritten'}
             </span>
+            {verify.keyless_entries > 0 && (
+              <span className="tb-pill">{verify.keyless_entries} older entry(ies) predating the key</span>
+            )}
           </div>
         )}
       </Panel>
@@ -162,26 +165,35 @@ export default function LedgerScreen() {
           </Empty>
         ) : (
           <>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <Stat value={<CountUp value={entries.length} />} label="entries listed" hint={`the server read back its newest ${limit}`} />
+              <Stat value={<CountUp value={actionCounts.length} />} label="actions in this read" hint="distinct action values among the entries listed" />
+              <Stat value={<span className="font-mono text-[15px]">{span}</span>} label="seq range listed" />
+              <Stat value={headSeq === undefined ? 'off this page' : `#${headSeq}`} label="chain head" hint="the entry whose hash the verifier reported as the head" />
+            </div>
             {total !== null && total > entries.length && (
               <Note tone="info">
                 The server listed its newest {entries.length} of {total} entries. Verification reads the whole chain, so the
                 verdict above covers entries that are not on this page.
               </Note>
             )}
-            <FilterPills
-              value={only}
-              onChange={setOnly}
-              options={[
-                { id: 'all', label: <>all · {entries.length}</> },
-                ...actionCounts.map(([a, n]) => ({ id: a, label: <>{a} · {n}</> })),
-              ]}
-            />
+            <div className="tb-sticky rounded-xl border border-slate-200/80 bg-white/80 px-2.5 py-2 backdrop-blur">
+              <FilterPills
+                value={only}
+                onChange={setOnly}
+                options={[
+                  { id: 'all', label: <>all · {entries.length}</> },
+                  ...actionCounts.map(([a, n]) => ({ id: a, label: <>{a} · {n}</> })),
+                ]}
+              />
+              {only !== 'all' && <div className="mt-1.5 text-[11px] text-slate-500">showing {shown.length} of {entries.length} listed entry(ies) whose action is “{only}”.</div>}
+            </div>
             {!shown.length ? (
               <Empty>No entry in this read carries the action “{only}”.</Empty>
             ) : (
               <ol className="tb-chain">
                 {shown.map((e) => (
-                  <li key={e.seq} className="tb-block">
+                  <li key={e.seq} className={`tb-block ${e.seq === headSeq ? 'tb-row-active' : ''}`}>
                     <span className="tb-node" aria-hidden />
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-mono text-[11px] text-slate-500">#{e.seq}</span>
@@ -211,7 +223,7 @@ export default function LedgerScreen() {
           </>
         )}
 
-        <p className="text-[11px] leading-relaxed text-slate-500">
+        <p className="tb-arm text-[11px] leading-relaxed text-slate-600">
           The ledger is append-only: nothing here edits or deletes a past entry. Change one and its hash stops matching the
           link its neighbours carry, so the chain breaks and verification fails — the Trust Center demonstrates exactly this
           on a copy, without touching these records. What a recomputed chain does not prove is that the file is the only
