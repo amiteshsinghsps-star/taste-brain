@@ -146,7 +146,7 @@ export default function TasteLiftScreen() {
 
 function RequestBlock({ pr }: { pr: TasteLiftResult['per_request'][number] }) {
   return (
-    <article className="tb-lift mt-2.5 rounded-xl border border-slate-200 bg-white/70 p-3 first:mt-0">
+    <article className="tb-arm tb-lift mt-2.5 p-3 first:mt-0">
       <div className="text-sm font-semibold text-slate-800">{pr.request.pack} · {pr.request.location}</div>
       <p className="mt-0.5 text-xs text-slate-600">{pr.request.goal}</p>
       <div className="mt-2 grid gap-2.5 lg:grid-cols-2">
@@ -163,7 +163,7 @@ function ArmBlock({ label, arm, showItems }: {
   showItems: boolean;
 }) {
   return (
-    <div className="rounded-md bg-slate-50 px-2.5 py-2">
+    <div className="tb-arm tb-status" data-st={arm.ran ? 'ok' : 'dead'}>
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-xs font-semibold text-slate-700">{label}</span>
         <span className="tb-pill" data-on={arm.ran ? 'true' : 'false'}>

@@ -402,6 +402,8 @@ html.tb-moon .text-rose-600 { color: #fda4af; }
 html.tb-moon .text-slate-950 { color: #e2e8f0; }
 html.tb-moon .bg-red-100 { background-color: #4a1616; }
 html.tb-moon .bg-sky-100 { background-color: #0c3350; }
+html.tb-moon .bg-sky-50 { background-color: #0c2c46; }
+html.tb-moon .hover\:bg-indigo-50\/40:hover { background-color: rgba(31, 42, 77, 0.6); }
 html.tb-moon .text-sky-800 { color: #7dd3fc; }
 html.tb-moon .tb-chip { background: linear-gradient(135deg, rgba(99, 102, 241, 0.22), rgba(139, 92, 246, 0.22)); border-color: rgba(129, 140, 248, 0.35); color: #c7d2fe; }
 html.tb-moon .tb-hero { background: linear-gradient(92deg, var(--tb-g1), var(--tb-g2) 55%, var(--tb-g3)) !important; color: white !important; }
@@ -623,6 +625,15 @@ html.tb-moon .tb-swatch[data-on='true'] { box-shadow: 0 0 0 2px #0b1120, 0 0 0 4
 .tb-arm:hover { transform: translateY(-2px); border-color: var(--tb-line); box-shadow: 0 16px 34px -26px rgba(15, 23, 42, 0.65); }
 .tb-arm[data-st='baseline'] { border-color: var(--tb-line); background: linear-gradient(180deg, var(--tb-tint), rgba(255, 255, 255, 0.8)); }
 .tb-bar[data-muted='true'] > i { background: linear-gradient(90deg, #94a3b8, #cbd5e1); }
+
+/* An honest blank: dashed rule and a paper wash. The gradient stops are written
+   here rather than as from-white/to-slate utilities because those two never
+   remap under the theme flip, which left the box pale and its text unreadable. */
+.tb-empty {
+  border: 1px dashed rgba(148, 163, 184, 0.6); border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(248, 250, 252, 0.6));
+}
+html.tb-moon .tb-empty { border-color: rgba(148, 163, 184, 0.35); background: linear-gradient(180deg, rgba(22, 34, 59, 0.8), rgba(15, 23, 42, 0.6)); }
 
 /* ── Status spine ── the verification standing of a row, carried in the card edge. */
 .tb-status { padding-left: 1.05rem; }
