@@ -55,6 +55,8 @@ export default function WhatIfScreen() {
 
   // A what-if belongs to the run it recomputed, so switching rooms retires it.
   const result = asked && asked.id === proposal.proposal_id ? asked.whatif : null;
+  // Which side each moved name belongs to, so both lists can mark the same item.
+  const moved = new Map<string, 'added' | 'removed'>((result?.changes ?? []).map((c) => [c.entity_id, c.direction]));
 
   return (
     <div className="space-y-5">
@@ -123,8 +125,8 @@ export default function WhatIfScreen() {
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
-              <OrderedList title="As it ran" rows={result.before} />
-              <OrderedList title="Under your number" rows={result.after} />
+              <OrderedList title="As it ran" rows={result.before} moved={moved} />
+              <OrderedList title="Under your number" rows={result.after} moved={moved} />
             </div>
 
             {result.changes.length === 0
@@ -133,9 +135,16 @@ export default function WhatIfScreen() {
                 <div className="space-y-1.5">
                   <div className="text-xs font-semibold text-slate-700">What moved ({result.changes.length})</div>
                   {result.changes.map((c) => (
-                    <div key={c.entity_id} className={`rounded-md border px-2.5 py-1.5 text-xs ${c.direction === 'added' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-red-200 bg-red-50 text-red-900'}`}>
-                      <span className="font-semibold">{c.name}</span> {c.direction === 'added' ? 'comes in' : 'goes out'} — {c.because}
-                      {c.qloo_rank !== null && <span className="opacity-70"> · Qloo rank {c.qloo_rank}</span>}
+                    <div key={c.entity_id} className="tb-arm tb-status" data-st={c.direction === 'added' ? 'ok' : 'dead'}>
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                        <span className={`inline-flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white ${c.direction === 'added' ? 'bg-emerald-600' : 'bg-rose-600'}`} aria-hidden>
+                          {c.direction === 'added' ? '+' : '−'}
+                        </span>
+                        <span className="font-semibold text-slate-800">{c.name}</span>
+                        <span className={c.direction === 'added' ? 'text-emerald-800' : 'text-red-800'}>{c.direction === 'added' ? 'comes in' : 'goes out'}</span>
+                        {c.qloo_rank !== null && <span className="ml-auto text-[11px] text-slate-500">Qloo rank <strong className="font-semibold tabular-nums text-slate-700">{c.qloo_rank}</strong></span>}
+                      </div>
+                      <p className="mt-1 text-[11px] leading-relaxed text-slate-600">{c.because}</p>
                     </div>
                   ))}
                 </div>
@@ -145,15 +154,25 @@ export default function WhatIfScreen() {
               <div className="space-y-1.5">
                 <div className="text-xs font-semibold text-slate-700">Flip points the engine offers instead of a guess</div>
                 {result.flip_points_offered.map((f, i) => (
-                  <div key={i} className="rounded-md border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs text-indigo-900">
-                    <span className="font-semibold">{f.name}</span> · {f.rule_id}: would need {f.required_threshold.toLocaleString('en-US')} — {f.note}
+                  <div key={i} className="tb-arm" data-st="baseline">
+                    <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs">
+                      <span className="font-semibold text-slate-800">{f.name}</span>
+                      <code className="font-mono text-[11px] text-slate-500">{f.rule_id}</code>
+                      <span className="ml-auto text-[11px] text-slate-500">would need <strong className="font-semibold tabular-nums text-indigo-700">{f.required_threshold.toLocaleString('en-US')}</strong></span>
+                    </div>
+                    <p className="mt-1 text-[11px] leading-relaxed text-slate-600">{f.note}</p>
                   </div>
                 ))}
               </div>
             )}
 
-            <div className="text-[11px] text-slate-500">
-              Rules applied: {result.rules_applied.map((r) => `${r.id}${r.overridden ? ' (your value)' : ''}`).join(', ')}
+            <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
+              <span>rules applied</span>
+              {result.rules_applied.map((r) => (
+                <span key={r.id} className="tb-chip" title={r.overridden ? 'your value, not the pack default' : 'the pack default'}>
+                  {r.id}{r.overridden && <strong className="ml-1 font-semibold text-indigo-700">your value</strong>}
+                </span>
+              ))}
             </div>
             {result.notes.map((n, i) => <Note key={i} tone="warn">{n}</Note>)}
           </div>
@@ -163,18 +182,37 @@ export default function WhatIfScreen() {
   );
 }
 
-function OrderedList({ title, rows }: { title: string; rows: { entity_id: string; name: string; rank: number }[] }) {
+function OrderedList({ title, rows, moved }: {
+  title: string;
+  rows: { entity_id: string; name: string; rank: number }[];
+  moved: Map<string, 'added' | 'removed'>;
+}) {
   return (
-    <div className="rounded-lg border border-slate-200 p-2.5">
-      <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">{title}</div>
-      {rows.length === 0 ? <p className="text-[11px] text-slate-500">empty</p> : (
-        <ol className="space-y-0.5">
-          {rows.map((r) => (
-            <li key={r.entity_id} className="flex items-baseline gap-2 text-xs">
-              <span className="w-4 text-right font-mono text-slate-400">{r.rank}</span>
-              <span>{r.name}</span>
-            </li>
-          ))}
+    <div className="tb-arm">
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{title}</span>
+        <span className="ml-auto text-[11px] tabular-nums text-slate-400">{rows.length} in list</span>
+      </div>
+      {rows.length === 0 ? <p className="mt-1 text-[11px] text-slate-500">empty</p> : (
+        <ol className="mt-1.5 space-y-1">
+          {rows.map((r) => {
+            const dir = moved.get(r.entity_id);
+            return (
+              <li key={r.entity_id} className="flex items-baseline gap-2 text-xs">
+                <span className="w-5 shrink-0 text-right font-mono text-[11px] text-slate-400">{r.rank}</span>
+                <span className={dir === 'removed'
+                  ? 'text-red-800 line-through decoration-rose-400/70'
+                  : dir === 'added' ? 'font-semibold text-emerald-800' : 'text-slate-700'}>
+                  {r.name}
+                </span>
+                {dir && (
+                  <span className={`ml-auto shrink-0 text-[10px] font-bold uppercase tracking-wide ${dir === 'added' ? 'text-emerald-700' : 'text-red-700'}`}>
+                    {dir === 'added' ? 'comes in' : 'goes out'}
+                  </span>
+                )}
+              </li>
+            );
+          })}
         </ol>
       )}
     </div>
