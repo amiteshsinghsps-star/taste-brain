@@ -636,8 +636,8 @@ html.tb-moon .tb-doc-head { background: linear-gradient(92deg, var(--tb-tint), r
 }
 
 html.tb-moon .tb-ring-track { stroke: rgba(148, 163, 184, 0.25); }
-html.tb-moon .tb-check { background: rgba(22, 34, 59, 0.72); }
-html.tb-moon .tb-block { background: linear-gradient(180deg, rgba(22, 34, 59, 0.85), rgba(15, 23, 42, 0.6)); }
+html.tb-moon .tb-check { background: rgba(22, 34, 59, 0.72); border-color: rgba(148, 163, 184, 0.22); }
+html.tb-moon .tb-block { background: linear-gradient(180deg, rgba(22, 34, 59, 0.85), rgba(15, 23, 42, 0.6)); border-color: rgba(148, 163, 184, 0.22); }
 html.tb-moon .tb-node { border-color: #16223b; }
 html.tb-moon .tb-verdict { color: #6ee7b7; }
 html.tb-moon .tb-verdict[data-st='fail'] { color: #fca5a5; }

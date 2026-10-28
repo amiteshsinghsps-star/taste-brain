@@ -4,9 +4,9 @@
 // verify/verifier.ts on the server, and the CLI runs that identical file.
 // No Qloo call and no external request is made by any path on this screen.
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Hash, Note, Panel, ScoreRing, StatusPill, Time, VerdictBanner } from '@/components/common';
+import { Hash, Note, Panel, ScoreRing, Stat, StatusPill, Time, VerdictBanner } from '@/components/common';
 import { api } from '@/lib/api';
 import { useApp } from '@/lib/app-context';
 import type { DecisionExport, VerifyReport } from '@/lib/types';
@@ -24,6 +24,9 @@ export default function VerifyScreen() {
   const report = shown?.report ?? null;
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // The native file picker is hidden behind a real button so it matches every
+  // other action here; the input itself still owns the chosen file.
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const verifyCurrent = useCallback(async () => {
     if (!proposal) return;
@@ -66,15 +69,14 @@ export default function VerifyScreen() {
         description="Recompute a decision from its exported evidence. Same module as the CLI, no Qloo key and no network call on either path."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <label className="text-xs text-slate-600">
-              <span className="sr-only">Choose an export file to verify</span>
-              <input
-                type="file"
-                accept="application/json,.json"
-                className="max-w-[14rem] cursor-pointer text-xs file:mr-2 file:rounded file:border file:border-slate-300 file:bg-white file:px-2 file:py-1 file:text-xs"
-                onChange={(e) => void onFile(e.target.files?.[0])}
-              />
-            </label>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(e) => void onFile(e.target.files?.[0])}
+            />
+            <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}>Verify an export file</Button>
             <Button size="sm" onClick={verifyCurrent} disabled={busy || !proposal}>
               {busy ? 'Verifying…' : 'Verify this run'}
             </Button>
@@ -93,18 +95,20 @@ export default function VerifyScreen() {
 
       {exp && (
         <Panel title="What is being checked" description="The file the checks were computed over, exactly as exported.">
-          <div className="grid gap-1.5 rounded-md bg-slate-50 px-3 py-2 text-xs">
-            <div className="flex justify-between gap-3"><span className="text-slate-500">schema</span><span className="font-mono">{exp.schema}</span></div>
-            <div className="flex justify-between gap-3"><span className="text-slate-500">proposal</span><span className="font-mono">{exp.provenance?.proposal_id ?? 'not stated'}</span></div>
-            <div className="flex justify-between gap-3"><span className="text-slate-500">room</span><span>{exp.provenance ? `${exp.provenance.pack} · ${exp.provenance.location}` : 'not stated'}</span></div>
-            <div className="flex justify-between gap-3"><span className="text-slate-500">badge on the run</span><span className="font-medium">{exp.provenance?.decision_mode ?? 'not stated'}</span></div>
-            <div className="flex justify-between gap-3"><span className="text-slate-500">rule set pinned to</span>{exp.rules?.pinned_version ? <Hash value={exp.rules.pinned_version} /> : <span className="text-slate-400">not stated</span>}</div>
-            <div className="flex justify-between gap-3"><span className="text-slate-500">ledger entries</span><span>{exp.ledger?.length ?? 0}</span></div>
-            <div className="flex justify-between gap-3"><span className="text-slate-500">evidence rows</span><span>{exp.evidence?.entity_ids?.length ?? 0}</span></div>
-            <div className="flex justify-between gap-3"><span className="text-slate-500">exported at</span>{exp.exported_at ? <Time iso={exp.exported_at} /> : <span className="text-slate-400">no timestamp</span>}</div>
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+            <Stat value={<span className="font-mono text-[13px]">{exp.provenance?.proposal_id ?? 'not stated'}</span>} label="proposal in the export" />
+            <Stat value={exp.ledger?.length ?? 0} label="ledger entries carried" />
+            <Stat value={exp.evidence?.entity_ids?.length ?? 0} label="evidence rows" />
+            <Stat value={exp.provenance?.decision_mode ?? 'not stated'} label="badge on the run" />
           </div>
+          <dl className="tb-arm grid gap-x-6 text-xs sm:grid-cols-2">
+            <div className="flex justify-between gap-3 py-1"><dt className="text-slate-500">schema</dt><dd className="font-mono text-slate-800">{exp.schema}</dd></div>
+            <div className="flex justify-between gap-3 py-1"><dt className="text-slate-500">room</dt><dd className="text-slate-800">{exp.provenance ? `${exp.provenance.pack} · ${exp.provenance.location}` : 'not stated'}</dd></div>
+            <div className="flex justify-between gap-3 py-1"><dt className="text-slate-500">rule set pinned to</dt><dd>{exp.rules?.pinned_version ? <Hash value={exp.rules.pinned_version} /> : <span className="text-slate-400">not stated</span>}</dd></div>
+            <div className="flex justify-between gap-3 py-1"><dt className="text-slate-500">exported at</dt><dd>{exp.exported_at ? <Time iso={exp.exported_at} /> : <span className="text-slate-400">no timestamp</span>}</dd></div>
+          </dl>
           {downloadHref && exp.provenance?.proposal_id && (
-            <p className="mt-2 text-xs">
+            <p className="text-xs">
               <a className="text-indigo-700 underline" href={downloadHref} download={`taste-brain-${exp.provenance.proposal_id}.json`}>
                 Download this export
               </a>
@@ -137,7 +141,7 @@ export default function VerifyScreen() {
                   ? 'Six recomputations agree with each other. What the page shows is what the hash-protected record says was decided.'
                   : 'At least one recomputation disagrees with the record beside it. Treat every figure on this run as unproven until the failing check below is explained.'}
               </VerdictBanner>
-              <ul className="space-y-2">
+              <ul className="grid gap-2 xl:grid-cols-2">
                 {report.checks.map((c) => (
                   <li key={c.id} className="tb-check" data-st={c.status === 'pass' ? 'pass' : 'fail'}>
                     <div className="flex flex-wrap items-center gap-2">
@@ -160,13 +164,13 @@ export default function VerifyScreen() {
       {(exp?.honest_scope || report) && (
         <Panel title="What this proves, and what it does not" description="Stated by the export itself, not by the page.">
           <div className="grid gap-3 md:grid-cols-2">
-            <div>
+            <div className="tb-arm tb-status" data-st="ok">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-emerald-800">It proves</h3>
               <ul className="mt-1 list-disc space-y-1 pl-4 text-xs leading-relaxed text-slate-700">
                 {(exp?.honest_scope.proves ?? ['the five checks above were recomputed from this file']).map((p, i) => <li key={i}>{p}</li>)}
               </ul>
             </div>
-            <div>
+            <div className="tb-arm tb-status" data-st="empty">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-amber-900">It does not prove</h3>
               <ul className="mt-1 list-disc space-y-1 pl-4 text-xs leading-relaxed text-slate-700">
                 {(exp?.honest_scope.does_not_prove ?? ['without an export file, the limits cannot be stated']).map((p, i) => <li key={i}>{p}</li>)}
