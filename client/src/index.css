@@ -553,6 +553,11 @@ html.tb-moon .tb-swatch[data-on='true'] { box-shadow: 0 0 0 2px #0b1120, 0 0 0 4
   background: linear-gradient(92deg, rgba(148, 163, 184, 0.14), rgba(148, 163, 184, 0.04));
   box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.28);
 }
+.tb-verdict[data-st='warn'] {
+  color: #92400e;
+  background: linear-gradient(92deg, rgba(245, 158, 11, 0.16), rgba(217, 119, 6, 0.05));
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.3);
+}
 
 /* ── Check rows read as one card each, with the verdict in the spine. */
 .tb-check {
@@ -588,6 +593,25 @@ html.tb-moon .tb-swatch[data-on='true'] { box-shadow: 0 0 0 2px #0b1120, 0 0 0 4
 .tb-lift { transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease; }
 .tb-lift:hover { transform: translateY(-2px); border-color: var(--tb-line); box-shadow: 0 16px 34px -26px rgba(15, 23, 42, 0.65); }
 
+/* ── Alternative-ranking cards (ablation arms) and a muted bar fill, so the arm
+   being compared reads apart from the arm it is compared against. */
+.tb-arm {
+  position: relative; overflow: hidden; border-radius: 14px; border: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.7));
+  padding: 0.7rem 0.8rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.tb-arm:hover { transform: translateY(-2px); border-color: var(--tb-line); box-shadow: 0 16px 34px -26px rgba(15, 23, 42, 0.65); }
+.tb-arm[data-st='baseline'] { border-color: var(--tb-line); background: linear-gradient(180deg, var(--tb-tint), rgba(255, 255, 255, 0.8)); }
+.tb-bar[data-muted='true'] > i { background: linear-gradient(90deg, #94a3b8, #cbd5e1); }
+
+/* ── Status spine ── the verification standing of a row, carried in the card edge. */
+.tb-status { padding-left: 1.05rem; }
+.tb-status::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+.tb-status[data-st='ok']::before { background: linear-gradient(180deg, #34d399, #059669); }
+.tb-status[data-st='empty']::before { background: linear-gradient(180deg, #fbbf24, #d97706); }
+.tb-status[data-st='dead']::before { background: linear-gradient(180deg, #fb7185, #e11d48); }
+
 /* ── Motion is optional. Every animation here is decoration; none of them carries
    a number, so stopping them costs the reader nothing. */
 @media (prefers-reduced-motion: reduce) {
@@ -604,4 +628,8 @@ html.tb-moon .tb-block { background: linear-gradient(180deg, rgba(22, 34, 59, 0.
 html.tb-moon .tb-node { border-color: #16223b; }
 html.tb-moon .tb-verdict { color: #6ee7b7; }
 html.tb-moon .tb-verdict[data-st='fail'] { color: #fca5a5; }
+html.tb-moon .tb-verdict[data-st='warn'] { color: #fcd34d; }
 html.tb-moon .tb-verdict[data-st='idle'] { color: #cbd5e1; }
+html.tb-moon .tb-arm { background: linear-gradient(180deg, rgba(22, 34, 59, 0.85), rgba(15, 23, 42, 0.6)); }
+html.tb-moon .tb-arm[data-st='baseline'] { background: linear-gradient(180deg, var(--tb-tint), rgba(15, 23, 42, 0.7)); }
+html.tb-moon .tb-bar[data-muted='true'] > i { background: linear-gradient(90deg, #475569, #64748b); }

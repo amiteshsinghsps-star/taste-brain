@@ -4,15 +4,31 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Chips, Empty, KV, ModeBadge, Note, Panel, Time } from '@/components/common';
+import {
+  Chips, Empty, KV, MeterBar, ModeBadge, Note, Panel, Skeleton, Stat, Time,
+} from '@/components/common';
 import { num, pct } from '@/lib/format';
 import { api } from '@/lib/api';
-import type { ArmMetrics, TasteLiftResult } from '@/lib/types';
+import type { ArmMetrics, TasteLiftResult, TasteMode } from '@/lib/types';
 
 /** Display guard: a number the server did not send stays a dash. No maths here. */
 function count(n: number | null | undefined): string {
   return n === null || n === undefined || !Number.isFinite(n) ? '—' : num(n, 0);
 }
+
+const MODES: TasteMode[] = ['live', 'cached', 'replay'];
+
+/** A rate the server sent as a fraction; the bar restates it, it does not derive it. */
+function bar(x: number | null | undefined): number {
+  return x === null || x === undefined || !Number.isFinite(x) ? Number.NaN : x * 100;
+}
+
+// The three measures, each defined by the server's own comment for the field.
+const MEASURES: { key: 'grounding_rate' | 'rule_compliance' | 'specificity'; means: 'both' | 'armB'; definition: string }[] = [
+  { key: 'grounding_rate', means: 'both', definition: 'share of shown items traceable to a Qloo id in the run' },
+  { key: 'rule_compliance', means: 'armB', definition: 'share of shown items passing every applicable rule' },
+  { key: 'specificity', means: 'both', definition: "share of named items present in that location's Qloo results" },
+];
 
 export default function TasteLiftScreen() {
   const [result, setResult] = useState<TasteLiftResult | null>(null);
@@ -47,8 +63,7 @@ export default function TasteLiftScreen() {
         actions={<Button size="sm" onClick={runEval} disabled={running}>{running ? 'Running the fixed request set…' : 'Run the fixed request set'}</Button>}
       >
         {error && <Note tone="bad" title="The engine refused">{error}</Note>}
-        {running && <p className="text-sm text-slate-500">The fixed set is running — this takes a few seconds.</p>}
-        {loading && !error && <p className="text-sm text-slate-500">Loading the last run…</p>}
+        {(running || loading) && !error && <Skeleton lines={4} />}
         {!loading && !running && !result && !error && (
           <Empty>
             No Taste Lift run exists on this server yet. Press <strong>Run the fixed request set</strong> to compute one.
@@ -59,14 +74,19 @@ export default function TasteLiftScreen() {
 
       {result && (
         <Panel title="Run stamp" description="Facts the server attached to this run.">
-          <dl className="rounded-md bg-slate-50 px-2.5 py-1.5">
-            <KV k="run_date" v={<Time iso={result.run_date} />} />
-            <KV k="sample_size" v={count(result.sample_size)} />
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <Stat value={count(result.sample_size)} label="requests in the set" />
+            <Stat value={<Time iso={result.run_date} />} label="run date" />
+            <Stat
+              value={MODES.includes(result.mode) ? <ModeBadge mode={result.mode} /> : (result.mode ? String(result.mode) : '—')}
+              label="mode"
+            />
+            <Stat value={String(result.rubric.length)} label="rubric lines scored" hint={result.rubric.join(' · ')} />
+          </div>
+          <dl className="mt-2.5 rounded-md bg-slate-50 px-2.5 py-1.5">
             <KV k="model" v={result.model} />
             <KV k="git_commit" v={result.git_commit} />
-            {(result.mode === 'live' || result.mode === 'cached' || result.mode === 'replay') && (
-              <KV k="mode" v={<ModeBadge mode={result.mode} />} />
-            )}
+            <KV k="rubric" v={result.rubric.join(' · ')} />
           </dl>
         </Panel>
       )}
@@ -74,7 +94,7 @@ export default function TasteLiftScreen() {
       {result && (
         <Panel
           title="Summary — Arm B (grounded) vs Arm A (plain LLM)"
-          description="Mean of the deterministic checks over the request set, as reported by the server."
+          description="Mean of the deterministic checks over the request set, as reported by the server. Both bars share one scale: full width is 100%."
         >
           {!result.summary.armA.ran && (
             <Note tone="warn" title="Arm A did not run">
@@ -82,32 +102,29 @@ export default function TasteLiftScreen() {
               lift percentage is claimed.
             </Note>
           )}
-          <table className="w-full border-collapse text-left text-xs">
-            <thead>
-              <tr className="text-[11px] uppercase text-slate-500">
-                <th className="py-1 pr-2">measure</th>
-                <th className="py-1 pr-2">Arm B (grounded)</th>
-                <th className="py-1">Arm A (plain LLM)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-t border-slate-100">
-                <td className="py-1 pr-2 font-medium">grounding_rate</td>
-                <td className="py-1 pr-2">{pct(result.summary.armB.grounding_rate)}</td>
-                <td className="py-1">{pct(result.summary.armA.grounding_rate)}</td>
-              </tr>
-              <tr className="border-t border-slate-100">
-                <td className="py-1 pr-2 font-medium">rule_compliance</td>
-                <td className="py-1 pr-2">{pct(result.summary.armB.rule_compliance)}</td>
-                <td className="py-1 text-slate-500">not measured</td>
-              </tr>
-              <tr className="border-t border-slate-100">
-                <td className="py-1 pr-2 font-medium">specificity</td>
-                <td className="py-1 pr-2">{pct(result.summary.armB.specificity)}</td>
-                <td className="py-1">{pct(result.summary.armA.specificity)}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div className="grid gap-2.5 lg:grid-cols-3">
+            {MEASURES.map((m) => (
+              <article key={m.key} className="tb-arm">
+                <h3 className="text-sm font-bold text-slate-800">{m.key.replace(/_/g, ' ')}</h3>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">{m.definition}</p>
+                <div className="mt-2.5 space-y-2.5">
+                  <MeterBar
+                    pct={bar(result.summary.armB[m.key])}
+                    caption={<span>Arm B grounded · <strong className="font-semibold text-slate-700">{pct(result.summary.armB[m.key])}</strong></span>}
+                  />
+                  {m.means === 'both' ? (
+                    <MeterBar
+                      muted
+                      pct={bar(result.summary.armA[m.key as 'grounding_rate' | 'specificity'])}
+                      caption={<span>Arm A plain LLM · <strong className="font-semibold text-slate-700">{pct(result.summary.armA[m.key as 'grounding_rate' | 'specificity'])}</strong></span>}
+                    />
+                  ) : (
+                    <p className="text-[10px] text-slate-500">Arm A — not measured: rules cannot be run on items an LLM named without an id.</p>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
         </Panel>
       )}
 
@@ -129,27 +146,39 @@ export default function TasteLiftScreen() {
 
 function RequestBlock({ pr }: { pr: TasteLiftResult['per_request'][number] }) {
   return (
-    <article className="rounded-lg border border-slate-200 p-3">
-      <div className="text-sm font-semibold">{pr.request.pack} · {pr.request.location}</div>
+    <article className="tb-lift mt-2.5 rounded-xl border border-slate-200 bg-white/70 p-3 first:mt-0">
+      <div className="text-sm font-semibold text-slate-800">{pr.request.pack} · {pr.request.location}</div>
       <p className="mt-0.5 text-xs text-slate-600">{pr.request.goal}</p>
-      <ArmBlock label="Arm B (grounded)" arm={pr.armB} showItems note="note from the server" />
-      <ArmBlock label="Arm A (plain LLM)" arm={pr.armA} showItems={pr.armA.ran} note="ran / note" />
+      <div className="mt-2 grid gap-2.5 lg:grid-cols-2">
+        <ArmBlock label="Arm B (grounded)" arm={pr.armB} showItems />
+        <ArmBlock label="Arm A (plain LLM)" arm={pr.armA} showItems={pr.armA.ran} />
+      </div>
     </article>
   );
 }
 
-function ArmBlock({ label, arm, showItems, note }: {
+function ArmBlock({ label, arm, showItems }: {
   label: string;
   arm: ArmMetrics;
   showItems: boolean;
-  note: string;
 }) {
   return (
-    <div className="mt-2 rounded-md bg-slate-50 px-2.5 py-1.5">
-      <div className="text-xs font-semibold text-slate-700">{label}</div>
-      <dl className="mt-1">
-        <KV k="ran" v={arm.ran ? 'yes' : 'no'} />
-        <KV k={note} v={arm.note} />
+    <div className="rounded-md bg-slate-50 px-2.5 py-2">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-xs font-semibold text-slate-700">{label}</span>
+        <span className="tb-pill" data-on={arm.ran ? 'true' : 'false'}>
+          {arm.ran ? 'ran' : 'did not run'}
+        </span>
+      </div>
+      <p className="mt-1 text-[11px] leading-relaxed text-slate-600">{arm.note}</p>
+      {arm.ran && (
+        <div className="mt-2 space-y-2">
+          <MeterBar pct={bar(arm.grounding_rate)} caption={<span>grounding_rate · <strong className="font-semibold text-slate-700">{pct(arm.grounding_rate)}</strong></span>} />
+          <MeterBar pct={bar(arm.rule_compliance)} caption={<span>rule_compliance · <strong className="font-semibold text-slate-700">{pct(arm.rule_compliance)}</strong></span>} />
+          <MeterBar pct={bar(arm.specificity)} caption={<span>specificity · <strong className="font-semibold text-slate-700">{pct(arm.specificity)}</strong></span>} />
+        </div>
+      )}
+      <dl className="mt-1.5">
         <KV k="item_count" v={count(arm.item_count)} />
       </dl>
       {showItems && (

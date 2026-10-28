@@ -5,19 +5,21 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Empty, Note, Panel } from '@/components/common';
+import { Empty, Note, Panel, VerdictBanner } from '@/components/common';
 import { NEEDS_RUN, useApp } from '@/lib/app-context';
 import { api } from '@/lib/api';
 import type { WhyNotAnswer } from '@/lib/types';
 
-const VERDICT_TONE: Record<WhyNotAnswer['verdict'], 'good' | 'warn' | 'bad' | 'info'> = {
-  in_proposal: 'good',
-  rule_rejected: 'bad',
+// The banner colour is the answer's own standing, not a judgement of the name:
+// idle means the run simply has nothing to say about it.
+const VERDICT_STATE: Record<WhyNotAnswer['verdict'], 'pass' | 'fail' | 'warn' | 'idle'> = {
+  in_proposal: 'pass',
+  rule_rejected: 'fail',
   awaiting_term: 'warn',
   filtered_before_query: 'warn',
-  not_returned_by_qloo: 'info',
-  exists_but_not_returned: 'info',
-  unknown_entity: 'info',
+  not_returned_by_qloo: 'idle',
+  exists_but_not_returned: 'idle',
+  unknown_entity: 'idle',
 };
 
 export default function WhyNotScreen() {
@@ -35,6 +37,12 @@ export default function WhyNotScreen() {
   const liveState = asked && asked.id === proposal.proposal_id
     ? { used: asked.used, declined: asked.declined }
     : null;
+  // Suggestions are names this very run already carries — refused offers and
+  // audited rejections. Nothing is invented here, and asking costs nothing.
+  const suggestions = [
+    ...proposal.unsupported.map((u) => u.name),
+    ...proposal.rejections.map((r) => r.name),
+  ].filter((n, i, all) => n.trim() !== '' && all.indexOf(n) === i).slice(0, 6);
 
   const ask = async () => {
     setBusy(true); setError(null); setAsked(null);
@@ -55,10 +63,26 @@ export default function WhyNotScreen() {
         <div className="flex flex-wrap items-end gap-2">
           <div className="min-w-56 flex-1 space-y-1">
             <label className="text-xs font-medium text-slate-500">Name to look for</label>
-            <Input value={query} maxLength={80} onChange={(e) => setQuery(e.target.value)} placeholder="an act, a brand, a dish" />
+            <Input
+              value={query}
+              maxLength={80}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && query.trim() && !busy) void ask(); }}
+              placeholder="an act, a brand, a dish"
+            />
           </div>
           <Button onClick={ask} disabled={busy || !query.trim()}>{busy ? 'Checking…' : 'Ask the run'}</Button>
         </div>
+
+        {suggestions.length > 0 && !answer && (
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
+            <span>this run already left out</span>
+            {suggestions.map((n) => (
+              <button key={n} className="tb-pill" data-on="false" onClick={() => setQuery(n)} title={`ask about ${n}`}>{n}</button>
+            ))}
+          </div>
+        )}
+
         <label className="flex items-center gap-2 text-[11px] text-slate-600">
           <input type="checkbox" className="h-3.5 w-3.5 accent-indigo-600" checked={checkEntity} onChange={(e) => setCheckEntity(e.target.checked)} />
           Also ask Qloo whether it knows this name at all — one /search call, only if you tick this, and only when a key is available.
@@ -66,19 +90,42 @@ export default function WhyNotScreen() {
         {error && <Note tone="bad" title="Refused">{error}</Note>}
 
         {answer && (
-          <div className="space-y-2">
-            <Note tone={VERDICT_TONE[answer.verdict]} title={`${answer.verdict.replace(/_/g, ' ')} — ${answer.headline}`}>
-              {answer.detail.map((d, i) => <div key={i}>{d}</div>)}
-              <div className="text-[11px] opacity-80">Proven from: {answer.proven_from}</div>
-              {answer.entity_id && <div className="text-[11px]">entity id: <code className="font-mono">{answer.entity_id}</code>{answer.qloo_rank ? ` · Qloo rank ${answer.qloo_rank}` : ''}</div>}
-            </Note>
+          <div className="space-y-2.5">
+            <VerdictBanner state={VERDICT_STATE[answer.verdict]} title={`${answer.verdict.replace(/_/g, ' ')} — ${answer.headline}`}>
+              <span>Proven from: {answer.proven_from}</span>
+            </VerdictBanner>
+
+            <div className="tb-arm">
+              {answer.detail.map((d, i) => <div key={i} className="text-xs leading-relaxed text-slate-700">{d}</div>)}
+              {(answer.entity_id || answer.qloo_rank !== null) && (
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
+                  {answer.entity_id && <span>entity id <code className="font-mono text-slate-700">{answer.entity_id}</code></span>}
+                  {answer.qloo_rank !== null && <span>Qloo rank <strong className="font-semibold tabular-nums text-slate-700">{answer.qloo_rank}</strong></span>}
+                  {answer.failing_rule && <span>failing rule <code className="font-mono text-slate-700">{answer.failing_rule}</code></span>}
+                </div>
+              )}
+            </div>
+
             {answer.flip && (
-              <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs text-indigo-900">
-                <div className="font-semibold">Flip point — what would put it on the list</div>
-                <div>{answer.flip.rule_id} · {answer.flip.metric}: the rule is set at {answer.flip.current_threshold.toLocaleString('en-US')}; it would need {answer.flip.required_threshold.toLocaleString('en-US')}.</div>
-                <div className="mt-1 text-indigo-800">{answer.flip.note}</div>
+              <div className="tb-arm" data-st="baseline">
+                <div className="text-sm font-bold text-slate-800">Flip point — what would put it on the list</div>
+                <p className="mt-0.5 text-[11px] text-slate-500">
+                  <code className="font-mono">{answer.flip.rule_id}</code> · metric <code className="font-mono">{answer.flip.metric}</code>
+                </p>
+                <div className="mt-2.5 grid grid-cols-2 gap-2">
+                  <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">
+                    <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">the rule is set at</div>
+                    <div className="text-lg font-bold tabular-nums text-slate-800">{answer.flip.current_threshold.toLocaleString('en-US')}</div>
+                  </div>
+                  <div className="rounded-lg bg-slate-50 px-2.5 py-1.5">
+                    <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">it would need</div>
+                    <div className="text-lg font-bold tabular-nums text-indigo-700">{answer.flip.required_threshold.toLocaleString('en-US')}</div>
+                  </div>
+                </div>
+                <p className="mt-2 text-[11px] leading-relaxed text-slate-600">{answer.flip.note}</p>
               </div>
             )}
+
             {liveState?.used && <Note tone="warn">A live /search call was made for this check: it is counted against the run budget and written to the Qloo call log.</Note>}
             {liveState?.declined && <Note tone="warn">You asked for a live /search check and it was not made: {proposal.mode} mode on this host, or the run budget, left no way to call Qloo. The verdict above is read from the stored rows only — no live lookup supports it.</Note>}
           </div>

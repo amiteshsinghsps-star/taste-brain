@@ -155,14 +155,14 @@ export function Stat({ value, label, hint }: { value: ReactNode; label: string; 
 }
 
 /** A single proportional bar. `pct` is 0-100 and must come from the data. */
-export function MeterBar({ pct, caption, hint }: { pct: number; caption?: ReactNode; hint?: string }) {
+export function MeterBar({ pct, caption, hint, muted }: { pct: number; caption?: ReactNode; hint?: string; muted?: boolean }) {
   // A missing value is not a full bar: the CSS gives .tb-bar > i no width, so an
   // empty or NaN width paints 100%. Show an empty track and say the value is absent.
   const ok = Number.isFinite(pct);
   const w = ok ? Math.max(0, Math.min(100, pct)) : 0;
   return (
     <div className="space-y-0.5" title={ok ? hint : 'the engine gave no value here'}>
-      <div className="tb-bar"><i style={{ width: `${w}%` }} /></div>
+      <div className="tb-bar" data-muted={muted ? 'true' : undefined}><i style={{ width: `${w}%` }} /></div>
       {(caption || !ok) && (
         <div className="text-[10px] leading-tight text-slate-500">{ok ? caption : 'no value recorded'}</div>
       )}
@@ -265,11 +265,12 @@ export function ScoreRing({ passed, total, ok }: { passed: number; total: number
   );
 }
 
-/** The one-line verdict above the checks, so PASS/FAIL is readable at a glance. */
-export function VerdictBanner({ state, title, children }: { state: 'pass' | 'fail' | 'idle'; title: ReactNode; children?: ReactNode }) {
+/** The one-line verdict, readable at a glance: pass, fail, a caution, or nothing yet. */
+export function VerdictBanner({ state, title, children }: { state: 'pass' | 'fail' | 'warn' | 'idle'; title: ReactNode; children?: ReactNode }) {
+  const GLYPH = { pass: '✓', fail: '✕', warn: '!', idle: '—' } as const;
   return (
     <div className="tb-verdict" data-st={state}>
-      <span className="text-lg leading-none" aria-hidden>{state === 'pass' ? '✓' : state === 'fail' ? '✕' : '—'}</span>
+      <span className="text-lg leading-none font-bold" aria-hidden>{GLYPH[state]}</span>
       <div className="min-w-0">
         <div className="text-sm font-bold">{title}</div>
         {children && <div className="mt-0.5 text-[11px] leading-relaxed opacity-90">{children}</div>}
