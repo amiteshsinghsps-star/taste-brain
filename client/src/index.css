@@ -600,6 +600,11 @@ html.tb-moon .tb-swatch[data-on='true'] { box-shadow: 0 0 0 2px #0b1120, 0 0 0 4
 /* ── Sticky toolbar ── the filter row stays reachable while a long list scrolls by. */
 .tb-sticky { position: sticky; top: 0.6rem; z-index: 20; }
 
+/* ── The row that is on screen elsewhere ── a table of stored runs marks which
+   one the app is currently showing, so a serve is not a guess. */
+.tb-row-active { background: linear-gradient(90deg, var(--tb-tint), rgba(255, 255, 255, 0) 70%); box-shadow: inset 3px 0 0 var(--tb-g1); }
+.tb-flag { margin-left: 0.4rem; border-radius: 999px; background: var(--tb-tint); box-shadow: inset 0 0 0 1px var(--tb-line); color: var(--tb-ink); font-size: 10px; font-weight: 600; padding: 0.05rem 0.4rem; text-transform: none; letter-spacing: 0; }
+
 /* ── Alternative-ranking cards (ablation arms) and a muted bar fill, so the arm
    being compared reads apart from the arm it is compared against. */
 .tb-arm {

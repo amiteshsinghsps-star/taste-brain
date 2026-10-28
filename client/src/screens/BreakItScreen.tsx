@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Empty, ModeBadge, Note, Panel, StatusPill, Time } from '@/components/common';
+import { Empty, ModeBadge, Note, Panel, ScoreRing, Stat, StatusPill, Time, VerdictBanner } from '@/components/common';
 import { api } from '@/lib/api';
 import type { AttackOutcome, BreakItReport } from '@/lib/types';
 
@@ -24,7 +24,7 @@ function LogEntry({ entry }: { entry: Record<string, unknown> }) {
 
 function AttackCard({ a }: { a: AttackOutcome }) {
   return (
-    <li className={`rounded-lg border px-3 py-2.5 ${a.blocked ? 'border-slate-200' : 'border-red-300 bg-red-50'}`}>
+    <li className="tb-arm tb-status" data-st={a.blocked ? 'ok' : 'dead'}>
       <div className="flex flex-wrap items-center gap-2">
         <StatusPill status={a.blocked ? 'pass' : 'fail'}>{a.blocked ? 'blocked' : 'got through'}</StatusPill>
         <span className="font-mono text-[11px] text-slate-400">{a.id}</span>
@@ -103,19 +103,30 @@ export default function BreakItScreen() {
           </div>
         )}
       >
-        <div className="flex flex-wrap items-center gap-3">
-          <span className={`rounded px-2 py-1 text-sm ${leaked.length ? 'bg-red-50 text-red-800' : 'bg-emerald-50 text-emerald-800'}`}>
-            attacks blocked: {blocked} of {tried.length}
-          </span>
-          {tried.length === 0 && <span className="text-xs text-slate-500">Nothing run yet — the count stays at zero until you press something.</span>}
-          {leaked.length > 0 && (
-            <span className="text-xs font-medium text-red-800">
-              {leaked.length} defence(s) let an attack through. That is a real failure, listed below.
-            </span>
-          )}
+        <div className="flex flex-wrap items-start gap-4">
+          <ScoreRing passed={blocked} total={tried.length} ok={tried.length > 0 && leaked.length === 0} />
+          <div className="min-w-0 flex-1 space-y-2">
+            <VerdictBanner
+              state={leaked.length ? 'fail' : tried.length === 0 ? 'idle' : 'pass'}
+              title={
+                leaked.length ? `${leaked.length} defence(s) let an attack through`
+                  : tried.length === 0 ? 'Nothing run yet'
+                  : `All ${tried.length} attack(s) you ran were blocked`
+              }
+            >
+              {tried.length === 0
+                ? 'The count stays at zero until you press something — a screen full of green you never earned is exactly what this page is here to refuse.'
+                : 'The verdict, the check name and the log entry are the engine’s own, from the run you just triggered on Replay data.'}
+            </VerdictBanner>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <Stat value={blocked} label="blocked this session" />
+              <Stat value={leaked.length} label="got through" hint="a non-zero count here is a real failure, listed below" />
+              <Stat value={tried.length} label={`of ${ORDER.length} attacks run`} />
+            </div>
+          </div>
         </div>
         {board && (
-          <div className="mt-3 grid gap-1.5 rounded-md bg-slate-50 px-3 py-2 text-[11px] text-slate-600">
+          <div className="tb-arm grid gap-x-6 gap-y-1.5 text-[11px] text-slate-600 sm:grid-cols-2">
             <div className="flex flex-wrap items-center gap-2"><span><span className="font-medium text-slate-800">Sandbox:</span> {board.sandbox.basis}</span><ModeBadge mode={board.sandbox.mode} /></div>
             <div>
               <span className="font-medium text-slate-800">Ledger:</span> written {board.sandbox.real_ledger_written ? 'yes' : 'no'};
@@ -138,8 +149,14 @@ export default function BreakItScreen() {
         <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {ORDER.map((id) => (
             <li key={id}>
-              <Button size="sm" variant="outline" className="w-full justify-start" onClick={() => fire(id)} disabled={busy !== null}>
-                {busy === id ? 'Running…' : `Try: ${id.replace(/_/g, ' ')}`}
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => fire(id)}
+                disabled={busy !== null}
+              >
+                {busy === id ? 'Running…' : `${results[id] ? (results[id].blocked ? '✓ blocked · ' : '✕ got through · ') : 'Try: '}${id.replace(/_/g, ' ')}`}
               </Button>
             </li>
           ))}
@@ -147,7 +164,7 @@ export default function BreakItScreen() {
         {tried.length === 0 ? (
           <div className="mt-3"><Empty>No attack has been run in this session yet.</Empty></div>
         ) : (
-          <ul className="mt-4 space-y-2.5">
+          <ul className="mt-4 grid gap-2.5 xl:grid-cols-2">
             {tried.map((id) => <AttackCard key={id} a={results[id]} />)}
           </ul>
         )}
@@ -155,18 +172,18 @@ export default function BreakItScreen() {
 
       {board && board.ok && (
         <Panel title="Verdict" description="Only shown after a full run of all six.">
-          <Note tone="good" title={`All ${board.total} attacks blocked`}>
+          <VerdictBanner state="pass" title={`All ${board.total} attacks blocked`}>
             Each refusal above names the check that produced it and the file it lives in. Recompute any of them with{' '}
             <span className="font-mono text-[11px]">npm run test</span> — the same assertions run in CI.
-          </Note>
+          </VerdictBanner>
         </Panel>
       )}
       {board && !board.ok && (
         <Panel title="Verdict" description="Only shown after a full run of all six.">
-          <Note tone="bad" title={`${board.blocked} of ${board.total} blocked — this build is not safe to demo`}>
+          <VerdictBanner state="fail" title={`${board.blocked} of ${board.total} blocked — this build is not safe to demo`}>
             A defence failed for real. Do not paper over it: the failing attack is listed above with the check that should
             have stopped it.
-          </Note>
+          </VerdictBanner>
         </Panel>
       )}
       {!board && tried.length > 0 && (
