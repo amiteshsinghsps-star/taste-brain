@@ -3,7 +3,9 @@
 // node:sqlite is used so there is no external database and no native build.
 
 import { DatabaseSync } from 'node:sqlite';
-import { createHash } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
+import * as fs from 'fs';
+import * as path from 'path';
 import { env } from '../config/env';
 import type { LedgerEntry, RunSnapshot } from '../types';
 
@@ -20,9 +22,22 @@ export interface GraphEdge { src: string; rel: EdgeRel; dst: string; data?: Reco
 
 let _db: DatabaseSync | null = null;
 
+/**
+ * A relative GRAPH_DB is resolved against this package, not against the current
+ * directory, so `npm run dev` and `node dist/index.js` open the same ledger.
+ * node:sqlite will not create a missing parent, and ':memory:' is not a path.
+ */
+function dbTarget(): string {
+  const raw = env.GRAPH_DB;
+  if (raw.startsWith(':memory:')) return raw;
+  const file = path.isAbsolute(raw) ? raw : path.resolve(__dirname, '..', '..', raw);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  return file;
+}
+
 function db(): DatabaseSync {
   if (_db) return _db;
-  _db = new DatabaseSync(env.GRAPH_DB);
+  _db = new DatabaseSync(dbTarget());
   _db.exec(`
     PRAGMA journal_mode = WAL;
     CREATE TABLE IF NOT EXISTS nodes (
@@ -148,11 +163,16 @@ export const graph = {
   appendLedger(e: Omit<LedgerEntry, 'seq' | 'hash' | 'prev_hash'>): LedgerEntry {
     const last = db().prepare('SELECT hash FROM ledger ORDER BY seq DESC LIMIT 1').get() as { hash: string } | undefined;
     const prev_hash = last?.hash ?? '0'.repeat(64);
-    const hash = ledgerHash({ ...e, prev_hash });
+    // With a key set, the algorithm is written inside the hashed detail, so it is
+    // not a free column an editor can flip. Without one, details stay exactly the
+    // shape every existing entry was hashed with.
+    const detail = env.LEDGER_HMAC_SECRET ? { ...e.detail, [ALGO_FIELD]: 'hmac-sha256' } : e.detail;
+    const entry = { ...e, detail };
+    const hash = ledgerHash({ ...entry, prev_hash });
     const info = db().prepare(`INSERT INTO ledger(at,action,proposal_id,pack,location,actor,detail,prev_hash,hash)
       VALUES(?,?,?,?,?,?,?,?,?)`)
-      .run(e.at, e.action, e.proposal_id, e.pack, e.location, e.actor, JSON.stringify(e.detail), prev_hash, hash);
-    return { ...e, prev_hash, seq: Number(info.lastInsertRowid), hash };
+      .run(entry.at, entry.action, entry.proposal_id, entry.pack, entry.location, entry.actor, JSON.stringify(detail), prev_hash, hash);
+    return { ...entry, prev_hash, seq: Number(info.lastInsertRowid), hash };
   },
   readLedger(limit = 200): LedgerEntry[] {
     // Newest N, returned oldest-first: a bounded read that kept the first rows
@@ -203,11 +223,39 @@ export function canonicalJson(value: unknown): string {
 
 export type LedgerHashInput = Pick<LedgerEntry, 'at' | 'action' | 'proposal_id' | 'pack' | 'location' | 'actor' | 'detail' | 'prev_hash'>;
 
+/** Names the algorithm an entry was hashed with. Carried inside detail — inside the
+ *  hashed bytes — so marking a keyed entry as keyless would change its content and
+ *  break its own hash. Absent means sha256, which is the truth about every entry
+ *  written before a key existed. */
+export const ALGO_FIELD = 'hash_algo';
+
+export function ledgerIsKeyed(): boolean { return typeof env.LEDGER_HMAC_SECRET === 'string' && env.LEDGER_HMAC_SECRET.length > 0; }
+
+/** The algorithm a stored entry claims, read from its own hashed detail. */
+export function ledgerAlgoOf(detail: unknown): 'sha256' | 'hmac-sha256' {
+  const algo = (detail as Record<string, unknown> | null | undefined)?.[ALGO_FIELD];
+  if (algo === undefined || algo === 'sha256') return 'sha256';
+  if (algo === 'hmac-sha256') return 'hmac-sha256';
+  throw new Error(`ledger entry names an unknown hash algorithm "${String(algo)}"`);
+}
+
+/**
+ * sha256 is what the chain has always used; it is unkeyed, so anyone holding the
+ * file can recompute a whole rewritten chain. With LEDGER_HMAC_SECRET set, entries
+ * are HMAC-bound and only this server can extend the chain — which is what makes an
+ * externally anchored head hash (npm run ledger:anchor) worth checking.
+ */
 export function ledgerHash(e: LedgerHashInput): string {
-  return createHash('sha256').update(canonicalJson({
+  const canon = canonicalJson({
     at: e.at, action: e.action, proposal_id: e.proposal_id, pack: e.pack,
     location: e.location, actor: e.actor, detail: e.detail, prev_hash: e.prev_hash,
-  })).digest('hex');
+  });
+  const algo = ledgerAlgoOf(e.detail);
+  if (algo === 'hmac-sha256') {
+    if (!env.LEDGER_HMAC_SECRET) throw new Error('a keyed ledger entry cannot be read on a host with no LEDGER_HMAC_SECRET');
+    return createHmac('sha256', env.LEDGER_HMAC_SECRET).update(canon).digest('hex');
+  }
+  return createHash('sha256').update(canon).digest('hex');
 }
 
 /** Walk the chain and report the first broken link, if any. */
@@ -217,23 +265,33 @@ export function verifyLedger(entries: LedgerEntry[]): {
   /** True when the read starts above entry 1, so the link into the older part of
    *  the chain was not in scope and cannot be claimed as proved. */
   partial: boolean;
+  /** Entries hashed with the unkeyed algorithm, i.e. ones a forger who holds the
+   *  whole file could rewrite. 0 is what a keyed host wants to see. */
+  keyless_entries: number;
 } {
   const partial = entries.length > 0 && entries[0].seq !== 1;
-  const fail = (seq: number | null, why: string) => ({
-    ok: false, length: entries.length, head_hash: entries.at(-1)?.hash ?? null, first_broken_seq: seq, reason: why, partial,
+  const fail = (seq: number | null, why: string, keyless = 0) => ({
+    ok: false, length: entries.length, head_hash: entries.at(-1)?.hash ?? null, first_broken_seq: seq, reason: why, partial, keyless_entries: keyless,
   });
   let prev = '0'.repeat(64);
+  let keyless = 0;
   for (const [i, e] of entries.entries()) {
     if (!(partial && i === 0) && e.prev_hash !== prev) {
-      return fail(e.seq, `entry ${e.seq} points at ${e.prev_hash.slice(0, 12)}… but the previous entry hashes to ${prev.slice(0, 12)}…`);
+      return fail(e.seq, `entry ${e.seq} points at ${e.prev_hash.slice(0, 12)}… but the previous entry hashes to ${prev.slice(0, 12)}…`, keyless);
     }
-    const expect = ledgerHash({ at: e.at, action: e.action, proposal_id: e.proposal_id, pack: e.pack, location: e.location, actor: e.actor, detail: e.detail, prev_hash: e.prev_hash });
+    let expect: string;
+    try {
+      expect = ledgerHash({ at: e.at, action: e.action, proposal_id: e.proposal_id, pack: e.pack, location: e.location, actor: e.actor, detail: e.detail, prev_hash: e.prev_hash });
+    } catch (err) {
+      return fail(e.seq, err instanceof Error ? err.message : String(err), keyless);
+    }
     if (expect !== e.hash) {
-      return fail(e.seq, `entry ${e.seq} content does not match its recorded hash (edited after the fact)`);
+      return fail(e.seq, `entry ${e.seq} content does not match its recorded hash (edited after the fact)`, keyless);
     }
+    if (ledgerAlgoOf(e.detail) === 'sha256') keyless += 1;
     prev = e.hash;
   }
-  return { ok: true, length: entries.length, head_hash: prev === '0'.repeat(64) ? null : prev, first_broken_seq: null, reason: null, partial };
+  return { ok: true, length: entries.length, head_hash: prev === '0'.repeat(64) ? null : prev, first_broken_seq: null, reason: null, partial, keyless_entries: keyless };
 }
 
 export function resetGraph() {

@@ -115,6 +115,15 @@ describe('Parameter allowlist', () => {
     expect(() => assertAllowed('/v2/analysis/compare', { 'signal.interests.entities': 'x' })).toThrow(AllowlistViolation);
     assertAllowed('/v2/analysis/compare', { 'a.signal.interests.entities': 'x', 'b.signal.location.query': 'Chicago, IL' });
   });
+
+  it('refuses a value that would collapse in the URL instead of being joined on purpose', async () => {
+    const { assertAllowed, AllowlistViolation } = await import('../src/qloo/allowlist');
+    // String(['a','b']) is "a,b" — the shape a comma list takes — so an accidental
+    // array would reach Qloo looking deliberate. Callers that mean a list join it.
+    expect(() => assertAllowed('/v2/insights', { 'signal.interests.entities': ['a', 'b'] as never })).toThrow(AllowlistViolation);
+    expect(() => assertAllowed('/v2/insights', { 'filter.type': { urn: 'entity' } as never })).toThrow(AllowlistViolation);
+    assertAllowed('/v2/insights', { 'signal.interests.entities': ['a', 'b'].join(',') });
+  });
 });
 
 // ── Error shapes ──────────────────────────────────────────────────────────

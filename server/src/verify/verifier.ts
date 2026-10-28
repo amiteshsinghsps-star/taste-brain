@@ -148,30 +148,58 @@ function checkRules(exp: DecisionExport): VerifyCheck {
  * The chain alone only proves the LEDGER rows were not edited: every other field
  * of the export is unsigned and can be rewritten into a self-consistent fiction.
  * The ledger detail is inside the hashed content, and it records the run's
- * rerun_hash, so re-hashing the exported decision steps against that figure is
- * what binds each item's Qloo entity id, its rank and its rule verdicts to a
- * signed record. Display names are not in that hash — rerunHash keys a step on its
- * id when it has one — so the scope this export claims says so out loud.
+ * rerun_hash and the canonicalisation version that produced it, so re-hashing the
+ * exported decision steps under that version is what binds each item's Qloo entity
+ * id, its name, its rank and its rule verdicts to a tamper-evident ledger record.
+ * Version 1 hashed
+ * a step on its id and left the name out, so those runs are additionally checked
+ * against the approved name list inside the same hashed detail.
  */
 function checkDecisionBound(exp: DecisionExport): VerifyCheck {
   const base = { id: 'decision_bound', name: 'The items, order and verdicts shown are the ones the hashed ledger recorded' };
-  const recorded = exp.ledger
-    .map((e) => (e.detail as { rerun_hash?: unknown } | undefined)?.rerun_hash)
-    .filter((h): h is string => typeof h === 'string' && h.length > 0);
+  type Recorded = { hash: string; version: 1 | 2; seq: number };
+  const recorded: Recorded[] = exp.ledger.flatMap((e) => {
+    const d = e.detail as { rerun_hash?: unknown; rerun_hash_version?: unknown } | undefined;
+    if (typeof d?.rerun_hash !== 'string' || d.rerun_hash.length === 0) return [];
+    return [{ hash: d.rerun_hash, version: d.rerun_hash_version === 2 ? 2 as const : 1 as const, seq: e.seq }];
+  });
   if (!recorded.length) {
-    return { ...base, status: 'fail', detail: 'no hash-protected ledger entry records a rerun_hash, so nothing binds this ranking to a signed record', first_failing: 'ledger detail.rerun_hash' };
+    return { ...base, status: 'fail', detail: 'no hash-protected ledger entry records a rerun_hash, so nothing binds this ranking to a tamper-evident ledger record', first_failing: 'ledger detail.rerun_hash' };
   }
   const steps = exp.decision.trace?.steps ?? [];
-  const recomputed = rerunHash(steps);
-  if (!recorded.includes(recomputed)) {
+  // Each canonicalisation is tried only against the hashes recorded under it, so a
+  // v1 run cannot be satisfied by a v2 re-hash of edited steps, or the other way.
+  const attempts = [...new Set(recorded.map((r) => r.version))]
+    .map((v) => ({ v, hash: rerunHash(steps, v) }));
+  const hit = attempts.find((a) => recorded.some((r) => r.version === a.v && r.hash === a.hash));
+  if (!hit) {
     return {
       ...base,
       status: 'fail',
-      detail: `the ${steps.length} decision step(s) in this export re-hash to ${recomputed}, but the hash-protected ledger records ${recorded.join(' / ')} — items, order or verdicts were changed after the run`,
-      first_failing: `rerun_hash ${recomputed}`,
+      detail: `the ${steps.length} decision step(s) in this export re-hash to ${attempts.map((a) => `v${a.v} ${a.hash}`).join(' and ')}, but the hash-protected ledger records ${recorded.map((r) => `v${r.version} ${r.hash}`).join(' / ')} — items, order, names or verdicts were changed after the run`,
+      first_failing: attempts.map((a) => `rerun_hash v${a.v} ${a.hash}`).join(', '),
     };
   }
-  return { ...base, status: 'pass', detail: `${steps.length} decision step(s) re-hashed to ${recomputed}, matching the rerun_hash carried inside the hash-protected ledger detail`, first_failing: null };
+  // Version 1 hashed a step on its id and skipped the name, so for those runs the
+  // names are bound by the approved list inside the hashed ledger detail instead.
+  const signed = exp.ledger
+    .map((e) => (e.detail as { approved?: unknown } | undefined)?.approved)
+    .filter((a): a is { name: string; qloo_rank: number }[] => Array.isArray(a))
+    .flat();
+  const byRank = new Map(exp.decision.items.map((i) => [i.qloo_rank, i.name]));
+  const misnamed = signed.filter((s) => typeof s?.qloo_rank === 'number' && byRank.has(s.qloo_rank) && byRank.get(s.qloo_rank) !== s.name);
+  if (misnamed.length) {
+    return {
+      ...base,
+      status: 'fail',
+      detail: `rank ${misnamed.map((m) => m.qloo_rank).join(', ')} ${misnamed.length === 1 ? 'is' : 'are'} recorded as ${misnamed.map((m) => JSON.stringify(m.name)).join(', ')} inside the hashed ledger, but this export shows ${misnamed.map((m) => JSON.stringify(byRank.get(m.qloo_rank))).join(', ')}`,
+      first_failing: `ledger approved list, rank ${misnamed[0].qloo_rank}`,
+    };
+  }
+  const namesNote = hit.v === 2
+    ? 'names included'
+    : `${signed.length} approved name(s) cross-checked against the ledger`;
+  return { ...base, status: 'pass', detail: `${steps.length} decision step(s) re-hashed to ${hit.hash} under canonicalisation v${hit.v}, matching the rerun_hash carried inside the hash-protected ledger detail (${namesNote})`, first_failing: null };
 }
 
 function checkModes(exp: DecisionExport): VerifyCheck {

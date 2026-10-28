@@ -11,6 +11,7 @@ import type { LedgerEntry } from '@/lib/types';
 interface VerifyResult {
   ok: boolean; length: number; head_hash: string | null;
   first_broken_seq: number | null; reason: string | null; note: string;
+  keyed: boolean; keyless_entries: number; keyless_note: string;
 }
 
 function fmtVal(v: unknown): string {
@@ -65,6 +66,8 @@ export default function LedgerScreen() {
               <Note tone="good" title="Chain verified">
                 <div>{verify.note}.</div>
                 {verify.head_hash && <div className="mt-1 flex items-center gap-2">head hash <Hash value={verify.head_hash} /></div>}
+                {/* The server's own sentence about how strong that chain is. */}
+                <div className="mt-1 text-[11px] text-slate-600">{verify.keyless_note}</div>
               </Note>
             )
             : (

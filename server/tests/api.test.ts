@@ -3,6 +3,8 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import * as http from 'http';
+import * as fs from 'fs';
+import * as path from 'path';
 import { createApp } from '../src/http';
 import { env } from '../src/config/env';
 
@@ -340,5 +342,65 @@ describe('hostile input at the boundary', () => {
     const r = await post('/api/partners', { pack: 'venues', location: 'venue_redroom', mode: 'banana' });
     expect(r.status).toBe(400);
     expect(r.body.message).toMatch(/live, cached or replay/);
+  });
+});
+
+describe('the ledger window', () => {
+  it('honours ?limit=, clamps it, and still reports the whole length', async () => {
+    const three = await get('/api/ledger?limit=3');
+    expect(three.status).toBe(200);
+    expect(three.body.entries.length).toBeLessThanOrEqual(3);
+    expect(three.body.limit).toBe(3);
+    expect(three.body.total).toBeGreaterThanOrEqual(three.body.entries.length);
+    // Chain order inside the window, newest end included.
+    const seqs = three.body.entries.map((e: { seq: number }) => e.seq);
+    expect(seqs).toEqual([...seqs].sort((a, b) => a - b));
+
+    const huge = await get('/api/ledger?limit=999999');
+    expect(huge.body.limit).toBe(300);
+    for (const junk of ['?limit=abc', '?limit=0', '?limit=-5']) {
+      const r = await get(`/api/ledger${junk}`);
+      expect(r.status, junk).toBe(200);
+      expect(r.body.limit, junk).toBe(300);
+    }
+  });
+
+  it('says how many entries are only as strong as an unkeyed hash', async () => {
+    const r = await get('/api/ledger/verify');
+    expect(r.status).toBe(200);
+    expect(typeof r.body.keyed).toBe('boolean');
+    expect(r.body.keyless_entries).toBeGreaterThanOrEqual(0);
+    if (!r.body.keyed) expect(r.body.keyless_note).toMatch(/unkeyed|LEDGER_HMAC_SECRET/);
+  });
+});
+
+describe('what a browser may see about a room', () => {
+  it('lists seeds exactly as committed, never the overlay wording', async () => {
+    // On a host holding the identity overlay, the working pack rewrites a seed id
+    // into a slug of the real-world name it stands for. The route must not carry it.
+    const committed = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src', 'packs', 'data', 'retail.json'), 'utf8'));
+    const r = await get('/api/packs/retail/locations');
+    expect(r.status).toBe(200);
+    const byId = new Map(committed.locations.map((l: any) => [l.id, l.seeds]));
+    for (const loc of r.body.locations) {
+      expect(byId.has(loc.id), `room ${loc.id} is not in the committed pack`).toBe(true);
+      expect(loc.seeds, `seeds for ${loc.id}`).toEqual(byId.get(loc.id));
+    }
+  });
+});
+
+describe('trust proxy configuration', () => {
+  // The setting decides whose address the limiter believes, so it is asserted at
+  // both values rather than assumed from the deployment docs.
+  it('is off unless the host asks for it, and honours the hop count when set', async () => {
+    const { vi } = await import('vitest');
+    expect(createApp().get('trust proxy')).toBeFalsy();
+
+    vi.resetModules();
+    process.env.TRUST_PROXY_HOPS = '1';
+    const fresh = await import('../src/http');
+    expect(fresh.createApp().get('trust proxy')).toBe(1);
+    delete process.env.TRUST_PROXY_HOPS;
+    vi.resetModules();
   });
 });

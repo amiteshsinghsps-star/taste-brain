@@ -5,6 +5,7 @@ import { applyOverlay, overlayFor } from './overlay';
 
 const DATA_DIR = path.join(__dirname, 'data');
 const cache = new Map<string, PackFile>();
+const committedCache = new Map<string, PackFile>();
 
 /**
  * A location is the room the decision is made for. Everything the venue owns
@@ -82,18 +83,48 @@ export function listPackIds(): string[] {
 export function loadPack(id: string): PackFile {
   const key = String(id ?? '');
   if (cache.has(key)) return cache.get(key) as PackFile;
-  if (!/^[A-Za-z0-9_-]+$/.test(key)) throw new Error('unknown pack');
-  const file = path.join(DATA_DIR, `${key}.json`);
-  if (!fs.existsSync(file)) throw new Error(`unknown pack ${key}`);
-  // The committed file is fictional; a host that holds the private overlay gets
-  // real identities merged in, so live mode can still join Qloo results to offers.
-  const pack = applyOverlay(JSON.parse(fs.readFileSync(file, 'utf8')) as PackFile, overlayFor(key));
+  const pack = applyOverlay(readCommittedPack(key), overlayFor(key));
   cache.set(key, pack);
   return pack;
 }
 
+/** The tracked file exactly as committed: fictional companies, fictional rooms. */
+export function loadCommittedPack(id: string): PackFile {
+  const key = String(id ?? '');
+  if (committedCache.has(key)) return committedCache.get(key) as PackFile;
+  const pack = readCommittedPack(key);
+  committedCache.set(key, pack);
+  return pack;
+}
+
+function readCommittedPack(key: string): PackFile {
+  if (!/^[A-Za-z0-9_-]+$/.test(key)) throw new Error('unknown pack');
+  const file = path.join(DATA_DIR, `${key}.json`);
+  if (!fs.existsSync(file)) throw new Error(`unknown pack ${key}`);
+  return JSON.parse(fs.readFileSync(file, 'utf8')) as PackFile;
+}
+
 export function getLocations(id: string): PackLocation[] {
   return loadPack(id).locations;
+}
+
+/**
+ * The room list for a browser. applyOverlay rewrites a seed id into a slug of the
+ * real-world name it stands for, so the working pack carries Qloo identities inside
+ * `seeds` — and an overlay is the same class of secret as the key that reads it.
+ * Everything else about a room is identical; only the seed names are put back the
+ * way they were committed.
+ */
+export function getPublicLocations(id: string): PackLocation[] {
+  const committed = loadCommittedPack(id);
+  const seedsById = new Map(committed.locations.map((l) => [l.id, l.seeds]));
+  return getLocations(id).map((l) => ({ ...l, seeds: seedsById.get(l.id) ?? l.seeds }));
+}
+
+export function getPublicLocation(id: string, locationId: string): PackLocation {
+  const loc = getPublicLocations(id).find((l) => l.id === locationId);
+  if (!loc) throw new Error(`Unknown location ${locationId} for pack ${id}`);
+  return loc;
 }
 
 /**

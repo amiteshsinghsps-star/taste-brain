@@ -90,6 +90,35 @@ describe('a freshly built export', () => {
     expect(check(report, 'decision_bound').detail).toMatch(/were changed after the run/);
   });
 
+  it('binds the display name too: renaming an item and its step together is caught', () => {
+    // Version 1 hashed a step on `id ?? label`, so this exact forgery — a name
+    // changed everywhere it appears — re-hashed to the signed value and passed.
+    const report = verifyExport(forge((exp) => {
+      const first = exp.decision.items[0];
+      first.name = `${first.name} (much better name)`;
+      exp.decision.trace.steps = exp.decision.trace.steps.map((s) =>
+        s.type === 'QlooEntity' && s.id === first.entity_id ? { ...s, label: first.name } : s);
+    }));
+    expect(check(report, 'decision_bound').status).toBe('fail');
+    expect(check(report, 'decision_bound').detail).toMatch(/names or verdicts were changed after the run/);
+  });
+
+  it('catches a renamed item whose trace steps were left honest', () => {
+    const report = verifyExport(forge((exp) => {
+      exp.decision.items[0].name = 'Someone else entirely';
+    }));
+    expect(check(report, 'decision_bound').status).toBe('fail');
+    expect(check(report, 'decision_bound').detail).toMatch(/recorded as .* but this export shows/);
+  });
+
+  it('records which canonicalisation bound the run, and says names are included', () => {
+    const report = verifyExport(baseExport);
+    expect(check(report, 'decision_bound').status).toBe('pass');
+    expect(check(report, 'decision_bound').detail).toMatch(/v2/);
+    expect(check(report, 'decision_bound').detail).toMatch(/names included/);
+    expect(baseExport.decision.trace.rerun_hash_version).toBe(2);
+  });
+
   it('names the rule set it pinned, and the pin is content-derived', () => {
     expect(baseExport.rules.pinned_version).toBe(rulesPinnedVersion(baseExport.rules.rules));
     expect(verifyExport(baseExport).checks.find((c) => c.id === 'rules')?.detail).toContain(baseExport.rules.pinned_version.slice(0, 16));

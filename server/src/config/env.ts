@@ -45,7 +45,12 @@ const schema = z.object({
   // Where results come from. Replay is the default so the demo runs with no credential.
   DEFAULT_MODE: ModeSchema.default('replay'),
 
-  GRAPH_DB: z.string().default(':memory:'),
+  // The ledger, the snapshots and the quota counters all live here, and quota.ts
+  // promises that a restart does not reset the budget — which is only true of a
+  // file. ':memory:' stays available for tests and throwaway runs; it is not the
+  // default, because a default deployment that forgot the variable would silently
+  // lose its decision history on every restart.
+  GRAPH_DB: z.string().default('.private-data/taste-brain.db'),
 
   // Qloo direct REST.
   QLOO_ENABLED: boolish.default(false),
@@ -75,6 +80,18 @@ const schema = z.object({
 
   // Public-demo safety.
   RATE_LIMIT_PER_MIN: z.coerce.number().default(30),
+  // Behind a deploy proxy every visitor arrives on the proxy's socket address, so
+  // the whole site would share one rate bucket and judges would throttle each
+  // other. Set this to the number of proxies in front of the app (1 for most
+  // hosts). At 0 X-Forwarded-For is ignored on purpose: a local run must not let a
+  // client claim to be any address it likes.
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
+
+  // The ledger hash is unkeyed sha256 unless this is set, which means anyone who
+  // can rewrite a whole chain can produce a self-consistent one. With a key the
+  // chain becomes HMAC-bound and only this server can extend it. New entries carry
+  // their algorithm, so an existing keyless chain still verifies.
+  LEDGER_HMAC_SECRET: z.string().min(16).optional(),
 
   // Quota Guardian (F41). Live traffic stops before the key is exhausted.
   QUOTA_VISITOR_HOUR: z.coerce.number().default(8),
@@ -112,6 +129,8 @@ export const env = schema.parse({
   LLM_BASE_URL: process.env.LLM_BASE_URL,
   LLM_MODEL: process.env.LLM_MODEL,
   RATE_LIMIT_PER_MIN: process.env.RATE_LIMIT_PER_MIN,
+  TRUST_PROXY_HOPS: process.env.TRUST_PROXY_HOPS,
+  LEDGER_HMAC_SECRET: process.env.LEDGER_HMAC_SECRET,
   QUOTA_VISITOR_HOUR: process.env.QUOTA_VISITOR_HOUR,
   QUOTA_VISITOR_DAY: process.env.QUOTA_VISITOR_DAY,
   QUOTA_GLOBAL_DAY: process.env.QUOTA_GLOBAL_DAY,

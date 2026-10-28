@@ -8,11 +8,11 @@ import cors from 'cors';
 import fs from 'node:fs';
 import path from 'node:path';
 import { env, qlooKeyStatus, qlooRestEnabled } from './config/env';
-import { listPackIds, loadPack, getLocations, getLocation, getCatalog, findOffer, hasReplayFixture } from './packs/loader';
+import { listPackIds, loadPack, getLocations, getLocation, getPublicLocations, getPublicLocation, getCatalog, findOffer, hasReplayFixture } from './packs/loader';
 import { runPipeline, runFromSnapshot, decide, type RunInput } from './agents/pipeline';
 import { createSession, callLog, servedMode } from './qloo/adapter';
 import { quotaStatus, getRestLog } from './qloo/rest-client';
-import { graph, verifyLedger } from './graph/store';
+import { graph, verifyLedger, ledgerIsKeyed } from './graph/store';
 import { runTasteLift } from './eval/taste-lift';
 import { llmModel } from './agents/llm';
 import { computeAblation, ablationHeadline } from './agents/ablation';
@@ -100,6 +100,9 @@ let lastEval: unknown = null;
 export function createApp() {
   const app = express();
   app.disable('x-powered-by');
+  // 0 keeps Express on the socket address, so a direct client cannot pick its own
+  // IP with X-Forwarded-For. A host behind a proxy sets the hop count.
+  if (env.TRUST_PROXY_HOPS > 0) app.set('trust proxy', env.TRUST_PROXY_HOPS);
   app.use((_req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'no-referrer');
@@ -214,7 +217,9 @@ export function createApp() {
 
   app.get('/api/packs/:id/locations', (req, res) => {
     try {
-      const locations = getLocations(req.params.id).map((l) => ({ ...l, replay_fixture: hasReplayFixture(req.params.id, l.id) }));
+      // Committed identities: an overlaid pack carries real-world names inside its
+      // seed ids, and this list is served to any browser.
+      const locations = getPublicLocations(req.params.id).map((l) => ({ ...l, replay_fixture: hasReplayFixture(req.params.id, l.id) }));
       res.json({ success: true, locations });
     }
     catch { res.status(404).json({ success: false, message: 'unknown pack' }); }
@@ -222,7 +227,7 @@ export function createApp() {
 
   app.get('/api/packs/:id/locations/:loc', (req, res) => {
     try {
-      const loc = getLocation(req.params.id, req.params.loc);
+      const loc = getPublicLocation(req.params.id, req.params.loc);
       const audience = graph.getNode<{ taste_tags: string[]; mode: TasteMode; fetched_at: string }>(`aud:${loc.id}`);
       res.json({ success: true, location: { ...loc, replay_fixture: hasReplayFixture(req.params.id, loc.id) }, audience, catalog_size: getCatalog(req.params.id, loc.catalog).length });
     } catch { res.status(404).json({ success: false, message: 'unknown location' }); }
@@ -475,9 +480,14 @@ export function createApp() {
   });
 
   // ── F15 Decision ledger ────────────────────────────────────────────────────
-  app.get('/api/ledger', (_req, res) => {
-    const entries = graph.readLedger(300);
-    res.json({ success: true, entries, head_hash: graph.headHash(), length: entries.length, total: graph.countLedger() });
+  app.get('/api/ledger', (req, res) => {
+    // A display window: the newest N in chain order. Verification never uses this
+    // route, because a bounded read can only prove the part it held.
+    const raw = Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit;
+    const wanted = Math.floor(Number(raw));
+    const limit = Number.isFinite(wanted) && wanted > 0 ? Math.min(wanted, 300) : 300;
+    const entries = graph.readLedger(limit);
+    res.json({ success: true, entries, head_hash: graph.headHash(), length: entries.length, total: graph.countLedger(), limit });
   });
 
   app.get('/api/ledger/verify', (_req, res) => {
@@ -493,6 +503,14 @@ export function createApp() {
           ? `${v.length} entr${v.length === 1 ? 'y' : 'ies'} re-hashed from entry ${entries[0].seq} onward; the links inside that range were checked, older entries were not in this read`
           : `${v.length} entr${v.length === 1 ? 'y' : 'ies'}, every hash recomputed and every link checked from the first entry`
         : 'the chain is broken: an entry was changed after it was written',
+      // Whether the chain is bound to a secret this host holds. An unkeyed chain is
+      // tamper-evident, not tamper-proof: whoever has the file can rewrite the lot.
+      keyed: ledgerIsKeyed(),
+      keyless_note: v.keyless_entries > 0
+        ? `${v.keyless_entries} of ${v.length} entries are hashed with unkeyed sha256, so rewriting that whole range is arithmetic rather than forgery`
+        : ledgerIsKeyed()
+          ? 'every entry is HMAC-bound to this host\'s key'
+          : 'the chain is unkeyed on this host: set LEDGER_HMAC_SECRET before the first entry to bind it',
     });
   });
 

@@ -85,6 +85,14 @@ export function assertAllowed(endpoint: string, params: Record<string, string | 
   for (const [k, v] of Object.entries(params)) {
     if (v === undefined) continue;
     if (!allowed.includes(k)) throw new AllowlistViolation(endpoint, k, 'not in the verified set');
+    // One value per name, always. An array or object would reach the URL through
+    // String(v) — "a,b" for a list, "[object Object]" otherwise — so a caller that
+    // forgot to join deliberately would quietly change the request, and a repeated
+    // name would be collapsed to its last value. Comma lists are built by the
+    // caller that knows the parameter takes one; the transport refuses anything else.
+    if (Array.isArray(v) || typeof v === 'object') {
+      throw new AllowlistViolation(endpoint, k, 'array or object value would collapse in the URL — join a list before calling');
+    }
     const bad = valueIsSensible(endpoint, k, v);
     if (bad) throw new AllowlistViolation(endpoint, k, bad);
   }

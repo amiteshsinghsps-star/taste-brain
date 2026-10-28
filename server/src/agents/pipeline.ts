@@ -476,7 +476,7 @@ export async function runPipeline(input: RunInput): Promise<Proposal> {
   graph.saveSnapshot(snapshot);
   graph.appendLedger({
     at: proposal.created_at, action: 'proposed', proposal_id, pack: input.pack, location: loc.id,
-    actor: 'taste-brain', detail: { goal: input.goal, mode, items: items.length, rejected: rejections.length, rerun_hash: trace.rerun_hash, session: { calls: session.calls.length, live_reads: fetched_now, relaxations, violations: session.violations } },
+    actor: 'taste-brain', detail: { goal: input.goal, mode, items: items.length, rejected: rejections.length, rerun_hash: trace.rerun_hash, rerun_hash_version: trace.rerun_hash_version ?? 1, session: { calls: session.calls.length, live_reads: fetched_now, relaxations, violations: session.violations } },
   });
 
   return proposal;
@@ -585,7 +585,7 @@ export function runFromSnapshot(input: RunInput): Proposal | null {
   graph.appendLedger({
     at: proposal.created_at, action: 'proposed', proposal_id, pack: input.pack, location: loc.id,
     actor: 'taste-brain',
-    detail: { goal: input.goal, mode: servedMode, served_from: snapshot.proposal_id, qloo_calls: 0, items: evaluated.items.length, rejected: evaluated.rejections.length, rerun_hash: trace.rerun_hash },
+    detail: { goal: input.goal, mode: servedMode, served_from: snapshot.proposal_id, qloo_calls: 0, items: evaluated.items.length, rejected: evaluated.rejections.length, rerun_hash: trace.rerun_hash, rerun_hash_version: trace.rerun_hash_version ?? 1 },
   });
   return proposal;
 }
@@ -634,7 +634,7 @@ export function decide(
 
   const entry = graph.appendLedger({
     at: now, action: outcome, proposal_id: proposal.proposal_id, pack: proposal.pack, location: proposal.location,
-    actor: approver, detail: { approved: outcome === 'approved' ? chosen.map((c) => ({ name: c.name, qloo_rank: c.qloo_rank })) : [], item_count: chosen.length, rerun_hash: proposal.trace.rerun_hash },
+    actor: approver, detail: { approved: outcome === 'approved' ? chosen.map((c) => ({ name: c.name, qloo_rank: c.qloo_rank })) : [], item_count: chosen.length, rerun_hash: proposal.trace.rerun_hash, rerun_hash_version: proposal.trace.rerun_hash_version ?? 1 },
   });
   proposal.trace.steps.push({ type: 'Ledger', mode: proposal.mode, label: `decision written to the ledger as entry ${entry.seq}`, result: 'pass', detail: `hash ${entry.hash.slice(0, 16)}… linked to ${entry.prev_hash.slice(0, 16)}…`, at: now });
   graph.setProposalStatus(proposal.proposal_id, outcome);

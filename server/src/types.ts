@@ -172,6 +172,9 @@ export interface DecisionTrace {
   mode: TasteMode;
   steps: TraceStep[];
   rerun_hash: string;
+  /** Which step canonicalisation produced rerun_hash. Absent means version 1, i.e.
+   *  a trace stored before display names were inside the hash. */
+  rerun_hash_version?: 1 | 2;
   mode_mix?: ModeMix;
 }
 

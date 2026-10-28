@@ -78,7 +78,11 @@ export const api = {
 
   ledger: () => fetch(`${BASE}/api/ledger`).then((r) => j<{ success: boolean; entries: LedgerEntry[]; head_hash: string | null; length: number; total: number }>(r)),
   verify: () => fetch(`${BASE}/api/ledger/verify`)
-    .then((r) => j<{ success: boolean; ok: boolean; length: number; head_hash: string | null; first_broken_seq: number | null; reason: string | null; note: string }>(r)),
+    .then((r) => j<{
+      success: boolean; ok: boolean; length: number; head_hash: string | null;
+      first_broken_seq: number | null; reason: string | null; note: string;
+      keyed: boolean; keyless_entries: number; keyless_note: string;
+    }>(r)),
 
   // W1 — the decision export and the standalone Verifier. `api.verify` above is
   // the ledger chain only; this re-runs all five checks over an export file.

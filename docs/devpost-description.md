@@ -23,7 +23,7 @@ Redacted request→result: see the README walkthrough — a Replay run of the sy
 
 **Try it.** [demo URL] · [repo URL] · MIT license · 60-second path in the README.
 
-**Known limitations.** Qloo gives aggregate affinities, not facts about individuals. Sample data is synthetic and every screen states its mode; no committed file names a real company, artist or venue or carries a Qloo entity id. Taste Lift publishes only Arm B when no LLM key is set — no lift figure is fabricated. Results are decision support, not guarantees of business outcomes, and not medical/financial/legal advice.
+**Known limitations.** Qloo gives aggregate affinities, not facts about individuals. Sample data is synthetic and every screen states its mode; no committed file names a real company, artist or venue or carries a Qloo entity id. Taste Lift publishes only Arm B when no LLM key is set — no lift figure is fabricated. The decision ledger is hash-chained and **tamper-evident, not tamper-proof**: recomputing it proves no entry was edited afterwards, and the Verify screen re-derives the chosen acts, ranks, names and rule verdicts from hash-protected records, but it cannot prove the file is the only version of itself — that needs a key only the host holds (`LEDGER_HMAC_SECRET`) or a head hash published somewhere the writer doesn't control. It also never proves Qloo's own data is correct, nor that a name is Qloo's wording rather than this app's label for a Qloo entity id. Results are decision support, not guarantees of business outcomes, and not medical/financial/legal advice.
 
 ## Kit checklist (SUBMISSION.md)
 - [x] Short problem statement

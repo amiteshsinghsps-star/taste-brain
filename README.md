@@ -165,6 +165,18 @@ The key custodian sets `QLOO_ENABLED=true` in the host environment for a planned
 
 `gate:public` fails the build if any tracked line carries a credential value, a Qloo entity id (UUID literal) or a name taken from the private overlay; if `.env`, `.private-cache/`, `.private-data/` or a live capture is tracked; if the shipped defaults are not `QLOO_ENABLED=false` / `DEFAULT_MODE=replay`; if `LICENSE` is missing; if the README disclosure is older than the evidence files it describes; or if a keyless Replay run returns nothing for the three demo rooms.
 
+### Host settings the operator chooses
+
+Three settings describe the machine, not the product, and each defaults to the behaviour that is safe on a laptop:
+
+- `GRAPH_DB` (default `.private-data/taste-brain.db`) is a file, not `:memory:`, because `server/src/agents/quota.ts` promises the day's counters survive a restart — an in-memory database would break that promise on the first redeploy. Set it to a path on persistent storage; on ephemeral filesystems the quota resets with the host and the ledger starts over.
+- `TRUST_PROXY_HOPS` (default `0`) is how many proxy layers sit in front of the server. Rate limiting and the per-visitor quota are keyed on `req.ip`, and behind a reverse proxy every visitor arrives as `127.0.0.1` — so with the default, one visitor's traffic spends the whole world's bucket. Set it to `1` on a host that terminates TLS in front of the app, and leave it `0` if the client connects directly, because a directly-connected client can otherwise invent its own address. The server logs which of the two it is at startup, and `/api/ledger` keeps using the same key.
+- `LEDGER_HMAC_SECRET` (unset by default) keys each ledger hash with `createHmac('sha256', …)` instead of a bare `createHash('sha256', …)`. Entries record which algorithm made them, so a chain written before the key existed still verifies.
+
+### What the ledger chain does and does not prove
+
+The ledger is **hash-chained and tamper-evident**, not tamper-proof. Recomputing it proves no entry was edited in place unnoticed — an edit changes the entry's hash, which breaks the `prev_hash` link below it. It does not prove the chain is the only chain: without `LEDGER_HMAC_SECRET`, anyone holding the database file can rewrite every entry consistently and produce a chain that verifies. The honest mitigation is outside the file, so `npm run ledger:anchor` prints the current head hash for publishing somewhere the writer does not control (the README, a commit, a screenshot). Same rule applies to the item names: a hash binds a name to the run that recorded it, not to Qloo's wording.
+
 ---
 
 ## Known limitations
@@ -173,6 +185,7 @@ The key custodian sets `QLOO_ENABLED=true` in the host environment for a planned
 - This build ships with **Replay mode with synthetic sample fixtures** enabled by default so the demo is 100% runnable offline without any credentials.
 - In **Live mode**, recommendations derive from real calls to `https://hackathon.api.qloo.com`. An API key must be supplied in `server/.env`, `QLOO_ENABLED` must be turned on by the key custodian, and the host needs the private identity overlay described above — without it, the fictional seeds in the committed packs resolve to nothing real.
 - Outbound API calls are limited by a 250ms throttle queue and daily soft quota limits.
+- The decision ledger is tamper-evident, not tamper-proof: without `LEDGER_HMAC_SECRET` set on the host, whoever holds the database file can rewrite the whole chain and it will still verify. The chain proves an entry was not edited in place, not that the file is the only version of itself — see *What the ledger chain does and does not prove*.
 - Results provide **decision support and proof traces**, not guarantees of commercial sales or performance.
 - Multi-tenancy, billing and production cloud isolation are out of scope for the hackathon.
 

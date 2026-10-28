@@ -3,6 +3,7 @@
 // Everything here runs offline in Replay mode against the synthetic fixtures.
 
 import { describe, it, expect, beforeAll } from 'vitest';
+import { createHash } from 'node:crypto';
 import { runPipeline, runFromSnapshot, decide } from '../src/agents/pipeline';
 import { graph, verifyLedger, ledgerHash } from '../src/graph/store';
 import { computeAblation } from '../src/agents/ablation';
@@ -77,6 +78,58 @@ describe('Decision ledger (F15)', () => {
     const forged = window.map((e) => ({ ...e }));
     forged[2].detail = { ...forged[2].detail, tampered: true };
     expect(verifyLedger(forged).ok).toBe(false);
+  });
+});
+
+describe('keyed ledger chain', () => {
+  // A separate module instance with its own in-memory database and its own env
+  // snapshot, because whether the chain is keyed is decided at import.
+  it('hashes what it writes with the host key, and reads it back as keyed', async () => {
+    const { vi } = await import('vitest');
+    vi.resetModules();
+    process.env.LEDGER_HMAC_SECRET = 'synthetic-test-secret-not-a-real-one';
+    const store = await import('../src/graph/store');
+    delete process.env.LEDGER_HMAC_SECRET;
+
+    store.graph.appendLedger({
+      at: new Date().toISOString(), action: 'proposed', proposal_id: 'p_keyed_1',
+      pack: 'venues', location: 'venue_redroom', actor: 'operator:test', detail: { goal: 'keyed' },
+    });
+    store.graph.appendLedger({
+      at: new Date().toISOString(), action: 'approved', proposal_id: 'p_keyed_1',
+      pack: 'venues', location: 'venue_redroom', actor: 'Test Approver', detail: { approved: [] },
+    });
+    const entries = store.graph.readLedger(100);
+    expect(entries).toHaveLength(2);
+    // The algorithm travels inside the hashed detail, not in a free column.
+    expect((entries[0].detail as Record<string, unknown>).hash_algo).toBe('hmac-sha256');
+    expect(entries[0].hash).toHaveLength(64);
+    const v = store.verifyLedger(entries);
+    expect(v.ok).toBe(true);
+    expect(v.keyless_entries).toBe(0);
+    // The digest is not the plain sha256 of the same bytes: the key is really in it.
+    const unkeyed = createHash('sha256').update(store.canonicalJson({
+      at: entries[0].at, action: entries[0].action, proposal_id: entries[0].proposal_id,
+      pack: entries[0].pack, location: entries[0].location, actor: entries[0].actor,
+      detail: entries[0].detail, prev_hash: entries[0].prev_hash,
+    })).digest('hex');
+    expect(entries[0].hash).not.toBe(unkeyed);
+  });
+
+  it('refuses an entry that names an algorithm it does not know', async () => {
+    const { vi } = await import('vitest');
+    vi.resetModules();
+    const store = await import('../src/graph/store');
+    store.graph.appendLedger({
+      at: new Date().toISOString(), action: 'proposed', proposal_id: 'p_algo_1',
+      pack: 'venues', location: 'venue_redroom', actor: 'operator:test', detail: { goal: 'plain' },
+    });
+    const entries = store.graph.readLedger(100);
+    expect(store.verifyLedger(entries).keyless_entries).toBe(1);
+    const lying = entries.map((e) => ({ ...e, detail: { ...e.detail, hash_algo: 'md5-sha-9000' } }));
+    const v = store.verifyLedger(lying);
+    expect(v.ok).toBe(false);
+    expect(v.reason).toMatch(/unknown hash algorithm/i);
   });
 });
 
