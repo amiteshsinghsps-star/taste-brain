@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Chips, Empty, FetchedAt, ModeBadge, Note, Panel } from '@/components/common';
+import { Chips, Empty, FetchedAt, MeterBar, ModeBadge, Note, Panel, Stat } from '@/components/common';
 import { num } from '@/lib/format';
 import { NEEDS_RUN, useApp } from '@/lib/app-context';
 import { api } from '@/lib/api';
@@ -64,25 +64,38 @@ export default function PartnersScreen() {
 
             {data && rows.length > 0 && (
               <>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  <Stat value={rows.length} label="partners returned" hint="rows the engine sent back for this room" />
+                  <Stat value={data.partners.qloo_calls_used} label="Qloo calls used" hint="counted against the run budget and written to the call log" />
+                  <Stat value={data.partners.audience_tags.length} label="audience tags compared" hint="the portrait the overlap was computed against" />
+                </div>
                 <div className="space-y-2">
                   {data.partners.audience_tags.length > 0 && (
                     <div className="text-[11px] text-slate-500"><Chips items={data.partners.audience_tags} title="audience tags the overlap was computed against" /></div>
                   )}
-                  {rows.map((r) => (
-                    <article key={r.entity_id} className="rounded-lg border border-slate-200 p-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold">{r.name}</span>
-                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">{r.type} · {r.variant}</span>
-                        <ModeBadge mode={r.mode} />
-                        <span className="ml-auto text-[11px] text-slate-500">Qloo rank {r.qloo_rank} · popularity {num(r.popularity)}</span>
-                      </div>
-                      {r.shared_tags.length
-                        ? <div className="mt-1.5"><Chips items={r.shared_tags} title="tags shared with this room’s audience" /></div>
-                        : <p className="mt-1.5 text-[11px] text-slate-500">Qloo returned no tag this entity shares with the audience portrait on this run — the overlap is the query itself, nothing more.</p>}
-                      {r.explainability && <p className="mt-1.5 text-[11px] italic leading-relaxed text-slate-600">“{r.explainability}” — Qloo’s own words</p>}
-                      <p className="mt-1 text-[11px] text-slate-400">{r.endpoint} · <FetchedAt iso={r.fetched_at} mode={r.mode} /></p>
-                    </article>
-                  ))}
+                  <div className="grid gap-2.5 lg:grid-cols-2">
+                    {rows.map((r) => (
+                      <article key={r.entity_id} className="tb-arm">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-bold text-slate-800">{r.name}</span>
+                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">{r.type} · {r.variant}</span>
+                          <ModeBadge mode={r.mode} />
+                          <span className="ml-auto text-[11px] text-slate-500">Qloo rank <strong className="font-semibold tabular-nums text-slate-700">{r.qloo_rank}</strong></span>
+                        </div>
+                        <div className="mt-2">
+                          <MeterBar
+                            pct={typeof r.popularity === 'number' && Number.isFinite(r.popularity) ? r.popularity * 100 : Number.NaN}
+                            caption={<span>Qloo popularity · <strong className="font-semibold text-slate-700">{num(r.popularity)}</strong></span>}
+                          />
+                        </div>
+                        {r.shared_tags.length
+                          ? <div className="mt-1.5"><Chips items={r.shared_tags} title="tags shared with this room’s audience" /></div>
+                          : <p className="mt-1.5 text-[11px] text-slate-500">Qloo returned no tag this entity shares with the audience portrait on this run — the overlap is the query itself, nothing more.</p>}
+                        {r.explainability && <p className="mt-1.5 text-[11px] italic leading-relaxed text-slate-600">“{r.explainability}” — Qloo’s own words</p>}
+                        <p className="mt-1 text-[11px] text-slate-400">{r.endpoint} · <FetchedAt iso={r.fetched_at} mode={r.mode} /></p>
+                      </article>
+                    ))}
+                  </div>
                 </div>
                 <Note tone="info">{data.partners.note}</Note>
                 {data.partners.limits.length > 0 && (

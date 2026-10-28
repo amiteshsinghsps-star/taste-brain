@@ -403,6 +403,10 @@ html.tb-moon .tb-note { border-color: rgba(148, 163, 184, 0.25); }
 html.tb-moon [data-slot='input'] { background: rgba(15, 23, 42, 0.6); color: #e2e8f0; }
 html.tb-moon [data-slot='table-head'] { background: rgba(28, 42, 68, 0.6); color: #94a3b8; border-color: rgba(148, 163, 184, 0.2); }
 html.tb-moon [data-slot='button']:not(.tb-hero) { box-shadow: none; }
+/* Outline buttons ship bg-background/text-foreground from the light theme, which
+   in moon mode renders white paper under near-white text. */
+html.tb-moon [data-slot='button'].bg-background { background-color: rgba(15, 23, 42, 0.6); color: #e2e8f0; border-color: rgba(148, 163, 184, 0.28); }
+html.tb-moon [data-slot='button'].bg-background:hover:not(:disabled) { background-color: #1c2a44; color: #f1f5f9; }
 html.tb-moon input[type='checkbox'] { accent-color: #818cf8; }
 html.tb-moon body { background-color: #0b1120; }
 html.tb-moon .tb-stat { background: linear-gradient(150deg, var(--tb-tint), rgba(15, 23, 42, 0.7) 60%); border-color: rgba(148, 163, 184, 0.22); }
@@ -593,6 +597,9 @@ html.tb-moon .tb-swatch[data-on='true'] { box-shadow: 0 0 0 2px #0b1120, 0 0 0 4
 .tb-lift { transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease; }
 .tb-lift:hover { transform: translateY(-2px); border-color: var(--tb-line); box-shadow: 0 16px 34px -26px rgba(15, 23, 42, 0.65); }
 
+/* ── Sticky toolbar ── the filter row stays reachable while a long list scrolls by. */
+.tb-sticky { position: sticky; top: 0.6rem; z-index: 20; }
+
 /* ── Alternative-ranking cards (ablation arms) and a muted bar fill, so the arm
    being compared reads apart from the arm it is compared against. */
 .tb-arm {
@@ -612,6 +619,12 @@ html.tb-moon .tb-swatch[data-on='true'] { box-shadow: 0 0 0 2px #0b1120, 0 0 0 4
 .tb-status[data-st='empty']::before { background: linear-gradient(180deg, #fbbf24, #d97706); }
 .tb-status[data-st='dead']::before { background: linear-gradient(180deg, #fb7185, #e11d48); }
 
+/* ── The signed brief ── the one page a person signs, so it looks like a document
+   rather than another panel: accent-washed masthead, paper body, ruled footer. */
+.tb-doc { box-shadow: 0 22px 46px -34px rgba(15, 23, 42, 0.55); }
+.tb-doc-head { background: linear-gradient(92deg, var(--tb-tint), rgba(255, 255, 255, 0.6)); }
+html.tb-moon .tb-doc-head { background: linear-gradient(92deg, var(--tb-tint), rgba(15, 23, 42, 0.5)); }
+
 /* ── Motion is optional. Every animation here is decoration; none of them carries
    a number, so stopping them costs the reader nothing. */
 @media (prefers-reduced-motion: reduce) {
@@ -630,6 +643,6 @@ html.tb-moon .tb-verdict { color: #6ee7b7; }
 html.tb-moon .tb-verdict[data-st='fail'] { color: #fca5a5; }
 html.tb-moon .tb-verdict[data-st='warn'] { color: #fcd34d; }
 html.tb-moon .tb-verdict[data-st='idle'] { color: #cbd5e1; }
-html.tb-moon .tb-arm { background: linear-gradient(180deg, rgba(22, 34, 59, 0.85), rgba(15, 23, 42, 0.6)); }
+html.tb-moon .tb-arm { background: linear-gradient(180deg, rgba(22, 34, 59, 0.85), rgba(15, 23, 42, 0.6)); border-color: rgba(148, 163, 184, 0.22); }
 html.tb-moon .tb-arm[data-st='baseline'] { background: linear-gradient(180deg, var(--tb-tint), rgba(15, 23, 42, 0.7)); }
 html.tb-moon .tb-bar[data-muted='true'] > i { background: linear-gradient(90deg, #475569, #64748b); }

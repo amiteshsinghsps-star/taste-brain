@@ -73,9 +73,9 @@ export function ModeMixLine({ mix, compact }: { mix?: ModeMix; compact?: boolean
   );
 }
 
-export function StatusPill({ status, children }: { status: RuleStatus; children?: ReactNode }) {
+export function StatusPill({ status, title, children }: { status: RuleStatus; title?: string; children?: ReactNode }) {
   const variant = status === 'pass' ? 'success' : status === 'fail' ? 'destructive' : 'warning';
-  return <Badge variant={variant}>{children ?? status}</Badge>;
+  return <Badge variant={variant} title={title}>{children ?? status}</Badge>;
 }
 
 export function Panel({

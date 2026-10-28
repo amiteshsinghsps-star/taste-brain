@@ -7,9 +7,24 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import type { HealthInfo, QlooCallLogEntry, RestCallLogEntry } from '@/lib/types';
-import { Empty, KV, ModeBadge, Note, Panel, Time } from '@/components/common';
+import { Empty, KV, MeterBar, ModeBadge, Note, Panel, Skeleton, Stat, Time, VerdictBanner } from '@/components/common';
 
 const yesNo = (b: boolean) => (b ? 'yes' : 'no');
+
+/** One metered bucket: the server's used/cap pair, drawn as a bar and printed as itself. */
+function Bucket({ label, used, cap, hint }: { label: string; used: number; cap: number; hint: string }) {
+  return (
+    <div className="tb-arm">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{label}</span>
+        <span className="font-mono text-[12px] text-slate-800">{used} / {cap}</span>
+      </div>
+      <div className="mt-1.5">
+        <MeterBar pct={cap > 0 ? (used / cap) * 100 : 0} muted={used === 0} caption={hint} />
+      </div>
+    </div>
+  );
+}
 
 function formatValue(v: unknown): string {
   if (v === null || v === undefined) return '';
@@ -34,19 +49,24 @@ export default function BudgetScreen() {
   const [rest, setRest] = useState<RestCallLogEntry[] | null>(null);
   const [qloo, setQloo] = useState<QlooCallLogEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Bumping a counter is how this screen reloads: the effect below owns the
+  // fetching, so a click never writes state synchronously.
+  const [nonce, setNonce] = useState(0);
 
-  const fail = (what: string) => (e: unknown) =>
-    setError((prev) => (prev ? `${prev}; ${what}: ${String(e)}` : `${what}: ${String(e)}`));
+  useEffect(() => {
+    let cancelled = false;
+    const fail = (what: string) => (e: unknown) => {
+      if (!cancelled) setError((prev) => (prev ? `${prev}; ${what}: ${String(e)}` : `${what}: ${String(e)}`));
+    };
+    // No state is written before the responses land: resetting these first would
+    // render the panel twice on every fetch.
+    api.health().then((r) => { if (!cancelled) setHealth(r); }).catch(fail('health'));
+    api.restLog().then((r) => { if (!cancelled) setRest(r.log); }).catch(fail('REST log'));
+    api.qlooLog().then((r) => { if (!cancelled) setQloo(r.log); }).catch(fail('call log'));
+    return () => { cancelled = true; };
+  }, [nonce]);
 
-  const load = () => {
-    // No state is written before the awaits: an effect that reset these first
-    // would render the panel twice on every mount.
-    setError(null);
-    api.health().then(setHealth).catch(fail('health'));
-    api.restLog().then((r) => setRest(r.log)).catch(fail('REST log'));
-    api.qlooLog().then((r) => setQloo(r.log)).catch(fail('call log'));
-  };
-  useEffect(() => { load(); }, []);
+  const reload = () => { setError(null); setNonce((n) => n + 1); };
 
   return (
     <div className="space-y-5">
@@ -55,13 +75,35 @@ export default function BudgetScreen() {
       <Panel
         title="Budget and guards"
         description="Live calls are metered per visitor and globally. When the monthly floor is reached, new live calls stop and stored answers are used. These are the server's own figures."
-        actions={<Button size="sm" variant="outline" onClick={load}>Reload</Button>}
+        actions={<Button size="sm" variant="outline" onClick={reload}>Reload</Button>}
       >
         {!health ? (
-          <p className="text-sm text-slate-500">Loading health…</p>
+          <Skeleton lines={5} />
         ) : (
           <>
-            <dl className="rounded-md bg-slate-50 px-2.5 py-1.5">
+            <VerdictBanner
+              state={health.live_allowed ? 'pass' : health.floor_reached ? 'warn' : 'fail'}
+              title={health.live_allowed
+                ? 'The budget still allows live calls on this host'
+                : health.floor_reached
+                  ? 'The monthly floor is reached — live calls stop and stored answers serve'
+                  : 'Live calls are switched off for this host — every answer is served from store'}
+            >
+              These are the server's own guard flags, restated: live_allowed {yesNo(health.live_allowed)} · floor_reached {yesNo(health.floor_reached)} · finals mode {health.finals_mode ? 'on' : 'off'}.
+            </VerdictBanner>
+
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              <Stat value={`${health.quota.global_day.used} / ${health.quota.global_day.limit}`} label="whole demo · day" hint="the server's global day counter" />
+              <Stat value={`${health.quota.visitor_day.used} / ${health.quota.visitor_day.limit}`} label="this visitor · day" hint="the server's per-visitor day counter" />
+              <Stat value={health.per_run_call_budget} label="Qloo calls per run" hint="one run cannot spend more than this" />
+              <Stat
+                value={`${health.harness_quota.used} / ${health.harness_quota.soft_limit}`}
+                label="real quota the harness reports"
+                hint={health.harness_quota.within_limit ? 'within the soft limit' : 'over the soft limit'}
+              />
+            </div>
+
+            <dl className="tb-arm grid gap-x-6 sm:grid-cols-2">
               <KV k="status" v={health.status} />
               <KV k="qloo key" v={health.qloo_key} />
               <KV k="finals mode" v={health.finals_mode ? 'on' : 'off'} />
@@ -72,7 +114,7 @@ export default function BudgetScreen() {
               <KV k="per-run call budget" v={`${health.per_run_call_budget} Qloo calls`} />
               <KV k="harness day counter" v={`${health.harness_quota.used} of ${health.harness_quota.soft_limit} real Qloo calls ${health.harness_quota.within_limit ? '' : '(over soft limit)'}`} />
               <KV k="llm model" v={health.llm_model} />
-              <div className="flex items-baseline justify-between gap-3 border-b border-slate-100 py-1">
+              <div className="flex items-baseline justify-between gap-3 py-1">
                 <dt className="shrink-0 text-xs text-slate-500">default mode</dt>
                 <dd className="text-right">
                   {(['live', 'cached', 'replay'] as const).includes(health.default_mode)
@@ -86,22 +128,12 @@ export default function BudgetScreen() {
 
             <div>
               <div className="mb-1 text-xs font-semibold text-slate-700">Budget buckets</div>
-              <dl className="rounded-md bg-slate-50 px-2.5 py-1.5">
-                <KV k="this visitor · hour" v={health.buckets.visitor_hour} />
-                <KV k="this visitor · day" v={health.buckets.visitor_day} />
-                <KV k="whole demo · day" v={health.buckets.global_day} />
-                <KV k="whole month" v={health.buckets.monthly} />
-              </dl>
-            </div>
-
-            <div>
-              <div className="mb-1 text-xs font-semibold text-slate-700">Raw counters</div>
-              <dl className="rounded-md bg-slate-50 px-2.5 py-1.5">
-                <KV k="visitor_hour" v={`${health.quota.visitor_hour.used} / ${health.quota.visitor_hour.limit}`} />
-                <KV k="visitor_day" v={`${health.quota.visitor_day.used} / ${health.quota.visitor_day.limit}`} />
-                <KV k="global_day" v={`${health.quota.global_day.used} / ${health.quota.global_day.limit}`} />
-                <KV k="monthly / floor" v={`${health.quota.monthly.used} / ${health.quota.monthly.floor}`} />
-              </dl>
+              <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
+                <Bucket label="this visitor · hour" used={health.quota.visitor_hour.used} cap={health.quota.visitor_hour.limit} hint={health.buckets.visitor_hour} />
+                <Bucket label="this visitor · day" used={health.quota.visitor_day.used} cap={health.quota.visitor_day.limit} hint={health.buckets.visitor_day} />
+                <Bucket label="whole demo · day" used={health.quota.global_day.used} cap={health.quota.global_day.limit} hint={health.buckets.global_day} />
+                <Bucket label="whole month" used={health.quota.monthly.used} cap={health.quota.monthly.floor} hint={`${health.buckets.monthly} — the floor is where live calls stop`} />
+              </div>
             </div>
           </>
         )}
@@ -112,69 +144,79 @@ export default function BudgetScreen() {
         description="Each live REST call and each adapter call the server made, with status, latency, mode and cache hit."
       >
         {rest === null && qloo === null ? (
-          <Empty>Reading the server's call logs…</Empty>
+          <Skeleton lines={4} />
         ) : rest?.length === 0 && qloo?.length === 0 ? (
           <Empty>No Qloo call has been made from this server since it started. Run a proposal in Live or Cached mode.</Empty>
         ) : (
           <>
             {(rest?.length ?? 0) > 0 && (
-              <div>
-                <div className="mb-1 text-xs font-semibold text-slate-700">REST log</div>
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-700">REST log</span>
+                  <span className="tb-pill">{rest?.length} call(s)</span>
+                </div>
+                <div className="overflow-x-auto rounded-lg border border-slate-200">
                 <table className="w-full border-collapse text-left text-xs">
                   <thead>
                     <tr className="text-[11px] uppercase text-slate-500">
-                      <th className="py-1 pr-2">#</th><th className="py-1 pr-2">at</th><th className="py-1 pr-2">workflow</th>
-                      <th className="py-1 pr-2">path</th><th className="py-1 pr-2">HTTP</th><th className="py-1 pr-2">entities</th>
-                      <th className="py-1 pr-2">mode</th><th className="py-1 pr-2">cache</th><th className="py-1">ms</th>
+                      <th className="py-1.5 pr-2 pl-3">#</th><th className="py-1.5 pr-2">at</th><th className="py-1.5 pr-2">workflow</th>
+                      <th className="py-1.5 pr-2">path</th><th className="py-1.5 pr-2">HTTP</th><th className="py-1.5 pr-2">entities</th>
+                      <th className="py-1.5 pr-2">mode</th><th className="py-1.5 pr-2">cache</th><th className="py-1.5">ms</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(rest ?? []).map((r) => (
-                      <tr key={r.seq} className="border-t border-slate-100 align-top">
-                        <td className="py-1 pr-2 text-slate-400">{r.seq}</td>
-                        <td className="py-1 pr-2"><Time iso={r.at} /></td>
-                        <td className="py-1 pr-2">{r.workflow}</td>
-                        <td className="py-1 pr-2 font-mono text-[11px] text-slate-600">{r.path}</td>
-                        <td className="py-1 pr-2">{r.status}</td>
-                        <td className="py-1 pr-2">{r.entity_count}</td>
-                        <td className="py-1 pr-2"><ModeBadge mode={r.mode} /></td>
-                        <td className="py-1 pr-2">{r.cache_hit ? 'hit' : 'miss'}</td>
-                        <td className="py-1">{r.latency_ms}</td>
+                      <tr key={r.seq} className="border-t border-slate-100 align-top odd:bg-slate-50/60">
+                        <td className="py-1.5 pr-2 pl-3 font-mono text-slate-400">{r.seq}</td>
+                        <td className="py-1.5 pr-2"><Time iso={r.at} /></td>
+                        <td className="py-1.5 pr-2">{r.workflow}</td>
+                        <td className="py-1.5 pr-2 font-mono text-[11px] text-slate-600">{r.path}</td>
+                        <td className="py-1.5 pr-2">{r.status}</td>
+                        <td className="py-1.5 pr-2">{r.entity_count}</td>
+                        <td className="py-1.5 pr-2"><ModeBadge mode={r.mode} /></td>
+                        <td className="py-1.5 pr-2">{r.cache_hit ? 'hit' : 'miss'}</td>
+                        <td className="py-1.5">{r.latency_ms}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
 
             {(qloo?.length ?? 0) > 0 && (
-              <div>
-                <div className="mb-1 text-xs font-semibold text-slate-700">Adapter log</div>
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-700">Adapter log</span>
+                  <span className="tb-pill">{qloo?.length} call(s)</span>
+                </div>
+                <div className="overflow-x-auto rounded-lg border border-slate-200">
                 <table className="w-full border-collapse text-left text-xs">
                   <thead>
                     <tr className="text-[11px] uppercase text-slate-500">
-                      <th className="py-1 pr-2">#</th><th className="py-1 pr-2">at</th><th className="py-1 pr-2">workflow</th><th className="py-1 pr-2">variant</th>
-                      <th className="py-1 pr-2">endpoint</th><th className="py-1 pr-2">entities</th><th className="py-1 pr-2">mode</th>
-                      <th className="py-1 pr-2">cache</th><th className="py-1 pr-2">ms</th><th className="py-1">inputs (redacted)</th>
+                      <th className="py-1.5 pr-2 pl-3">#</th><th className="py-1.5 pr-2">at</th><th className="py-1.5 pr-2">workflow</th><th className="py-1.5 pr-2">variant</th>
+                      <th className="py-1.5 pr-2">endpoint</th><th className="py-1.5 pr-2">entities</th><th className="py-1.5 pr-2">mode</th>
+                      <th className="py-1.5 pr-2">cache</th><th className="py-1.5 pr-2">ms</th><th className="py-1.5">inputs (redacted)</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(qloo ?? []).map((c) => (
-                      <tr key={`${c.at}:${c.pack}:${c.seq}`} className="border-t border-slate-100 align-top">
-                        <td className="py-1 pr-2 text-slate-400">{c.seq}</td>
-                        <td className="py-1 pr-2"><Time iso={c.at} /></td>
-                        <td className="py-1 pr-2">{c.workflow}<div className="text-[10px] text-slate-400">{c.pack} · {c.location}</div></td>
-                        <td className="py-1 pr-2 text-slate-600">{c.variant ?? '—'}</td>
-                        <td className="py-1 pr-2 font-mono text-[11px] text-slate-600">{c.endpoint ?? '—'}</td>
-                        <td className="py-1 pr-2">{c.entity_count ?? 0}</td>
-                        <td className="py-1 pr-2">{c.failed ? <span className="text-slate-500">no read</span> : <ModeBadge mode={c.mode} />}</td>
-                        <td className="py-1 pr-2">{c.failed ? '—' : c.cache_hit ? 'hit' : 'miss'}</td>
-                        <td className="py-1 pr-2">{c.latency_ms}</td>
-                        <td className="py-1 text-slate-600">{redactedInputs(c.inputs_redacted) || '—'}{c.note ? <span className="text-slate-400"> · {c.note}</span> : null}</td>
+                      <tr key={`${c.at}:${c.pack}:${c.seq}`} className="border-t border-slate-100 align-top odd:bg-slate-50/60">
+                        <td className="py-1.5 pr-2 pl-3 font-mono text-slate-400">{c.seq}</td>
+                        <td className="py-1.5 pr-2"><Time iso={c.at} /></td>
+                        <td className="py-1.5 pr-2">{c.workflow}<div className="text-[10px] text-slate-400">{c.pack} · {c.location}</div></td>
+                        <td className="py-1.5 pr-2 text-slate-600">{c.variant ?? '—'}</td>
+                        <td className="py-1.5 pr-2 font-mono text-[11px] text-slate-600">{c.endpoint ?? '—'}</td>
+                        <td className="py-1.5 pr-2">{c.entity_count ?? 0}</td>
+                        <td className="py-1.5 pr-2">{c.failed ? <span className="text-slate-500">no read</span> : <ModeBadge mode={c.mode} />}</td>
+                        <td className="py-1.5 pr-2">{c.failed ? '—' : c.cache_hit ? 'hit' : 'miss'}</td>
+                        <td className="py-1.5 pr-2">{c.latency_ms}</td>
+                        <td className="py-1.5 text-slate-600">{redactedInputs(c.inputs_redacted) || '—'}{c.note ? <span className="text-slate-400"> · {c.note}</span> : null}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
           </>

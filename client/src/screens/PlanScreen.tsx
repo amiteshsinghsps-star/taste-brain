@@ -5,7 +5,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Chips, CountUp, Empty, FetchedAt, JsonBlock, KV, MeterBar, ModeBadge, ModeMixLine, Note, Panel, Radar, Skeleton, Stat, StatusPill, TagFrequency } from '@/components/common';
+import { Chips, CountUp, Empty, FetchedAt, JsonBlock, KV, MeterBar, ModeBadge, ModeMixLine, Note, Panel, Radar, Skeleton, Stat, StatusPill, TagFrequency, VerdictBanner } from '@/components/common';
 import { num } from '@/lib/format';
 import { useApp } from '@/lib/app-context';
 import type { NeedsTerm, ProposalItem } from '@/lib/types';
@@ -94,7 +94,11 @@ export default function PlanScreen() {
               </Note>
             )}
             <Audience />
-            <Items onRefused={setRefusal} />
+            {/* A different run is a different set of rows. Selections, comparison
+                marks and typed-in offer terms all name entity ids from the run they
+                were made on, so the whole list is remounted when the run changes —
+                otherwise Approve sends the previous room's ids to the endpoint. */}
+            <Items key={app.proposal.proposal_id} onRefused={setRefusal} />
             <Excluded />
           </>
         ) : (
@@ -200,9 +204,8 @@ function Items({ onRefused }: { onRefused: (m: string) => void }) {
   const [only, setOnly] = useState<'all' | 'ok' | 'blocked'>('all');
   const [view, setView] = useState<'cards' | 'table'>('cards');
   const [detail, setDetail] = useState<ProposalItem | null>(null);
-  const [cmpOpen, setCmpOpen] = useState(false);
   const cmpRef = useRef<HTMLDialogElement>(null);
-  const items = proposal?.items ?? [];
+  const items = useMemo(() => proposal?.items ?? [], [proposal]);
   const blocked = items.filter((i) => i.approval_blocked);
 
   const toggle = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
@@ -228,16 +231,8 @@ function Items({ onRefused }: { onRefused: (m: string) => void }) {
     () => items.filter((i) => cmp.includes(i.entity_id)).sort((a, b) => cmp.indexOf(a.entity_id) - cmp.indexOf(b.entity_id)),
     [items, cmp],
   );
-  useEffect(() => { if (cmpOpen) cmpRef.current?.showModal(); else cmpRef.current?.close(); }, [cmpOpen]);
-  useEffect(() => { if (cmpItems.length < 2) setCmpOpen(false); }, [cmpItems.length]);
-  // A different run is a different set of rows. Selections, comparison marks and
-  // typed-in offer terms all name entity ids from the run they were made on, so
-  // they are cleared when the run changes — otherwise Approve sends the previous
-  // room's ids to the decision endpoint.
-  const runId = proposal?.proposal_id ?? '';
-  useEffect(() => { setDetail(null); setPicked([]); setCmp([]); setTerms({}); setCmpOpen(false); }, [runId]);
   useEffect(() => {
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') { setDetail(null); setCmpOpen(false); } };
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setDetail(null); };
     window.addEventListener('keydown', esc);
     return () => window.removeEventListener('keydown', esc);
   }, []);
@@ -292,12 +287,12 @@ function Items({ onRefused }: { onRefused: (m: string) => void }) {
             </details>
           )}
 
-          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200/80 bg-white/60 px-3 py-2">
+          <div className="tb-sticky flex flex-wrap items-center gap-2 rounded-xl border border-slate-200/80 bg-white/80 px-3 py-2 backdrop-blur">
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="filter by name, type or tag…" className="h-8 w-48 text-xs" />
             <div className="flex flex-wrap items-center gap-1.5">
               {(['all', 'ok', 'blocked'] as const).map((o) => (
                 <button key={o} className="tb-pill" data-on={only === o} onClick={() => setOnly(o)}>
-                  {o === 'all' ? 'all' : o === 'ok' ? 'ready' : 'waiting on term'}
+                  {o === 'all' ? `all · ${items.length}` : o === 'ok' ? `ready · ${items.length - blocked.length}` : `waiting on term · ${blocked.length}`}
                 </button>
               ))}
               <span className="mx-1 h-4 w-px bg-slate-200" aria-hidden />
@@ -348,19 +343,21 @@ function Items({ onRefused }: { onRefused: (m: string) => void }) {
               </table>
             </div>
           ) : (
-            shown.map((it) => (
-              <ItemCard
-                key={it.entity_id}
-                item={it}
-                picked={picked.includes(it.entity_id)}
-                onPick={() => toggle(it.entity_id)}
-                comparing={cmp.includes(it.entity_id)}
-                onCompare={() => toggleCmp(it.entity_id)}
-                onDetail={() => setDetail(it)}
-                terms={terms[it.entity_id] ?? {}}
-                onTerm={(field, value) => setTerms((t) => ({ ...t, [it.entity_id]: { ...(t[it.entity_id] ?? {}), [field]: value } }))}
-              />
-            ))
+            <div className="grid gap-2.5 2xl:grid-cols-2">
+              {shown.map((it) => (
+                <ItemCard
+                  key={it.entity_id}
+                  item={it}
+                  picked={picked.includes(it.entity_id)}
+                  onPick={() => toggle(it.entity_id)}
+                  comparing={cmp.includes(it.entity_id)}
+                  onCompare={() => toggleCmp(it.entity_id)}
+                  onDetail={() => setDetail(it)}
+                  terms={terms[it.entity_id] ?? {}}
+                  onTerm={(field, value) => setTerms((t) => ({ ...t, [it.entity_id]: { ...(t[it.entity_id] ?? {}), [field]: value } }))}
+                />
+              ))}
+            </div>
           )}
 
           {detail && (
@@ -412,7 +409,7 @@ function Items({ onRefused }: { onRefused: (m: string) => void }) {
           {cmpItems.length >= 2 && (
             <div className="tb-tray print:hidden">
               <span className="text-[11px] font-semibold text-slate-600">{cmpItems.map((i) => i.name).join(' · ')}</span>
-              <button className="tb-pill" data-on="true" onClick={() => setCmpOpen(true)}>Compare side by side</button>
+              <button className="tb-pill" data-on="true" onClick={() => cmpRef.current?.showModal()}>Compare side by side</button>
               <button className="cursor-pointer text-[11px] text-slate-400 underline" onClick={() => setCmp([])}>clear</button>
             </div>
           )}
@@ -421,12 +418,11 @@ function Items({ onRefused }: { onRefused: (m: string) => void }) {
             <dialog
               ref={cmpRef}
               className="tb-dialog h-fit max-h-[85vh] w-[min(96vw,980px)] overflow-auto rounded-2xl border border-slate-200 bg-white p-0 text-slate-800 shadow-2xl"
-              onClick={(e) => { if (e.target === e.currentTarget) setCmpOpen(false); }}
-              onClose={() => setCmpOpen(false)}
+              onClick={(e) => { if (e.target === e.currentTarget) e.currentTarget.close(); }}
             >
               <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white/90 px-4 py-2.5 backdrop-blur">
                 <div className="text-sm font-bold">Side by side — every value below is this run’s own data</div>
-                <button className="tb-pill" onClick={() => setCmpOpen(false)}>close ✕</button>
+                <button className="tb-pill" onClick={() => cmpRef.current?.close()}>close ✕</button>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-4 border-b border-slate-100 px-4 py-3">
                 <Radar axes={['fit', 'qloo rank', 'popularity', 'obscurity', 'followers']} series={radarSeries} />
@@ -459,16 +455,19 @@ function Items({ onRefused }: { onRefused: (m: string) => void }) {
         </>
       )}
 
-      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+      <div className="tb-arm space-y-2">
+        <VerdictBanner
+          state={proposal?.status === 'approved' ? 'pass' : proposal?.status === 'rejected' ? 'fail' : 'idle'}
+          title={proposal?.status === 'approved'
+            ? 'Approved — a named person signed this run off'
+            : proposal?.status === 'rejected'
+              ? 'Refused — a named person turned this run down'
+              : 'Waiting on a named human'}
+        >
+          The agent never approves. A person does, and that decision is linked into the ledger. {blocked.length} item(s) on
+          this run are visible but blocked until a missing term is entered.
+        </VerdictBanner>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-semibold">Human decision</span>
-          <span className="ml-auto text-[11px] text-slate-500">status: <strong>{proposal?.status}</strong></span>
-        </div>
-        <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
-          The agent never approves. A named person does, and the entry is linked into the ledger. {blocked.length} item(s) on this
-          run are visible but blocked until a missing term is entered.
-        </p>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
           <label className="text-xs text-slate-500">approver</label>
           <Input value={approver} onChange={(e) => setApprover(e.target.value)} maxLength={80} placeholder="your name — required" className={`w-44 ${approver.trim() ? '' : 'border-amber-400'}`} />
           {!approver.trim() && <span className="text-[11px] text-amber-700">no approver named yet: Approve and Reject stay refused until you type one</span>}
@@ -496,7 +495,7 @@ function ItemCard({ item, picked, onPick, comparing, onCompare, onDetail, terms,
   const [open, setOpen] = useState(false);
   const lift = item.local_lift;
   return (
-    <article className={`rounded-lg border p-3 transition-all hover:shadow-md ${item.approval_blocked ? 'border-amber-300 bg-amber-50/40' : 'border-slate-200 bg-white/80 hover:border-indigo-200'} ${comparing ? 'ring-2 ring-indigo-300' : ''}`}>
+    <article className={`tb-arm tb-status ${comparing ? 'ring-2 ring-indigo-300' : ''}`} data-st={item.approval_blocked ? 'empty' : 'ok'}>
       <div className="flex flex-wrap items-center gap-2">
         <input type="checkbox" checked={picked} onChange={onPick} className="h-3.5 w-3.5 cursor-pointer accent-indigo-600" aria-label={`select ${item.name}`} />
         <button
@@ -504,7 +503,7 @@ function ItemCard({ item, picked, onPick, comparing, onCompare, onDetail, terms,
           className={`cursor-pointer rounded px-1 text-[10px] font-bold ${comparing ? 'tb-nav-active' : 'border border-slate-200 text-slate-400 hover:border-indigo-300 hover:text-indigo-600'}`}
         >⇄</button>
         <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${item.rank === 1 ? 'tb-medal tb-medal-gold' : item.rank === 2 ? 'tb-medal tb-medal-silver' : item.rank === 3 ? 'tb-medal tb-medal-bronze' : 'tb-medal'}`} title={`Qloo rank ${item.qloo_rank}`}>{item.rank}</span>
-        <button className="cursor-pointer font-semibold hover:underline" onClick={onDetail} title="open the detail drawer">{item.name}</button>
+        <button className="cursor-pointer text-left font-semibold hover:underline" onClick={onDetail} title="open the detail drawer">{item.name}</button>
         <span className="text-[11px] text-slate-500">{item.type}</span>
         <ModeBadge mode={item.mode} />
         {item.rising && <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[11px] text-sky-800" title="derived by Taste Brain from Qloo's trend vs default order">rising: {item.rising}</span>}
@@ -517,11 +516,12 @@ function ItemCard({ item, picked, onPick, comparing, onCompare, onDetail, terms,
 
       <div className="mt-2 flex flex-wrap gap-1.5">
         {item.rule_results.map((r) => (
-          <span key={r.rule_id} title={`${r.reason} — ${r.source}`} className="contents">
-            <StatusPill status={r.status}>{r.rule_id}: {r.status}</StatusPill>
-          </span>
+          <StatusPill key={r.rule_id} status={r.status} title={`${r.reason} — ${r.source}`}>{r.rule_id}: {r.status}</StatusPill>
         ))}
       </div>
+      <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
+        {item.rule_results.length} rule check(s) on this item — hover a chip for the reason and the rule’s source
+      </p>
 
       {item.needs_terms.length > 0 && (
         <div className="mt-2 rounded-md border border-amber-200 bg-white p-2">
@@ -578,9 +578,12 @@ function Excluded() {
         <div className="space-y-1.5">
           <div className="text-xs font-semibold text-red-800">Rejected by the venue’s own rules ({rejections.length})</div>
           {rejections.map((r) => (
-            <div key={`${r.entity_id}:${r.rule_id ?? r.check}`} className="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-900">
-              <div className="font-semibold">{r.name} <span className="font-normal text-red-700">· check {r.check}{r.rule_id ? ` · ${r.rule_id}` : ''}</span></div>
-              <div>{r.reason}</div>
+            <div key={`${r.entity_id}:${r.rule_id ?? r.check}`} className="tb-arm tb-status" data-st="dead">
+              <div className="flex flex-wrap items-baseline gap-x-2 text-xs">
+                <span className="font-semibold text-slate-800">{r.name}</span>
+                <span className="text-[11px] text-red-700">check {r.check}{r.rule_id ? ` · ${r.rule_id}` : ''}</span>
+              </div>
+              <p className="mt-1 text-[11px] leading-relaxed text-slate-600">{r.reason}</p>
             </div>
           ))}
         </div>
@@ -589,8 +592,9 @@ function Excluded() {
         <div className="space-y-1.5">
           <div className="text-xs font-semibold text-amber-800">No record on file ({unsupported.length}) — not refused, just unprovable</div>
           {unsupported.map((u) => (
-            <div key={u.offer_id} className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-900">
-              <span className="font-semibold">{u.name}</span> — {u.reason}
+            <div key={u.offer_id} className="tb-arm tb-status" data-st="empty">
+              <span className="text-xs font-semibold text-slate-800">{u.name}</span>
+              <p className="mt-1 text-[11px] leading-relaxed text-slate-600">{u.reason}</p>
             </div>
           ))}
         </div>
@@ -598,22 +602,32 @@ function Excluded() {
       {flips.length > 0 && (
         <div className="space-y-1.5">
           <div className="text-xs font-semibold text-slate-700">Flip points — the exact distance to a different answer</div>
-          <table className="w-full border-collapse text-left text-xs">
-            <thead><tr className="text-[11px] uppercase text-slate-500"><th className="py-1 pr-2">item</th><th className="pr-2">rule</th><th className="pr-2">metric</th><th className="pr-2">observed</th><th className="pr-2">now</th><th className="pr-2">would need</th><th>note</th></tr></thead>
-            <tbody>
-              {flips.map((f) => (
-                <tr key={`${f.entity_id}:${f.rule_id}`} className="border-t border-slate-100 align-top">
-                  <td className="py-1 pr-2 font-medium">{f.name}</td>
-                  <td className="pr-2">{f.rule_id}</td>
-                  <td className="pr-2">{f.metric}</td>
-                  <td className="pr-2">{f.observed.toLocaleString('en-US')}</td>
-                  <td className="pr-2">{f.current_threshold.toLocaleString('en-US')}</td>
-                  <td className="pr-2 font-semibold">{f.required_threshold.toLocaleString('en-US')}</td>
-                  <td className="text-slate-600">{f.note}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="grid gap-2.5 lg:grid-cols-2">
+            {flips.map((f) => (
+              <div key={`${f.entity_id}:${f.rule_id}`} className="tb-arm">
+                <div className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="text-sm font-bold text-slate-800">{f.name}</span>
+                  <code className="font-mono text-[11px] text-slate-500">{f.rule_id}</code>
+                  <span className="ml-auto text-[11px] text-slate-400">{f.metric}</span>
+                </div>
+                <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">observed</div>
+                    <div className="font-semibold tabular-nums text-slate-700">{f.observed.toLocaleString('en-US')}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">rule is set at</div>
+                    <div className="font-semibold tabular-nums text-slate-700">{f.current_threshold.toLocaleString('en-US')}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400">would need</div>
+                    <div className="font-semibold tabular-nums text-indigo-700">{f.required_threshold.toLocaleString('en-US')}</div>
+                  </div>
+                </div>
+                <p className="mt-1.5 text-[11px] leading-relaxed text-slate-600">{f.note}</p>
+              </div>
+            ))}
+          </div>
           <Note tone="info">Moving a threshold is a what-if, not a decision: the change is written to the ledger with your name on it, and the item only becomes approvable when the rule actually passes.</Note>
         </div>
       )}

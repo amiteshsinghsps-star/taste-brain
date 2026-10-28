@@ -47,7 +47,7 @@ const SCREEN_GUIDE: { group: string; items: [string, string, string][] }[] = [
 export default function AboutScreen() {
   const { packs, modeInfo } = useApp();
 
-  const jump = (id: string) => { window.location.hash = id; };
+  const jump = (id: string) => { window.location.assign(`#${id}`); };
 
   return (
     <div className="space-y-5">
