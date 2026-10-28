@@ -35,7 +35,15 @@ export default function EvidenceScreen() {
               <Stat value={<CountUp value={items.filter((i) => i.evidence.mode === 'cached').length} />} label="from stored answers" />
               <Stat value={<CountUp value={proposal.rejections.length} />} label="refused, with reasons" />
             </div>
-            <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="filter cards by name, endpoint or workflow…" className="h-8 w-72 text-xs" />
+            <div className="tb-sticky flex flex-wrap items-center gap-2 rounded-xl border border-slate-200/80 bg-white/80 px-2.5 py-2 backdrop-blur">
+              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="filter cards by name, endpoint or workflow…" className="h-8 w-72 text-xs" />
+              <span className="text-[11px] text-slate-500">
+                {q.trim() ? <>showing {shown.length} of {items.length} card(s)</> : <>{items.length} card(s), one per shown item</>}
+              </span>
+              {q.trim() && shown.length !== items.length && (
+                <button className="tb-pill" onClick={() => setQ('')}>clear filter</button>
+              )}
+            </div>
             {!shown.length ? (
               <Empty>No evidence card matches “{q}”.</Empty>
             ) : (
@@ -50,9 +58,9 @@ export default function EvidenceScreen() {
           <div className="space-y-1.5">
             <div className="text-xs font-semibold text-red-800">Refused items keep their evidence too ({proposal.rejections.length})</div>
             {proposal.rejections.map((r) => (
-              <div key={`${r.entity_id}:${r.rule_id ?? r.check}`} className="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-900">
-                <span className="font-semibold">{r.name}</span> — {r.reason}
-                <span className="text-red-700"> · refused at {r.at}</span>
+              <div key={`${r.entity_id}:${r.rule_id ?? r.check}`} className="tb-arm tb-status" data-st="dead">
+                <span className="font-semibold text-red-900">{r.name}</span>
+                <span className="text-[11px] text-red-900"> — {r.reason} · refused at {r.at}</span>
               </div>
             ))}
           </div>
@@ -67,9 +75,9 @@ export default function EvidenceScreen() {
 function EvidenceCard({ item }: { item: ProposalItem }) {
   const e = item.evidence;
   return (
-    <article className="tb-lift rounded-xl border border-slate-200 bg-white/70 p-3">
+    <article className="tb-arm tb-lift tb-status" data-st={item.approval_blocked ? 'empty' : 'ok'}>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">{item.rank}</span>
+        <span className={`tb-medal ${item.rank === 1 ? 'tb-medal-gold' : item.rank === 2 ? 'tb-medal-silver' : item.rank === 3 ? 'tb-medal-bronze' : ''}`} title={`Qloo rank ${e.qloo_rank}`}>{item.rank}</span>
         <span className="font-semibold">{item.name}</span>
         <ModeBadge mode={e.mode} />
         <span className="ml-auto text-[10px] text-slate-400">Qloo rank {e.qloo_rank}</span>
@@ -95,9 +103,12 @@ function EvidenceCard({ item }: { item: ProposalItem }) {
         <p className="mt-2 text-[11px] text-slate-500">Qloo returned no explanation text for this entity on this run.</p>
       )}
       <div className="mt-2 flex flex-wrap gap-1.5">
-        {item.rule_results.map((r) => <StatusPill key={r.rule_id} status={r.status}>{r.rule_id}: {r.status}</StatusPill>)}
+        {item.rule_results.map((r) => (
+          <StatusPill key={r.rule_id} status={r.status} title={`${r.reason} — ${r.source}`}>{r.rule_id}: {r.status}</StatusPill>
+        ))}
       </div>
       <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">
+        {item.rule_results.length} rule check(s) on this item — hover a chip for the reason and the rule’s source.
         The explanation under these fields is written for this item only. {item.approval_blocked ? 'This item is visible but cannot be approved until the missing term is entered.' : 'Every rule that could be proven on the data on file passed.'}
       </p>
       <div className="mt-2"><JsonBlock obj={e} label="raw evidence JSON" /></div>

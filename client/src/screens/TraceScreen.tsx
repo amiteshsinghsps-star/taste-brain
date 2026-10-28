@@ -66,16 +66,16 @@ export default function TraceScreen() {
                 ...types.map((t) => ({ id: t, label: <>{t} · {steps.filter((s) => s.type === t).length}</> })),
               ]}
             />
-            <dl className="rounded-md bg-slate-50 px-3 py-2 text-xs">
-              <div className="flex items-baseline justify-between gap-3 border-b border-slate-200 py-1">
-                <dt className="text-slate-500">proposal</dt><dd className="font-mono">{proposal.trace.proposal_id}</dd>
-              </div>
-              <div className="flex items-baseline justify-between gap-3 border-b border-slate-200 py-1">
-                <dt className="text-slate-500">rerun hash</dt><dd className="font-mono" title={proposal.trace.rerun_hash}>{proposal.trace.rerun_hash.slice(0, 24)}…</dd>
+            <dl className="tb-arm grid gap-x-6 text-xs sm:grid-cols-2">
+              <div className="flex items-baseline justify-between gap-3 py-1">
+                <dt className="text-slate-500">proposal</dt><dd className="font-mono text-slate-800">{proposal.trace.proposal_id}</dd>
               </div>
               <div className="flex items-baseline justify-between gap-3 py-1">
+                <dt className="text-slate-500">rerun hash</dt><dd className="font-mono text-slate-800" title={proposal.trace.rerun_hash}>{proposal.trace.rerun_hash.slice(0, 24)}…</dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3 py-1 sm:col-span-2">
                 <dt className="text-slate-500">pack · room · goal</dt>
-                <dd>{proposal.trace.pack} · {proposal.trace.location} · “{proposal.trace.goal}”</dd>
+                <dd className="text-right text-slate-800">{proposal.trace.pack} · {proposal.trace.location} · “{proposal.trace.goal}”</dd>
               </div>
             </dl>
             <ModeMixLine mix={proposal.trace.mode_mix} />
@@ -84,10 +84,10 @@ export default function TraceScreen() {
               {shown.map(({ s, i }) => (
                 <li key={i} className="group mb-2 ml-4">
                   <span className={`absolute -left-[7px] mt-2.5 h-3.5 w-3.5 rounded-full ring-2 ring-white transition-transform group-hover:scale-125 ${DOT[s.result ?? 'info'] ?? 'bg-slate-400'}`} aria-hidden />
-                  <div className="tb-lift rounded-xl border border-slate-200/90 bg-white/70 px-3 py-2">
+                  <div className="tb-arm tb-lift px-3 py-2">
                     <div className="flex flex-wrap items-center gap-2 text-sm">
                       <span className="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600">{s.type}</span>
-                      <span className="font-medium">{s.label}</span>
+                      <span className="font-medium text-slate-900">{s.label}</span>
                       {s.mode && <ModeBadge mode={s.mode} />}
                       {s.id && <span className="font-mono text-[11px] text-slate-400">{s.id}</span>}
                       <Time iso={s.at} />
