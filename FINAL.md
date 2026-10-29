@@ -520,6 +520,11 @@ docker run -p 8080:8080 -e PORT=8080 -e QLOO_API_KEY=… -e QLOO_ENABLED=true \
 | `LEDGER_HMAC_SECRET` | any long secret | keyed chain instead of self-attested; `npm run ledger:anchor` publishes the head |
 | `NODE_ENV` | `production` | enables the static client mount and the startup warnings |
 
+`cd server && npm run overlay:bundle` produces the `PACK_OVERLAY_B64` value as a gitignored one-line
+file and checks every seed id and `offer_id` key against the committed packs first: `applyOverlay`
+silently drops a patch that matches nothing, and a mistyped key would otherwise show up as a live run
+whose names are invented while its badges still read LIVE.
+
 Two things to know before a room full of judges starts clicking:
 
 - **Force-live spends the key on every click** — about 7.5 real reads per room, p90 ≈3.3 s and a max

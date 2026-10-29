@@ -21,6 +21,7 @@
     "verify": "tsx scripts/verify.ts",
     "verify:sample": "tsx scripts/make-sample-export.ts",
     "ledger:anchor": "tsx scripts/ledger-anchor.ts",
+    "overlay:bundle": "tsx scripts/overlay-bundle.ts",
     "gate:venue": "tsx scripts/venue-gate.ts",
     "verify:qloo": "tsx scripts/probe-config.ts"
   },

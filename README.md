@@ -219,6 +219,12 @@ free tier, keep the buckets conservative (`QUOTA_VISITOR_HOUR=4`, `QUOTA_GLOBAL_
 cache before the session (`npm run warm-cache`) so a degraded run still has a real Qloo answer to
 serve.
 
+The overlay bundle is a command, not a guess: `cd server && npm run overlay:bundle` writes a
+one-line base64 value to `server/.private-data/overlay-bundle.b64` (gitignored, never printed) and
+checks every seed id and `offer_id` key against the committed packs first — `applyOverlay` drops a
+patch that matches nothing without complaining, so a mistyped key is a demo that still prints LIVE
+badges on invented names.
+
 `gate:public` fails the build if any tracked line carries a credential value, a Qloo entity id (UUID literal) or a name taken from the private overlay; if `.env`, `.private-cache/`, `.private-data/` or a live capture is tracked; if the shipped defaults are not `QLOO_ENABLED=false` / `DEFAULT_MODE=replay`; if `LICENSE` is missing; if the README disclosure is older than the evidence files it describes; or if a keyless Replay run returns nothing for the three demo rooms.
 
 ### Host settings the operator chooses
