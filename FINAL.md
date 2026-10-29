@@ -17,7 +17,8 @@ Built for the Qloo Agentic Hackathon — theme *"Agents, but with taste."*
 | Shipped capabilities | 24, each owned by one agent and reachable on one endpoint (§12) |
 | Tests | 140 passing across 7 files |
 | Public gate | `npm run gate:public` — 8 checks, PASS against committed content |
-| Ledger right now | 25 entries, chain re-verified, `ok: true` |
+| Ledger right now | 39 entries, chain re-verified, `ok: true` |
+| Live re-verification | 2026-10-29 — 7 rooms, **537 trace steps, `mode_mix` live 537 · cached 0 · replay 0** |
 | Licence | MIT |
 
 ---
@@ -153,6 +154,34 @@ uses. Machine-readable figures: `server/verification/live-scorecard.json`.
 `restaurants/loc_westside` have catalogues keyed to entities with no approved offer on file. Qloo
 returned rows; the engine refused to present them as offerable and rendered the empty state with the
 reason. A demo that always shows six cards is a demo that is making them up.
+
+### Re-verified live on 2026-10-29, with the cache switched off
+
+`server/.env` now carries `QLOO_FORCE_LIVE=true`, so a live-granted run re-reads Qloo instead of
+serving the stored answer — nothing on this host can quietly fall back to the disk cache. Every room
+was then run in `mode: "live"` through the public API, and the server's own trace and REST log were
+read back:
+
+| | measured |
+| --- | --- |
+| Rooms run live | 7 of 7 across all 3 packs (plus a re-run of `venue_corner_hall` and the 5-scenario Taste Lift set) |
+| Trace steps | **537 — `mode_mix` `{ live: 537, cached: 0, replay: 0 }`**, every room individually |
+| REST calls logged | 53 per pass, **53 real network reads, 0 cache hits**, every one HTTP **200**, every one `mode: "live"` |
+| Latency of those real reads | min **420 ms** · p50 **≈700 ms** · p90 **≈3.3 s** · max **9,798 ms** |
+| Workflows actually exercised | `search` ×18, `describe_audience` ×7, `recommend`, `recommend_no_location`, `recommend_trend_bias`, `recommend_location_only` ×7 each |
+| Items recommended | 66, **66/66 with a Qloo rank and an explanation** · 10 auditor rejections · 99 unsupported |
+| Items on screen that were badged anything but LIVE | **none** — the rendered page was audited: Plan 28 LIVE badges / 0 other, Evidence 27/0, Trace 132/0, Brief 2/0 |
+| Co-promotion Partners | 2 real Qloo calls, rows returned with `qloo_rank` and `popularity` |
+| Taste Lift | ran with `mode: "live"`; Arm A recorded `ARM A DID NOT RUN: no LLM_API_KEY`, no lift published |
+| Quota after | 29 of 400 global live runs today · 29 of the 1,500 monthly floor · chain of 39 ledger entries verifying |
+| Console errors across 7 screens | 0 |
+
+What is *still* offline data on this host, deliberately: the committed Replay fixtures (used only
+when live is refused), the Break-it sandbox (it attacks a copy so the real ledger is never written),
+the Trust Center's tampering demonstration (same reason), and export/receipt files, which the server
+refuses for live runs at `HTTP 409` because they carry Qloo-returned names until Qloo confirms what
+may be shared. Those are guardrails, not shortcuts — every taste number a judge sees on this host
+came out of a live Qloo call.
 
 ---
 
@@ -421,6 +450,15 @@ returning 25 items with all API calls 200, **17/17 screens rendering with 0 cons
   fictional seeds in the committed packs resolve to nothing real.
 - **Taste Lift's plain-LLM arm only runs with an LLM key.** On a host without one, the panel says the
   arm did not run and publishes no lift figure. A fabricated comparison would be worse than none.
+  On this host the harness was run in `mode: "live"` on 2026-10-29 — Arm B measured from real Qloo
+  runs, Arm A recorded as not run. Note that pressing it here runs live, because this host's default
+  mode is live: it spends about 8 real reads per scenario.
+- **Exports and receipts are refused for live runs** (`HTTP 409`) because they would carry
+  Qloo-returned names and tags; they are limited to offline sample runs until Qloo confirms what may
+  be shared. The trace, `rerun_hash` and every on-screen figure are unaffected.
+- **Break-it and the Trust Center tamper demo run against a copy** of an offline sample export, so
+  attacking the defences can never write to the real ledger or spend the key. The defences themselves
+  are the same code paths a live run uses.
 - Two rooms legitimately return zero live items; the empty state is the product's answer.
 - The ledger is tamper-evident, not tamper-proof, and unkeyed entries are labelled as such.
 - Qloo `/v2/insights` carries no score field, so ranking is positional and the numeric fit shown is
