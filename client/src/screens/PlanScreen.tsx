@@ -30,7 +30,7 @@ export default function PlanScreen() {
                 className={`cursor-pointer rounded-xl border px-3 py-2 text-left transition-all ${pack === p.pack ? 'tb-nav-active border-transparent text-white shadow-md' : 'border-slate-200 bg-white/80 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md'}`}
               >
                 <div className="text-sm font-semibold">{p.display_name}</div>
-                <div className={`text-[11px] ${pack === p.pack ? 'text-indigo-100' : 'text-slate-500'}`}>one unit = {p.unit}</div>
+                <div className={`text-[11px] ${pack === p.pack ? 'text-white' : 'text-slate-500'}`}>one unit = {p.unit}</div>
               </button>
             ))}
           </div>

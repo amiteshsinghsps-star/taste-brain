@@ -101,11 +101,12 @@ body {
 [data-accent='violet']  { --tb-g1: #7c3aed; --tb-g2: #6d28d9; --tb-g3: #4f46e5; --tb-glow: rgba(124, 58, 237, 0.55); --tb-tint: rgba(124, 58, 237, 0.10); --tb-line: rgba(124, 58, 237, 0.24); --tb-ink: #6d28d9; }
 [data-accent='fuchsia'] { --tb-g1: #c026d3; --tb-g2: #a21caf; --tb-g3: #7c3aed; --tb-glow: rgba(192, 38, 211, 0.52); --tb-tint: rgba(192, 38, 211, 0.10); --tb-line: rgba(192, 38, 211, 0.24); --tb-ink: #a21caf; }
 [data-accent='rose']    { --tb-g1: #e11d48; --tb-g2: #be185d; --tb-g3: #a21caf; --tb-glow: rgba(225, 29, 72, 0.50);  --tb-tint: rgba(225, 29, 72, 0.09);  --tb-line: rgba(225, 29, 72, 0.22);  --tb-ink: #be123c; }
-[data-accent='amber']   { --tb-g1: #d97706; --tb-g2: #ea580c; --tb-g3: #b45309; --tb-glow: rgba(217, 119, 6, 0.50);  --tb-tint: rgba(217, 119, 6, 0.10);  --tb-line: rgba(217, 119, 6, 0.24);  --tb-ink: #b45309; }
-[data-accent='orange']  { --tb-g1: #ea580c; --tb-g2: #c2410c; --tb-g3: #db2777; --tb-glow: rgba(234, 88, 12, 0.50);  --tb-tint: rgba(234, 88, 12, 0.10);  --tb-line: rgba(234, 88, 12, 0.24);  --tb-ink: #c2410c; }
-[data-accent='emerald'] { --tb-g1: #059669; --tb-g2: #0d9488; --tb-g3: #047857; --tb-glow: rgba(5, 150, 105, 0.50);  --tb-tint: rgba(5, 150, 105, 0.10);  --tb-line: rgba(5, 150, 105, 0.24);  --tb-ink: #047857; }
-[data-accent='teal']    { --tb-g1: #0d9488; --tb-g2: #0891b2; --tb-g3: #059669; --tb-glow: rgba(13, 148, 136, 0.50); --tb-tint: rgba(13, 148, 136, 0.10); --tb-line: rgba(13, 148, 136, 0.24); --tb-ink: #0f766e; }
-[data-accent='sky']     { --tb-g1: #0284c7; --tb-g2: #4f46e5; --tb-g3: #0369a1; --tb-glow: rgba(2, 132, 199, 0.50);  --tb-tint: rgba(2, 132, 199, 0.10);  --tb-line: rgba(2, 132, 199, 0.24);  --tb-ink: #0369a1; }
+/* White text sits directly on g1→g2 in .tb-nav-active, so no palette may run lighter than its 700 step here. */
+[data-accent='amber']   { --tb-g1: #b45309; --tb-g2: #c2410c; --tb-g3: #b45309; --tb-glow: rgba(217, 119, 6, 0.50);  --tb-tint: rgba(217, 119, 6, 0.10);  --tb-line: rgba(217, 119, 6, 0.24);  --tb-ink: #b45309; }
+[data-accent='orange']  { --tb-g1: #c2410c; --tb-g2: #9a3412; --tb-g3: #db2777; --tb-glow: rgba(234, 88, 12, 0.50);  --tb-tint: rgba(234, 88, 12, 0.10);  --tb-line: rgba(234, 88, 12, 0.24);  --tb-ink: #c2410c; }
+[data-accent='emerald'] { --tb-g1: #047857; --tb-g2: #0f766e; --tb-g3: #047857; --tb-glow: rgba(5, 150, 105, 0.50);  --tb-tint: rgba(5, 150, 105, 0.10);  --tb-line: rgba(5, 150, 105, 0.24);  --tb-ink: #047857; }
+[data-accent='teal']    { --tb-g1: #0f766e; --tb-g2: #0e7490; --tb-g3: #059669; --tb-glow: rgba(13, 148, 136, 0.50); --tb-tint: rgba(13, 148, 136, 0.10); --tb-line: rgba(13, 148, 136, 0.24); --tb-ink: #0f766e; }
+[data-accent='sky']     { --tb-g1: #0369a1; --tb-g2: #4f46e5; --tb-g3: #0369a1; --tb-glow: rgba(2, 132, 199, 0.50);  --tb-tint: rgba(2, 132, 199, 0.10);  --tb-line: rgba(2, 132, 199, 0.24);  --tb-ink: #0369a1; }
 [data-accent='slate']   { --tb-g1: #475569; --tb-g2: #334155; --tb-g3: #64748b; --tb-glow: rgba(71, 85, 105, 0.45);  --tb-tint: rgba(71, 85, 105, 0.10);  --tb-line: rgba(71, 85, 105, 0.22);  --tb-ink: #334155; }
 
 /* The page ambient wash follows the chosen accent, so the whole screen re-tints. */
@@ -428,7 +429,7 @@ html.tb-moon input[type='checkbox'] { accent-color: #818cf8; }
 html.tb-moon body { background-color: #0b1120; }
 html.tb-moon .tb-stat { background: linear-gradient(150deg, var(--tb-tint), rgba(15, 23, 42, 0.7) 60%); border-color: rgba(148, 163, 184, 0.22); }
 html.tb-moon .tb-stat b { color: #c7d2fe; }
-html.tb-moon .tb-stat span { color: #94a3b8; }
+html.tb-moon .tb-stat span { color: #b7c4d8; }
 html.tb-moon .tb-bar { background: #24324f; }
 html.tb-moon .tb-segbar { background: #24324f; }
 html.tb-moon .tb-pill { background: rgba(15, 23, 42, 0.6); border-color: rgba(148, 163, 184, 0.22); color: #cbd5e1; }
@@ -797,7 +798,7 @@ html.tb-moon .tb-run { border-top-color: rgba(148, 163, 184, 0.2); background: l
 .tb-stat span { color: #475569; font-weight: 750; }
 html.tb-moon .tb-stat { background: linear-gradient(150deg, var(--tb-tint), rgba(22, 34, 59, 0.75) 60%); }
 html.tb-moon .tb-stat b { background: linear-gradient(96deg, #a5b4fc, #c4b5fd 55%, #f0abfc); -webkit-background-clip: text; background-clip: text; }
-html.tb-moon .tb-stat span { color: #94a3b8; }
+html.tb-moon .tb-stat span { color: #b7c4d8; }
 
 /* ── Cards: a hairline gradient edge and a light sweep on hover. ── */
 @keyframes tb-card-in { from { opacity: 0; transform: translateY(10px) scale(0.995); } }
@@ -885,7 +886,8 @@ html.tb-moon .tb-band::before { opacity: 0.9; }
   display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem;
   font-size: 10px; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; color: var(--tb-g1);
 }
-html.tb-moon .tb-band-eyebrow { color: var(--tb-g3); }
+/* The accent's own g3 is a mid tone — under 3:1 on navy at 10px, so dark uses a fixed light indigo. */
+html.tb-moon .tb-band-eyebrow { color: #a5b4fc; }
 .tb-band-sep { opacity: 0.5; }
 .tb-band-title {
   margin-top: 0.2rem; font-size: 1.6rem; font-weight: 850; letter-spacing: -0.028em; line-height: 1.1;
@@ -915,7 +917,6 @@ html.tb-moon .tb-seg > button:hover { color: #e2e8f0; }
   color: #fff; background: linear-gradient(118deg, var(--tb-g1), var(--tb-g2));
   box-shadow: 0 10px 20px -12px var(--tb-glow);
 }
-html.tb-moon .tb-seg > button[data-on='true'] { color: #0b1120; }
 
 @media (prefers-reduced-motion: reduce) {
   body::before { animation: none; }
