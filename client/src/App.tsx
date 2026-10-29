@@ -80,6 +80,28 @@ const TAB_ICON: Record<string, string> = {
   budget: '⏱️', finals: '🎬', lift: '📈', about: 'ℹ️',
   Decide: '🎯', Question: '❓', 'Prove it': '🔬', Operate: '🛠',
 };
+
+// One line per screen, saying what is on it. Every claim here is about the screen
+// itself, not about a number the server has yet to return.
+const SCREEN_BLURB: Record<string, string> = {
+  plan: 'Where a run begins — inputs down the left, the proposal down the right.',
+  evidence: 'Every item the agent put forward, and the rule that cleared or refused it.',
+  trace: 'The ordered record of the run: seeds, Qloo reads, rule decisions, flip points.',
+  brief: 'The one-page sheet a named human signs for this run.',
+  whynot: 'What the rules removed, and the exact term that removed it.',
+  whatif: 'The same seeds against a changed rule, side by side with the run you have.',
+  partners: 'Entities Qloo ranks beside this audience, ordered by the tags they share.',
+  ablation: 'The run with one stage switched off, set against the run with it.',
+  trust: 'How the results are made checkable, and the claims the app will not make.',
+  verify: 'Recompute a stored run from its own inputs and report every mismatch.',
+  breakit: 'Hostile inputs aimed at the engine, and what it did with each one.',
+  coverage: 'Which rules, seeds and modes the test suite actually exercises.',
+  ledger: 'The append-only, hash-chained record of every decision act.',
+  budget: 'The Qloo call budget and quota exactly as the server reports them.',
+  finals: 'The locked-down finals path: stored snapshot in, decision out.',
+  lift: 'Rule arms run against the same seeds and compared arm by arm.',
+  about: 'What this is, who decides what, and where every number on screen came from.',
+};
 const ACCENT_STOPS: Record<(typeof ACCENTS)[number], [string, string]> = {
   indigo: ['#4f46e5', '#7c3aed'], violet: ['#7c3aed', '#4f46e5'], fuchsia: ['#c026d3', '#7c3aed'],
   rose: ['#e11d48', '#be185d'], amber: ['#d97706', '#ea580c'], orange: ['#ea580c', '#db2777'],
@@ -188,6 +210,29 @@ function Shell() {
 
   const labelOf = (id: string) => allTabs.find(([t]) => t === id)?.[1] ?? id;
 
+  // Read-progress rule. Written straight to the node so a scroll never re-renders
+  // the app; the height is re-measured when the screen changes underneath it.
+  const progressRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = progressRef.current;
+    if (!el) return;
+    let frame = 0;
+    const write = () => {
+      frame = 0;
+      const room = document.documentElement.scrollHeight - window.innerHeight;
+      el.style.setProperty('--tb-p', room > 0 ? String(Math.min(1, window.scrollY / room)) : '0');
+    };
+    const onScroll = () => { if (!frame) frame = requestAnimationFrame(write); };
+    write();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    return () => {
+      if (frame) cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, [tab]);
+
   const cycleAccent = () => setAccent((a) => ACCENTS[(ACCENTS.indexOf(a) + 1) % ACCENTS.length] as typeof ACCENTS[number]);
   const paletteActions = [
     { id: 'act-run', label: 'Run the agent (Plan)', hint: 'Ctrl+↵', run: () => { setTab('plan'); void app.run(); } },
@@ -201,6 +246,7 @@ function Shell() {
   return (
     <div className="min-h-screen text-slate-900">
       {app.busy && <div className="tb-beam-line fixed left-0 top-0 z-50 w-full print:hidden" aria-label="run in progress" />}
+      <div ref={progressRef} className="tb-progress print:hidden" aria-hidden />
 
       <header className="sticky top-0 z-10 border-b border-slate-200/70 bg-white/70 shadow-[0_1px_20px_-8px_rgba(15,23,42,0.15)] backdrop-blur-xl print:hidden">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
@@ -218,7 +264,7 @@ function Shell() {
           </div>
 
           {app.proposal && (
-            <div className="flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/80 px-3 py-1 text-[11px] text-slate-600 shadow-sm">
+            <div className="tb-run flex items-center gap-2 px-3 py-1 text-[11px] text-slate-600">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
@@ -271,7 +317,7 @@ function Shell() {
                   key={g.group}
                   onClick={() => setTab(g.items[0][0])}
                   title={`${g.items.map(([, l]) => l).join(' · ')} (Alt+${gi + 1})`}
-                  className={`cursor-pointer rounded-xl px-4 py-1.5 text-sm font-semibold transition-all ${on ? 'tb-nav-active' : 'text-slate-600 bg-white/70 border border-slate-200/80 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md'}`}
+                  className={`tb-tab cursor-pointer text-sm ${on ? 'tb-tab-on' : 'text-slate-600 bg-white/70 border border-slate-200/80 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md'}`}
                 >
                   <span className="mr-1.5" aria-hidden>{TAB_ICON[g.group]}</span>{g.group}
                   <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${on ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500'}`}>{g.items.length}</span>
@@ -351,32 +397,35 @@ function Shell() {
                 className="cursor-pointer rounded-full border border-slate-200/80 bg-white/70 px-2 py-1 text-[10px] font-bold text-slate-500 hover:bg-slate-100">?</button>
             </div>
           </div>
-
-          {/* Level 2: the screens inside the active tab */}
-          <div className="tb-screen-enter flex w-fit flex-wrap items-center gap-1 rounded-full border border-slate-200/80 bg-slate-100/70 p-1">
-            {activeGroup.items.map(([id, label]) => (
-              <button
-                key={id}
-                onClick={() => setTab(id)}
-                className={`cursor-pointer rounded-full px-3 py-1 text-xs font-medium transition-all ${tab === id ? 'bg-white text-indigo-700 shadow-sm ring-1 ring-indigo-200' : 'text-slate-600 hover:bg-white/60 hover:text-slate-900'}`}
-              ><span className="mr-1" aria-hidden>{TAB_ICON[id]}</span>{label}</button>
-            ))}
-          </div>
         </nav>
-        <div className="tb-beam-line" aria-hidden />
-        <div className="h-0.5 w-full" aria-hidden style={{ background: 'linear-gradient(90deg, transparent, var(--tb-g1), var(--tb-g2), var(--tb-g3), transparent)' }} />
       </header>
 
-      {/* breadcrumb */}
-      <div className="mx-auto flex max-w-7xl items-center gap-2 px-5 pt-4 text-[11px] text-slate-500 print:hidden">
-        <button onClick={() => setTab('plan')} className="cursor-pointer hover:text-indigo-600">home</button>
-        <span>›</span>
-        <span className="font-semibold text-slate-600">{activeGroup.group}</span>
-        <span>›</span>
-        <span className={tab === 'plan' ? '' : 'text-slate-800'}>{labelOf(tab)}</span>
+      {/* The page band: what this screen is, and the way to its neighbours. */}
+      <div className="mx-auto max-w-7xl px-5 pt-5 print:hidden">
+        <div className="tb-band" key={tab}>
+          <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+            <div className="min-w-0">
+              <div className="tb-band-eyebrow">
+                <span aria-hidden>{TAB_ICON[activeGroup.group]}</span>
+                {activeGroup.group}
+                <span className="tb-band-sep">·</span>
+                screen {flatIds.indexOf(tab) + 1} of {flatIds.length}
+              </div>
+              <h2 className="tb-band-title">{labelOf(tab)}</h2>
+              <p className="tb-band-sub">{SCREEN_BLURB[tab]}</p>
+            </div>
+            <div className="tb-seg" role="group" aria-label={`${activeGroup.group} screens`}>
+              {activeGroup.items.map(([id, label]) => (
+                <button key={id} aria-current={tab === id ? 'page' : undefined} data-on={tab === id} onClick={() => setTab(id)} title={SCREEN_BLURB[id]}>
+                  <span className="mr-1" aria-hidden>{TAB_ICON[id]}</span>{label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <main className="tb-screen-enter mx-auto max-w-7xl px-5 py-6" key={tab}>
+      <main className="tb-screen-enter mx-auto max-w-7xl px-5 pb-8 pt-4" key={tab}>
         <ScreenBoundary key={tab}>
           <Screen />
         </ScreenBoundary>

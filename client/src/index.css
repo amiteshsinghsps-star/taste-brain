@@ -424,6 +424,9 @@ html.tb-moon .tb-stat span { color: #94a3b8; }
 html.tb-moon .tb-bar { background: #24324f; }
 html.tb-moon .tb-segbar { background: #24324f; }
 html.tb-moon .tb-pill { background: rgba(15, 23, 42, 0.6); border-color: rgba(148, 163, 184, 0.22); color: #cbd5e1; }
+html.tb-moon .tb-pill:hover { color: #e2e8f0; }
+/* --tb-ink is a light-theme ink: on navy it is a mid-tone, not a colour. */
+html.tb-moon .tb-flag { background: rgba(99, 102, 241, 0.24); color: #c7d2fe; box-shadow: inset 0 0 0 1px rgba(129, 140, 248, 0.4); }
 html.tb-moon .tb-tray { background: rgba(15, 23, 42, 0.92); }
 html.tb-moon .tb-swatch[data-on='true'] { box-shadow: 0 0 0 2px #0b1120, 0 0 0 4px var(--tb-g1); }
 
@@ -671,3 +674,233 @@ html.tb-moon .tb-verdict[data-st='idle'] { color: #cbd5e1; }
 html.tb-moon .tb-arm { background: linear-gradient(180deg, rgba(22, 34, 59, 0.85), rgba(15, 23, 42, 0.6)); border-color: rgba(148, 163, 184, 0.22); }
 html.tb-moon .tb-arm[data-st='baseline'] { background: linear-gradient(180deg, var(--tb-tint), rgba(15, 23, 42, 0.7)); }
 html.tb-moon .tb-bar[data-muted='true'] > i { background: linear-gradient(90deg, #475569, #64748b); }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   THE SHELL — ambience, glass, depth and motion.
+   Everything below is presentation only: no figure on screen is produced
+   here, and every animation is decoration the reader can opt out of.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Aurora + measurement grid, painted behind the whole app. ── */
+@keyframes tb-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(3%, -4%, 0) scale(1.12); }
+  100% { transform: translate3d(0, 0, 0) scale(1); }
+}
+body::before {
+  content: ''; position: fixed; inset: -20% -10%; z-index: -2; pointer-events: none;
+  background:
+    radial-gradient(38% 34% at 14% 12%, var(--tb-glow), transparent 62%),
+    radial-gradient(34% 30% at 88% 6%, var(--tb-glow), transparent 60%),
+    radial-gradient(40% 36% at 62% 96%, var(--tb-glow), transparent 64%);
+  filter: blur(70px) saturate(150%);
+  opacity: 0.5;
+  animation: tb-drift 34s ease-in-out infinite;
+}
+/* A faint grid: this app is about measurement, so the paper says so quietly. */
+body::after {
+  content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask-image: radial-gradient(120% 90% at 50% 0%, black 12%, transparent 72%);
+  mask-image: radial-gradient(120% 90% at 50% 0%, black 12%, transparent 72%);
+  opacity: 0.5;
+}
+html.tb-moon body::before { opacity: 0.42; filter: blur(80px) saturate(170%); }
+html.tb-moon body::after {
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, 0.09) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.09) 1px, transparent 1px);
+}
+
+/* ── The header: frosted, lifted, with a gradient hairline under it. ── */
+@keyframes tb-rule { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+header::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--tb-g1), var(--tb-g2), var(--tb-g3), transparent);
+  background-size: 220% 100%;
+  animation: tb-rule 9s ease-in-out infinite;
+  opacity: 0.75;
+}
+header { backdrop-filter: blur(18px) saturate(160%); }
+
+/* The brand mark carries a slow conic sweep and a halo. */
+@keyframes tb-spin { to { transform: rotate(360deg); } }
+.tb-orb { position: relative; isolation: isolate; }
+.tb-orb::before {
+  content: ''; position: absolute; inset: -3px; z-index: -1; border-radius: 15px;
+  background: conic-gradient(from 0deg, var(--tb-g1), var(--tb-g3), var(--tb-g2), var(--tb-g1));
+  filter: blur(7px); opacity: 0.75; animation: tb-spin 7s linear infinite;
+}
+.tb-orb::after {
+  content: ''; position: absolute; inset: 0; border-radius: 12px;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.42), transparent 55%);
+  pointer-events: none;
+}
+
+/* ── The active-run ribbon. ── */
+.tb-run {
+  position: relative; overflow: hidden;
+  border-radius: 999px; border: 1px solid var(--tb-line);
+  background: linear-gradient(92deg, var(--tb-tint), rgba(255, 255, 255, 0.85) 55%, var(--tb-tint));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 10px 26px -20px var(--tb-glow);
+}
+html.tb-moon .tb-run { background: linear-gradient(92deg, var(--tb-tint), rgba(22, 34, 59, 0.85) 55%, var(--tb-tint)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 10px 26px -18px rgba(0, 0, 0, 0.8); }
+
+/* ── Tab bar: the active group gets a lit pill, the rest get a hover halo. ── */
+.tb-tab {
+  position: relative; overflow: hidden; isolation: isolate;
+  border-radius: 0.85rem; padding: 0.4rem 0.95rem; font-weight: 650;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+.tb-tab::after {
+  content: ''; position: absolute; inset: 0; z-index: -1; opacity: 0;
+  background: linear-gradient(110deg, transparent 20%, rgba(255, 255, 255, 0.55) 45%, transparent 70%);
+  transform: translateX(-120%);
+  transition: opacity 0.2s ease;
+}
+.tb-tab:hover:not(.tb-tab-on)::after { opacity: 1; animation: tb-sweep 0.9s ease-out; }
+@keyframes tb-sweep { to { transform: translateX(120%); } }
+.tb-tab-on {
+  background: linear-gradient(92deg, var(--tb-g1), var(--tb-g2) 60%, var(--tb-g3));
+  color: white; border-color: transparent;
+  box-shadow: 0 10px 24px -12px var(--tb-glow), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.tb-tab-on::before {
+  content: ''; position: absolute; left: 0.55rem; right: 0.55rem; bottom: 0.22rem; height: 2px;
+  border-radius: 2px; background: rgba(255, 255, 255, 0.6);
+}
+
+/* ── Metric tiles: the number is the engine's; the weight is the page's. ── */
+.tb-stat::after {
+  content: ''; position: absolute; right: -18px; top: -18px; width: 62px; height: 62px; border-radius: 999px;
+  background: radial-gradient(circle at center, var(--tb-glow), transparent 65%);
+  opacity: 0.35; transition: opacity 0.2s ease, transform 0.25s ease; pointer-events: none;
+}
+.tb-stat:hover::after { opacity: 0.6; transform: scale(1.15); }
+.tb-stat b {
+  font-size: 1.6rem; letter-spacing: -0.035em; line-height: 1.1;
+  background: linear-gradient(96deg, var(--tb-g1), var(--tb-g2) 55%, var(--tb-g3));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.tb-stat span { color: #475569; font-weight: 750; }
+html.tb-moon .tb-stat { background: linear-gradient(150deg, var(--tb-tint), rgba(22, 34, 59, 0.75) 60%); }
+html.tb-moon .tb-stat b { background: linear-gradient(96deg, #a5b4fc, #c4b5fd 55%, #f0abfc); -webkit-background-clip: text; background-clip: text; }
+html.tb-moon .tb-stat span { color: #94a3b8; }
+
+/* ── Cards: a hairline gradient edge and a light sweep on hover. ── */
+@keyframes tb-card-in { from { opacity: 0; transform: translateY(10px) scale(0.995); } }
+.tb-lift { transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease; }
+[data-slot='card']::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  opacity: 0; transition: opacity 0.25s ease;
+}
+html.tb-moon [data-slot='card']::after { box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.14); }
+[data-slot='card']:hover::after { opacity: 1; }
+[data-slot='card-header'] { position: relative; }
+[data-slot='card-header']::after {
+  content: ''; position: absolute; left: 0; bottom: 0; height: 1px; width: 46px;
+  background: linear-gradient(90deg, var(--tb-g1), var(--tb-g3)); border-radius: 2px;
+}
+
+/* ── Staggered arrival for card and metric grids — the page assembles itself. ── */
+@keyframes tb-rise { from { opacity: 0; transform: translateY(12px); } }
+.tb-arm, .tb-stat, .tb-check, .tb-block { animation: tb-rise 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.tb-arm:nth-child(2), .tb-stat:nth-child(2), .tb-check:nth-child(2), .tb-block:nth-child(2) { animation-delay: 45ms; }
+.tb-arm:nth-child(3), .tb-stat:nth-child(3), .tb-check:nth-child(3), .tb-block:nth-child(3) { animation-delay: 90ms; }
+.tb-arm:nth-child(4), .tb-stat:nth-child(4), .tb-check:nth-child(4), .tb-block:nth-child(4) { animation-delay: 135ms; }
+.tb-arm:nth-child(5), .tb-stat:nth-child(5), .tb-check:nth-child(5), .tb-block:nth-child(5) { animation-delay: 180ms; }
+.tb-arm:nth-child(6), .tb-stat:nth-child(6), .tb-check:nth-child(6), .tb-block:nth-child(6) { animation-delay: 225ms; }
+.tb-arm:nth-child(n+7), .tb-block:nth-child(n+7) { animation-delay: 260ms; }
+
+/* ── Scroll progress: one hairline that answers the page's own length. ── */
+.tb-progress {
+  position: fixed; left: 0; top: 0; width: 100%; height: 2px; z-index: 55; pointer-events: none;
+  transform-origin: 0 50%; transform: scaleX(var(--tb-p, 0));
+  background: linear-gradient(90deg, var(--tb-g1), var(--tb-g2) 50%, var(--tb-g3));
+  box-shadow: 0 0 12px var(--tb-glow);
+  transition: transform 0.12s linear;
+}
+
+/* ── Focus is part of the look: one ring, everywhere, on the accent. ── */
+:where(button, a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--tb-g1); outline-offset: 2px; border-radius: 8px;
+}
+
+/* ── Numbers in tables and code read as data, not prose. ── */
+.tb-num { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
+/* ── The page band ── every screen opens with its own title and its own neighbours,
+   so the app reads as a set of designed documents rather than one panel swapped for
+   another. The glow sits behind the text, never over it. */
+.tb-band {
+  position: relative; isolation: isolate; overflow: hidden;
+  border: 1px solid var(--tb-line); border-radius: 18px;
+  background: linear-gradient(118deg, var(--tb-tint), rgba(255, 255, 255, 0.78) 52%, rgba(255, 255, 255, 0.55));
+  padding: 0.95rem 1.15rem 1rem;
+  box-shadow: 0 20px 44px -38px rgba(15, 23, 42, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  animation: tb-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+html.tb-moon .tb-band {
+  border-color: rgba(148, 163, 184, 0.22);
+  background: linear-gradient(118deg, var(--tb-tint), rgba(22, 34, 59, 0.8) 52%, rgba(15, 23, 42, 0.62));
+  box-shadow: 0 20px 44px -34px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(148, 163, 184, 0.12);
+}
+.tb-band::before {
+  content: ''; position: absolute; z-index: -1; right: -8%; top: -70%; width: 46%; height: 190%;
+  opacity: 0.5;
+  background: radial-gradient(50% 50% at 50% 50%, var(--tb-glow), transparent 72%);
+}
+html.tb-moon .tb-band::before { opacity: 0.9; }
+.tb-band-eyebrow {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; color: var(--tb-g1);
+}
+html.tb-moon .tb-band-eyebrow { color: var(--tb-g3); }
+.tb-band-sep { opacity: 0.5; }
+.tb-band-title {
+  margin-top: 0.2rem; font-size: 1.6rem; font-weight: 850; letter-spacing: -0.028em; line-height: 1.1;
+  background: linear-gradient(96deg, var(--tb-g1), var(--tb-g2) 46%, var(--tb-g3));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+html.tb-moon .tb-band-title { background-image: linear-gradient(96deg, #c7d2fe, var(--tb-g3) 60%, #a5b4fc); }
+.tb-band-sub { margin-top: 0.28rem; max-width: 62ch; font-size: 12px; line-height: 1.55; color: #475569; }
+html.tb-moon .tb-band-sub { color: #b6c2d6; }
+
+/* ── Segmented screen picker — the band's own control, on the accent when lit. */
+.tb-seg {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 3px;
+  border: 1px solid var(--tb-line); border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72); box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+html.tb-moon .tb-seg { background: rgba(15, 23, 42, 0.6); border-color: rgba(148, 163, 184, 0.22); }
+.tb-seg > button {
+  cursor: pointer; border-radius: 999px; padding: 0.3rem 0.72rem;
+  font-size: 11.5px; font-weight: 650; color: #475569;
+  transition: transform 0.16s ease, background-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+html.tb-moon .tb-seg > button { color: #9db0c9; }
+.tb-seg > button:hover { color: var(--tb-g1); transform: translateY(-1px); }
+html.tb-moon .tb-seg > button:hover { color: #e2e8f0; }
+.tb-seg > button[data-on='true'] {
+  color: #fff; background: linear-gradient(118deg, var(--tb-g1), var(--tb-g2));
+  box-shadow: 0 10px 20px -12px var(--tb-glow);
+}
+html.tb-moon .tb-seg > button[data-on='true'] { color: #0b1120; }
+
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
+  .tb-orb::before { animation: none; }
+  header::after { animation: none; }
+  .tb-arm, .tb-stat, .tb-check, .tb-block, .tb-band { animation: none; }
+  .tb-tab::after { display: none; }
+  .tb-progress { transition: none; }
+  .tb-seg > button { transition: none; }
+}
+
+@media print {
+  body::before, body::after, .tb-progress, .tb-band { display: none; }
+}
