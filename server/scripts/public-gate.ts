@@ -131,11 +131,15 @@ const newestArtifact = ['sample-export.json', 'gate-report.json', 'live-scorecar
     } catch { return ''; }
   })
   .filter(Boolean).sort().pop() ?? '';
-const discloseOk = /replay/i.test(readme) && /synthetic/i.test(readme) && /QLOO_ENABLED/i.test(readme) && !!readmeDates.length;
+// The claim is what must survive, not one particular adjective: the reader has to
+// be able to see that the offline rows are invented and are not a Qloo answer.
+const discloseOk = /replay/i.test(readme)
+  && /invented/i.test(readme) && /not a Qloo answer/i.test(readme)
+  && /QLOO_ENABLED/i.test(readme) && !!readmeDates.length;
 const newestDisclosed = [...readmeDates].sort().pop() ?? '';
 const fresh = !newestArtifact || newestDisclosed >= newestArtifact.slice(0, 10);
 report(discloseOk && fresh, 'README states the data mode, and its date is not behind the evidence files',
-  `README dates: ${[...readmeDates].sort().join(', ') || 'none'} · newest tracked evidence: ${newestArtifact || 'none'}`);
+  `README says the offline rows are invented and not a Qloo answer: ${discloseOk} · README dates: ${[...readmeDates].sort().join(', ') || 'none'} · newest tracked evidence: ${newestArtifact || 'none'}`);
 
 // ── 8. a fresh clone with no key must still produce a run ────────────────────
 process.env.GRAPH_DB = ':memory:';
