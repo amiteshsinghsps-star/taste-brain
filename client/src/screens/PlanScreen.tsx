@@ -84,7 +84,7 @@ export default function PlanScreen() {
 
       <div className="space-y-5">
         {app.busy && !app.proposal ? (
-          <Panel title="2 · What the agent proposes" description="The pipeline is running — seeds, audience, candidates, rules, auditor."><Skeleton lines={5} /></Panel>
+          <Panel title="2 · What the agent proposes" description="The pipeline is running — seeds, audience, candidates, rules, auditor. A live run reads Qloo several times over: give it up to half a minute."><Skeleton lines={5} /></Panel>
         ) : app.proposal ? (
           <>
             {app.proposal.degrade_reason && (

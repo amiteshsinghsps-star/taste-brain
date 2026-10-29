@@ -1,5 +1,5 @@
 {
-  "_note": "SYNTHETIC fixture for Replay mode only. NOT a Qloo response. Ablation arm B: an invented ordering produced from the city signal alone, with no taste seeds, so the four ablation arms can be compared offline. Two acts appear here that the taste-seed run never returned, which is the honest point of the comparison.",
+  "_note": "Invented sample fixture for Replay mode only. NOT a Qloo response. Ablation arm B: an invented ordering produced from the city signal alone, with no taste seeds, so the four ablation arms can be compared offline. Two acts appear here that the taste-seed run never returned, which is the honest point of the comparison.",
   "workflow": "recommend",
   "variant": "location_only",
   "fetched_at": "1970-01-01T00:00:00.000Z",

@@ -27,7 +27,14 @@ npm run dev                    # open http://localhost:3000
 
 In the UI: pick **Retail and fashion → Store 3 - East Austin → "Add 4 brands for spring"** and hit **Run the agent**. You get a ranked proposal, a Decision Trace, Auditor rejections, and a Qloo call log — first full trace well under 60 seconds. Then open **Taste Lift** and run the fixed request set, and switch to **Venues** to see the same engine on new data.
 
-> **Data mode honesty:** the demo ships in **Replay** mode using **synthetic sample fixtures** (clearly labelled `mode: "replay"` on every result). They are *not* live Qloo output, and the public host leaves `QLOO_ENABLED=false` so no visitor can make a live call. With a Qloo API key configured (`QLOO_API_KEY` in `server/.env`) **and** `QLOO_ENABLED=true` / `DEFAULT_MODE=live`, the engine makes direct real REST calls to the official Qloo API (`https://hackathon.api.qloo.com`) via `X-Api-Key`.
+> **Data mode honesty.** Every result says where its data came from: **Live** (a Qloo answer read on
+> that request), **Cached** (a stored Qloo answer, no new call), or **Sample** (rows committed to this
+> repository so the app runs with no key and no network — those names are invented and are never
+> presented as a Qloo answer). A fresh clone runs credential-free: the shipped defaults are
+> `QLOO_ENABLED=false` and `DEFAULT_MODE=replay`. **The hosted demo judges see runs the other
+> configuration**: `QLOO_ENABLED=true`, `DEFAULT_MODE=live` and `QLOO_FORCE_LIVE=true`, so a click
+> makes a real read against `https://hackathon.api.qloo.com` instead of serving a stored answer. The
+> `QLOO_API_KEY` stays on the server and never reaches the browser, an API response, a log or git.
 
 ---
 
@@ -66,7 +73,7 @@ Every proposal carries a **Decision Trace**. A **Grounding Auditor** blocks anyt
 - **In-flight Deduplication & Caching:** Concurrent identical requests share a single network call. Results are cached in a LRU memory cache and persistent gitignored private disk cache (`.private-cache/`).
 - **Secret Isolation:** The `QLOO_API_KEY` is accessed only within `rest-client.ts`. It is never returned in HTTP responses, never logged, and never committed to version control.
 
-**Request→result walkthrough** (`POST /api/proposals` with `{pack:"retail", location:"store_3", goal:"Add 4 brands for spring", mode:"replay"}`) — the trace below was copied off this build's own output, and the pack data is the synthetic worked example, so every name and figure is invented fixture data:
+**Request→result walkthrough** (`POST /api/proposals` with `{pack:"retail", location:"store_3", goal:"Add 4 brands for spring", mode:"replay"}`) — the trace below was copied off this build's own output, and the pack data is the invented worked example, so every name and figure in it is fixture data and not a Qloo answer:
 
 ```text
 1. Seeds             → type Audience: "Replay mode: 3 configured seed(s) not re-resolved
@@ -148,7 +155,7 @@ npm run warm-cache       # Pre-fetches one-click scenarios on deployment host in
 
 ## Data & provenance
 
-Disclosed 2026-10-24 against this tree.
+Disclosed 2026-10-29 against this tree; the live figures were re-measured the same day.
 
 - All sample data is fictional. No customer data, credentials or personal data are present.
 - **Nothing committed names a real company, artist or venue, and no committed file carries a Qloo entity id.** Qloo entity ids are 36-character UUIDs, so every entity in a tracked pack, fixture, test or document is a symbolic `qloo:brand:cedar_row`-style name, and ids that appeared inside live request parameters are recorded as `qloo-entity-N` tokens (`server/verification/gate-report.json` says so in its own provenance field).
@@ -157,15 +164,60 @@ Disclosed 2026-10-24 against this tree.
 - Every result is labelled with its mode (Live / Cached / Replay); nothing is presented as live that isn't.
 - Live responses are kept strictly on the server in `.private-cache/` and never checked into source control.
 
-### Live is off for visitors
+### Two configurations, stated plainly
 
-`QLOO_ENABLED=false` and `DEFAULT_MODE=replay` are the defaults in code, in `server/.env.example` and on the public host, so no visitor can spend the team key by accident:
+**A fresh clone (the committed default) is credential-free.** `QLOO_ENABLED=false` and
+`DEFAULT_MODE=replay` are the defaults in code and in `server/.env.example`:
 
 - the header's **live** control renders disabled with the reason in its tooltip, and the header shows `live off on this host`;
 - the Plan screen offers no one-click **Re-run live** button;
-- even a hand-made `POST /api/proposals` with `"mode":"live"` comes back labelled Cached or Replay, with the reason written into the run.
+- even a hand-made `POST /api/proposals` with `"mode":"live"` comes back labelled Cached or Sample, with the reason written into the run.
 
-The key custodian sets `QLOO_ENABLED=true` in the host environment for a planned warm-up or the finals, and switches it off again. `cd server && npm run gate:public` re-checks all of the above (plus the license and the keyless Replay path) against committed content, and runs in CI.
+**The hosted demo runs live, on purpose.** Those judges see real Qloo reads, so the host sets
+`QLOO_ENABLED=true`, `DEFAULT_MODE=live` and `QLOO_FORCE_LIVE=true`. The last one matters: it stops a
+run from quietly serving the stored answer, so a badge that says LIVE was earned by a request that
+left the box. Live traffic is still metered — 8 live runs per visitor per hour, 40 per visitor per
+day, 400 globally per day, a 1,500 monthly floor and at most 12 Qloo calls per run — and going over
+a bucket is **not an error**: the run answers `HTTP 200` as `cached` with the reason written into the
+proposal ("this visitor hit the hourly live-run budget…"), because a judge mid-click should get a
+honest labelled answer rather than a 429. The key custodian turns live off again when the demo is
+over.
+
+`cd server && npm run gate:public` re-checks the committed content (that the shipped defaults are
+still credential-free, plus no key, no entity id, no real name, the license and the keyless Replay
+path), and runs in CI.
+
+### Deploying the hosted demo
+
+`Dockerfile` at the repository root builds both halves into one image — the client is built, copied
+to `server/public`, and served by the API (`server/src/http.ts:541`). No `.env` is baked into the
+image; real environment variables always win over the file, and a missing file is fine.
+
+```bash
+docker build -t taste-brain .
+docker run -p 8080:8080 -e PORT=8080 -e QLOO_API_KEY=… -e QLOO_ENABLED=true \
+  -e DEFAULT_MODE=live -e QLOO_FORCE_LIVE=true -e TRUST_PROXY_HOPS=1 \
+  -e GRAPH_DB=/data/taste-brain.db -e PACK_OVERLAY_B64=… taste-brain
+```
+
+Host variables for Northflank or Render, and why each one is needed:
+
+| variable | value | why |
+| --- | --- | --- |
+| `PORT` | injected by the host | the container `EXPOSE`s 8080 and reads `PORT` |
+| `QLOO_API_KEY` | secret | the only place the key exists; never sent to the browser |
+| `QLOO_ENABLED` / `DEFAULT_MODE` | `true` / `live` | live reads, and the badge a judge sees |
+| `QLOO_FORCE_LIVE` | `true` | no run may be served from the stored answer |
+| `PACK_OVERLAY_B64` | secret bundle | the identity overlay; file upload is often impossible on a free host |
+| `TRUST_PROXY_HOPS` | `1` | both hosts terminate TLS in front of the app, so without it every visitor shares one rate bucket and one quota bucket |
+| `GRAPH_DB` | a path on a mounted volume | holds the quota counters and the ledger; on an ephemeral disk both reset with the container |
+| `LEDGER_HMAC_SECRET` | any long secret | makes the ledger keyed rather than self-attested |
+| `NODE_ENV` | `production` | turns on the static client mount and the startup warnings |
+
+On an ephemeral filesystem `GRAPH_DB` resets with the host, which resets the day's counters — so on a
+free tier, keep the buckets conservative (`QUOTA_VISITOR_HOUR=4`, `QUOTA_GLOBAL_DAY=200`) and warm the
+cache before the session (`npm run warm-cache`) so a degraded run still has a real Qloo answer to
+serve.
 
 `gate:public` fails the build if any tracked line carries a credential value, a Qloo entity id (UUID literal) or a name taken from the private overlay; if `.env`, `.private-cache/`, `.private-data/` or a live capture is tracked; if the shipped defaults are not `QLOO_ENABLED=false` / `DEFAULT_MODE=replay`; if `LICENSE` is missing; if the README disclosure is older than the evidence files it describes; or if a keyless Replay run returns nothing for the three demo rooms.
 
@@ -186,7 +238,7 @@ The ledger is **hash-chained and tamper-evident**, not tamper-proof. Recomputing
 ## Known limitations
 
 - Qloo returns **aggregate audience affinities**, not evidence about any individual. The UI says so and never claims to know a person's individual taste.
-- This build ships with **Replay mode with synthetic sample fixtures** enabled by default so the demo is 100% runnable offline without any credentials.
+- A fresh clone ships with **Replay mode on the committed sample fixtures** enabled by default, so the demo is 100% runnable offline without any credentials. The hosted demo runs Live with Force-live on — see *Two configurations, stated plainly*.
 - In **Live mode**, recommendations derive from real calls to `https://hackathon.api.qloo.com`. An API key must be supplied in `server/.env`, `QLOO_ENABLED` must be turned on by the key custodian, and the host needs the private identity overlay described above — without it, the fictional seeds in the committed packs resolve to nothing real.
 - Outbound API calls are limited by a 250ms throttle queue and daily soft quota limits.
 - The decision ledger is tamper-evident, not tamper-proof: without `LEDGER_HMAC_SECRET` set on the host, whoever holds the database file can rewrite the whole chain and it will still verify. The chain proves an entry was not edited in place, not that the file is the only version of itself — see *What the ledger chain does and does not prove*.

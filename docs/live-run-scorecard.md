@@ -54,7 +54,7 @@ Nothing was dropped for want of data: 99 candidates are labelled **unsupported**
 being shown as picks.
 
 **Two rooms returned 0 live items, and that is the correct answer.** Their catalogues are
-keyed to synthetic entities with no approved offer on file, so Qloo returned rows and the
+keyed to invented entities with no approved offer on file, so Qloo returned rows and the
 engine refused to present them as offerable. Reproduced on screen:
 `venues/venue_redroom` and `restaurants/loc_westside` render the empty state with the
 reasoning, not a padded list.

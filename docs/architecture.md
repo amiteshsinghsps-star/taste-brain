@@ -19,7 +19,7 @@ The store is SQLite (`node:sqlite`): license-safe for a public open-source relea
 
 ## Qloo adapter modes (`server/src/qloo/adapter.ts`)
 
-- `replay` — reads `fixtures/{pack}.{location}.{workflow}.json` (synthetic samples).
+- `replay` — reads `fixtures/{pack}.{location}.{workflow}.json` (invented sample rows).
 - `cached` — serves the stored private-cache answer for the same request instead of repeating the live call (in-flight dedup, LRU memory cache and gitignored disk cache, `server/src/qloo/rest-client.ts`).
 - `live` — direct `GET` calls to the Qloo REST API with `X-Api-Key`, throttled to ~4 calls/s; degrades to cached, then replay, on error, and every step says which mode served it.
 

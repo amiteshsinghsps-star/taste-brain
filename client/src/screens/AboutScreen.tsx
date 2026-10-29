@@ -228,6 +228,7 @@ export default function AboutScreen() {
           <span>Live mode: <strong>{modeInfo?.qloo_rest_active ? 'on' : 'off'}</strong></span>
           <span>Finals Mode: <strong>{modeInfo?.finals_mode ? 'on' : 'off'}</strong></span>
           <span>explanation writer: <strong>{modeInfo?.llm_model ?? 'unknown'}</strong></span>
+          <span>licence: <strong>MIT</strong> — see <code>LICENSE</code> in the repository</span>
         </div>
       </Panel>
     </div>

@@ -19,7 +19,8 @@ Built for the Qloo Agentic Hackathon — theme *"Agents, but with taste."*
 | Public gate | `npm run gate:public` — 8 checks, PASS against committed content |
 | Ledger right now | 39 entries, chain re-verified, `ok: true` |
 | Live re-verification | 2026-10-29 — 7 rooms, **537 trace steps, `mode_mix` live 537 · cached 0 · replay 0** |
-| Licence | MIT |
+| Hosting | `Dockerfile` at the root builds the client and the API into one image (§19); the host sets `QLOO_FORCE_LIVE=true` as an environment variable, because `.env` is not committed |
+| Licence | MIT — also shown on the About screen |
 
 ---
 
@@ -177,11 +178,13 @@ read back:
 | Console errors across 7 screens | 0 |
 
 What is *still* offline data on this host, deliberately: the committed Replay fixtures (used only
-when live is refused), the Break-it sandbox (it attacks a copy so the real ledger is never written),
-the Trust Center's tampering demonstration (same reason), and export/receipt files, which the server
-refuses for live runs at `HTTP 409` because they carry Qloo-returned names until Qloo confirms what
-may be shared. Those are guardrails, not shortcuts — every taste number a judge sees on this host
-came out of a live Qloo call.
+when live is refused, and labelled "Invented sample data" in every pack's own provenance line), the
+Break-it sandbox (it attacks a copy so the real ledger is never written), the Trust Center's
+tampering demonstration (same reason), and export/receipt files, which the server refuses for live
+runs at `HTTP 409` because they carry Qloo-returned names until Qloo confirms what may be shared.
+Those are guardrails, not shortcuts — every taste number a judge sees on this host came out of a live
+Qloo call. After every one of today's edits, a fresh `retail/store_3` run returned
+`mode_mix { live: 66, cached: 0, replay: 0 }` with 6 items and a real brand named in the explanation.
 
 ---
 
@@ -491,7 +494,53 @@ rather than after; and a scored comparison harness that can run both Taste Lift 
 
 ---
 
-## 19. Repository
+## 19. Hosting the demo
+
+One image, built by the `Dockerfile` at the repository root: the client is built and copied to
+`server/public`, the API serves it (`server/src/http.ts:541`), and the runtime layer installs only
+`express`, `cors` and `zod`. Base image `node:24-slim` because the graph store, the ledger and the
+quota counters all use the built-in `node:sqlite`. `EXPOSE 8080`, a `HEALTHCHECK` on `/healthz`, and a
+`/data` volume for the database. No `.env` goes into the image — real environment variables always win
+over the file, and a missing file is fine.
+
+```bash
+docker build -t taste-brain .
+docker run -p 8080:8080 -e PORT=8080 -e QLOO_API_KEY=… -e QLOO_ENABLED=true \
+  -e DEFAULT_MODE=live -e QLOO_FORCE_LIVE=true -e TRUST_PROXY_HOPS=1 \
+  -e GRAPH_DB=/data/taste-brain.db -e PACK_OVERLAY_B64=… taste-brain
+```
+
+| variable | value on the demo host | why |
+| --- | --- | --- |
+| `QLOO_ENABLED` / `DEFAULT_MODE` | `true` / `live` | real reads, and the badge a judge sees |
+| `QLOO_FORCE_LIVE` | `true` | a live run re-reads Qloo instead of serving the stored answer |
+| `PACK_OVERLAY_B64` | the overlay bundle | a free host rarely lets you upload `.private-data/`; without it the two live rooms say they have no fixture |
+| `TRUST_PROXY_HOPS` | `1` | both Northflank and Render terminate TLS in front of the app; with `0` every visitor arrives as one address and shares one rate bucket and one quota bucket — the server warns at startup if it looks wrong |
+| `GRAPH_DB` | a path on a mounted volume | quota counters and the ledger live in it; on an ephemeral disk both reset with the container |
+| `LEDGER_HMAC_SECRET` | any long secret | keyed chain instead of self-attested; `npm run ledger:anchor` publishes the head |
+| `NODE_ENV` | `production` | enables the static client mount and the startup warnings |
+
+Two things to know before a room full of judges starts clicking:
+
+- **Force-live spends the key on every click** — about 7.5 real reads per room, p90 ≈3.3 s and a max
+  near 10 s per read, so a run takes 5–20 s. The UI shows a running state that names the stages and
+  tells the judge to give it half a minute, so a slow run does not look broken.
+- **Going over a bucket is not an error.** Measured on an isolated instance with the hourly budget set
+  to zero: the run answers `HTTP 200` in 0.6 s as `mode: "cached"` with all 66 steps labelled cached
+  and the reason written into the proposal — *"this visitor hit the hourly live-run budget… Cached if a
+  real Qloo answer is on file, otherwise the labelled offline sample fixtures."* If the host's disk is
+  ephemeral the counters reset with it, so keep `QUOTA_VISITOR_HOUR` and `QUOTA_GLOBAL_DAY`
+  conservative and run `npm run warm-cache` before the session so a degraded run still has a real
+  Qloo answer to serve.
+
+After the deploy, the pre-submit pass is: `GET /api/health` shows `qloo_key: "set"`,
+`default_mode: "live"`, `force_live: true` and no key material; then click **Retail → Store 3 - East
+Austin → "Add 4 brands for spring"** on the public URL and read the badges off the page, not off
+localhost.
+
+---
+
+## 20. Repository
 
 ```text
 taste-brain/

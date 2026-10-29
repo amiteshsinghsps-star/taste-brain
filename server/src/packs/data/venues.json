@@ -71,7 +71,7 @@
   "locations": [
     {
       "id": "venue_redroom",
-      "name": "Red Room — Chicago (synthetic worked example)",
+      "name": "Red Room — Chicago",
       "city": "Chicago, IL",
       "capacity_tier": "250 capacity, 21+",
       "seeds": ["qloo:artist:ember_lark", "qloo:artist:wren_hollow"],
@@ -82,7 +82,7 @@
       "recent_plays": ["Paper Lanterns"],
       "exclude_entity_ids": [],
       "exclude_tag_ids": [],
-      "data_provenance": "SYNTHETIC. The Red Room and its four acts are invented for an offline worked example; the catalogue terms are fiction. Runs in Replay/Cached with committed fixtures so the full pass / fail / flip / approve story works with no key. No real artist's finances are represented here, and none are implied."
+      "data_provenance": "Invented sample data. The Red Room and its four acts are invented for an offline worked example; the catalogue terms are fiction. Runs in Replay/Cached with committed fixtures so the full pass / fail / flip / approve story works with no key. No real artist's finances are represented here, and none are implied."
     },
     {
       "id": "venue_corner_hall",

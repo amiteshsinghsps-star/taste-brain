@@ -1,5 +1,5 @@
 {
-  "_note": "SYNTHETIC fixture for Replay mode only. NOT a Qloo response. The same four invented acts under an invented trend-biased ordering, so the rising / steady / falling chip has something to compare against with no key. Nothing here is a measured trend; the chip labels itself derived by Taste Brain from Qloo outputs.",
+  "_note": "Invented sample fixture for Replay mode only. NOT a Qloo response. The same four invented acts under an invented trend-biased ordering, so the rising / steady / falling chip has something to compare against with no key. Nothing here is a measured trend; the chip labels itself derived by Taste Brain from Qloo outputs.",
   "workflow": "recommend",
   "variant": "trend_bias",
   "fetched_at": "1970-01-01T00:00:00.000Z",

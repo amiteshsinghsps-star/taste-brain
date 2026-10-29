@@ -1,5 +1,5 @@
 {
-  "_note": "SYNTHETIC fixture for Replay mode only. NOT a Qloo response. Aggregate audience-level tags for the fictional Westside Kitchen location; no claim about any individual.",
+  "_note": "Invented sample fixture for Replay mode only. NOT a Qloo response. Aggregate audience-level tags for the fictional Westside Kitchen location; no claim about any individual.",
   "workflow": "audience_tags",
   "fetched_at": "1970-01-01T00:00:00.000Z",
   "results": [

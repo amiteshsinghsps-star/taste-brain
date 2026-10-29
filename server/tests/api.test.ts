@@ -68,7 +68,7 @@ describe('discovery', () => {
     );
     // Provenance is stated per room, in the API, not only in the file.
     expect(venues.data_provenance.length).toBe(3);
-    expect(venues.data_provenance.some((l: any) => /SYNTHETIC/i.test(l.provenance))).toBe(true);
+    expect(venues.data_provenance.some((l: any) => /Invented sample data/i.test(l.provenance))).toBe(true);
     expect(venues.data_provenance.some((l: any) => /REAL Qloo data/i.test(l.provenance))).toBe(true);
   });
 

@@ -4,7 +4,7 @@
 
 - Qloo returns **aggregate audience-level affinities**. Nothing here is evidence about a specific person's identity, preferences or future behavior.
 - Recommendations are **decision support for a human approver**, not guarantees of revenue, savings or any business outcome. No business results are claimed or measured.
-- This build ships in **Replay mode with synthetic sample fixtures**. They are labelled `mode:"replay"` everywhere and are never presented as live output. Live is switched off on the public host (`QLOO_ENABLED=false`) so a visitor cannot spend the team key; the key custodian turns it on for a planned take and turns it off again.
+- A fresh clone runs in **Replay mode on the committed sample fixtures**. Those rows are invented, they are labelled `mode:"replay"` everywhere, and they are never presented as live output. The hosted demo for judging runs Live (`QLOO_ENABLED=true`, `DEFAULT_MODE=live`, `QLOO_FORCE_LIVE=true`) so every result comes from a real Qloo read; going over a metered bucket is not an error but a run labelled Cached with the reason stated. Outside a planned demo the custodian turns live off again.
 - No committed file names a real company, artist, venue or dish, and none carries a Qloo entity id. Real identities exist only in the gitignored pack overlay on the custodian's machine and in the gitignored `.private-cache/`, so a named entity in this repository is always an invented one.
 - The senior-care / care scenario is out of the shipped demo; the engine is not medical, financial or legal advice.
 

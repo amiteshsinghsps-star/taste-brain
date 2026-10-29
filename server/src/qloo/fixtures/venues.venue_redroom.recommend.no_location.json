@@ -1,5 +1,5 @@
 {
-  "_note": "SYNTHETIC fixture for Replay mode only. NOT a Qloo response. Same four invented acts as venues.venue_redroom.recommend.json, in a different invented order: this file exists so the no-location comparison and Ablation arm C have something to line up against with no key and no network. fit is derived by Taste Brain from qloo_rank.",
+  "_note": "Invented sample fixture for Replay mode only. NOT a Qloo response. Same four invented acts as venues.venue_redroom.recommend.json, in a different invented order: this file exists so the no-location comparison and Ablation arm C have something to line up against with no key and no network. fit is derived by Taste Brain from qloo_rank.",
   "workflow": "recommend",
   "variant": "no_location",
   "fetched_at": "1970-01-01T00:00:00.000Z",

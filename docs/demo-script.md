@@ -1,7 +1,7 @@
 # Demo script (3 minutes) and judge path
 
 Every figure below was read off this build in **Replay** mode on the machine that
-records the demo — not from memory. Names are the synthetic pack fixtures; the
+records the demo — not from memory. Names are the committed sample pack fixtures; the
 mode badge on screen says `REPLAY`, and it must stay visible in the shot.
 
 ## Live walk-through
@@ -52,7 +52,7 @@ mode badge on screen says `REPLAY`, and it must stay visible in the shot.
 
 ## If you run it Live
 
-Live is off where this ships: `QLOO_ENABLED=false`, so the header's **live** control
+Live is off in a fresh clone (`QLOO_ENABLED=false`), but on for the demo host, which also sets `QLOO_FORCE_LIVE=true`. In a clone the header's **live** control
 is disabled, the Plan screen offers no **Re-run live**, and a hand-made live request
 still comes back labelled Cached or Replay with the reason written into the run.
 

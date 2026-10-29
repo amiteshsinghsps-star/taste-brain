@@ -1,5 +1,5 @@
 {
-  "_note": "SYNTHETIC fixture for Replay mode only. NOT a Qloo response. Aggregate, audience-level taste tags for the fictional Belltown store; never claims about any individual. Tag names match the tag names used in retail.store_1.recommend.json so the overlap chip has something real to compare.",
+  "_note": "Invented sample fixture for Replay mode only. NOT a Qloo response. Aggregate, audience-level taste tags for the fictional Belltown store; never claims about any individual. Tag names match the tag names used in retail.store_1.recommend.json so the overlap chip has something real to compare.",
   "workflow": "audience_tags",
   "fetched_at": "1970-01-01T00:00:00.000Z",
   "results": [

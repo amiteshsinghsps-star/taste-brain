@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "Taste Brain API: Qloo-grounded decision agents with a Decision Trace, Grounding Auditor, Taste Lift eval and a SQLite graph store.",
   "main": "dist/index.js",
+  "engines": {
+    "node": ">=22.5"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc && node scripts/copy-assets.mjs",

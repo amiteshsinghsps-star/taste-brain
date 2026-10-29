@@ -1,5 +1,5 @@
 {
-  "_note": "SYNTHETIC fixture for Replay mode only. NOT a Qloo response and never presented as one. Every name, id, popularity, follower and listener figure below is invented for an offline worked example; no real artist is represented. Shape mirrors server/src/qloo/rest-client.ts parseEntities so Replay and Live exercise the same code path. fit is derived by Taste Brain from qloo_rank and is not stored here.",
+  "_note": "Invented sample fixture for Replay mode only. NOT a Qloo response and never presented as one. Every name, id, popularity, follower and listener figure below is invented for an offline worked example; no real artist is represented. Shape mirrors server/src/qloo/rest-client.ts parseEntities so Replay and Live exercise the same code path. fit is derived by Taste Brain from qloo_rank and is not stored here.",
   "workflow": "recommend",
   "variant": "default",
   "fetched_at": "1970-01-01T00:00:00.000Z",
@@ -20,7 +20,7 @@
         { "id": "qlootag:electronic", "name": "electronic", "type": "urn:tag" },
         { "id": "qlootag:club", "name": "club", "type": "urn:tag" }
       ],
-      "explainability": "A fictional house act used as the top-ranked candidate for the synthetic Red Room audience."
+      "explainability": "A fictional house act used as the top-ranked candidate for the invented Red Room audience."
     },
     {
       "entity_id": "qloo:artist:vex",
@@ -56,7 +56,7 @@
         { "id": "qlootag:synth", "name": "synth", "type": "urn:tag" },
         { "id": "qlootag:electronic", "name": "electronic", "type": "urn:tag" }
       ],
-      "explainability": "Fictional indie-synth act. The synthetic room lists it as a recent play, so the no-repeat window fires on it."
+      "explainability": "Fictional indie-synth act. The invented room lists it as a recent play, so the no-repeat window fires on it."
     },
     {
       "entity_id": "qloo:artist:hollow_set",

@@ -25,7 +25,7 @@
       "seeds": ["qloo:place:smoke_line_bbq", "qloo:place:wash_house_kitchen"],
       "_seed_note": "Seed NAMES are fictional in this committed file. Live mode resolves whatever name the room is configured with through Qloo /search, using the private overlay on the host that has one, and refuses to continue on an ambiguous match. Fallback to replay fixtures if offline.",
       "catalog": "westside",
-      "data_provenance": "SYNTHETIC. The dishes, their food-cost percentages, the seed places and the Replay fixture are invented for an offline worked example; no real restaurant's margins are represented and no real business is named. Live mode reads real Qloo place and brand entities, and anything without a costed recipe on file is shown as unsupported."
+      "data_provenance": "Invented sample data. The dishes, their food-cost percentages, the seed places and the Replay fixture are invented for an offline worked example; no real restaurant's margins are represented and no real business is named. Live mode reads real Qloo place and brand entities, and anything without a costed recipe on file is shown as unsupported."
     }
   ],
   "catalogs": {
