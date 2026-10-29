@@ -263,23 +263,6 @@ function Shell() {
             <QuotaBar h={health} />
           </div>
 
-          {app.proposal && (
-            <div className="tb-run flex items-center gap-2 px-3 py-1 text-[11px] text-slate-600">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-              </span>
-              <span>active run</span>
-              <code className="font-mono">{app.proposal.proposal_id}</code>
-              <ModeBadge mode={app.proposal.mode} />
-              <ModeMixLine mix={app.proposal.trace.mode_mix} compact />
-              <span>{app.proposal.items.length} item(s) · {app.proposal.status}</span>
-              <button onClick={copyJson} className="cursor-pointer rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-200" title="Copy the full run as JSON">copy JSON</button>
-              {app.servedFrom === 'snapshot' && <span className="rounded bg-indigo-100 px-1.5 py-0.5 font-semibold text-indigo-700">FINALS MODE</span>}
-              {app.servedFrom === 'restored' && <span className="rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-800" title="Re-served from the store — this room's newest stored run, nothing new was computed">restored from the store</span>}
-            </div>
-          )}
-
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] text-slate-500">request mode</span>
             <div className="flex items-center gap-1 rounded-full border border-slate-200/80 bg-slate-100/80 p-1">
@@ -398,6 +381,27 @@ function Shell() {
             </div>
           </div>
         </nav>
+
+        {/* The run that is on screen gets its own strip, not a pill squeezed
+            between the header's other instruments. */}
+        {app.proposal && (
+          <div className="tb-run print:hidden">
+            <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-1 px-5 py-1.5 text-[11px] text-slate-600">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              <span>active run</span>
+              <code className="font-mono">{app.proposal.proposal_id}</code>
+              <ModeBadge mode={app.proposal.mode} />
+              <ModeMixLine mix={app.proposal.trace.mode_mix} compact />
+              <span>{app.proposal.items.length} item(s) · {app.proposal.status}</span>
+              <button onClick={copyJson} className="cursor-pointer rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-200" title="Copy the full run as JSON">copy JSON</button>
+              {app.servedFrom === 'snapshot' && <span className="rounded bg-indigo-100 px-1.5 py-0.5 font-semibold text-indigo-700">FINALS MODE</span>}
+              {app.servedFrom === 'restored' && <span className="rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-800" title="Re-served from the store — this room's newest stored run, nothing new was computed">restored from the store</span>}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* The page band: what this screen is, and the way to its neighbours. */}
