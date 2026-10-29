@@ -59,7 +59,7 @@ export default function TasteLiftScreen() {
     <div className="space-y-5">
       <Panel
         title="Taste Lift — grounded agent vs plain LLM"
-        description="PRD §12. One fixed request set, run through the grounded agent (Arm B) and, only when an LLM key exists, a plain rules-only LLM (Arm A). Figures are published exactly as the run returns them."
+        description="One fixed request set, run through the grounded agent (Arm B) and, only when an LLM key exists, a plain rules-only LLM (Arm A). Figures are published exactly as the server returns them."
         actions={<Button size="sm" onClick={runEval} disabled={running}>{running ? 'Running the fixed request set…' : 'Run the fixed request set'}</Button>}
       >
         {error && <Note tone="bad" title="The engine refused">{error}</Note>}

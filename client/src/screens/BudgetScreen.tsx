@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import type { HealthInfo, QlooCallLogEntry, RestCallLogEntry } from '@/lib/types';
-import { Empty, KV, MeterBar, ModeBadge, Note, Panel, Skeleton, Stat, Time, VerdictBanner } from '@/components/common';
+import { Empty, MeterBar, ModeBadge, Note, Panel, Skeleton, Stat, Time, VerdictBanner } from '@/components/common';
 
 const yesNo = (b: boolean) => (b ? 'yes' : 'no');
 
@@ -74,7 +74,7 @@ export default function BudgetScreen() {
 
       <Panel
         title="Budget and guards"
-        description="Live calls are metered per visitor and globally. When the monthly floor is reached, new live calls stop and stored answers are used. These are the server's own figures."
+        description="Live calls are metered per visitor and globally. Every figure below is the server's own word."
         actions={<Button size="sm" variant="outline" onClick={reload}>Reload</Button>}
       >
         {!health ? (
@@ -92,9 +92,7 @@ export default function BudgetScreen() {
               These are the server's own guard flags, restated: live_allowed {yesNo(health.live_allowed)} · floor_reached {yesNo(health.floor_reached)} · finals mode {health.finals_mode ? 'on' : 'off'}.
             </VerdictBanner>
 
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-              <Stat value={`${health.quota.global_day.used} / ${health.quota.global_day.limit}`} label="whole demo · day" hint="the server's global day counter" />
-              <Stat value={`${health.quota.visitor_day.used} / ${health.quota.visitor_day.limit}`} label="this visitor · day" hint="the server's per-visitor day counter" />
+            <div className="grid gap-2 sm:grid-cols-2">
               <Stat value={health.per_run_call_budget} label="Qloo calls per run" hint="one run cannot spend more than this" />
               <Stat
                 value={`${health.harness_quota.used} / ${health.harness_quota.soft_limit}`}
@@ -103,26 +101,22 @@ export default function BudgetScreen() {
               />
             </div>
 
-            <dl className="tb-arm grid gap-x-6 sm:grid-cols-2">
-              <KV k="status" v={health.status} />
-              <KV k="qloo key" v={health.qloo_key} />
-              <KV k="finals mode" v={health.finals_mode ? 'on' : 'off'} />
-              <KV k="live allowed by budget" v={yesNo(health.live_allowed)} />
-              <KV k="live switched on for this host" v={yesNo(health.qloo_rest_active)} />
-              <KV k="a live call can leave this box" v={yesNo(health.live_possible)} />
-              <KV k="floor reached" v={yesNo(health.floor_reached)} />
-              <KV k="per-run call budget" v={`${health.per_run_call_budget} Qloo calls`} />
-              <KV k="harness day counter" v={`${health.harness_quota.used} of ${health.harness_quota.soft_limit} real Qloo calls ${health.harness_quota.within_limit ? '' : '(over soft limit)'}`} />
-              <KV k="llm model" v={health.llm_model} />
-              <div className="flex items-baseline justify-between gap-3 py-1">
-                <dt className="shrink-0 text-xs text-slate-500">default mode</dt>
-                <dd className="text-right">
-                  {(['live', 'cached', 'replay'] as const).includes(health.default_mode)
-                    ? <ModeBadge mode={health.default_mode} />
-                    : <span className="text-xs font-medium text-slate-800">{health.default_mode}</span>}
-                </dd>
-              </div>
-            </dl>
+            <div className="tb-arm flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
+              <span>qloo key: <strong className="font-semibold text-slate-800">{health.qloo_key}</strong></span>
+              <span title="Qloo REST traffic is switched on for this host">
+                live switched on: <strong className="font-semibold text-slate-800">{yesNo(health.qloo_rest_active)}</strong>
+              </span>
+              <span title="Both the switch and the budget allow a request to reach Qloo">
+                a live call can leave this box: <strong className="font-semibold text-slate-800">{yesNo(health.live_possible)}</strong>
+              </span>
+              <span>explanation writer: <strong className="font-semibold text-slate-800">{health.llm_model}</strong></span>
+              <span className="flex items-center gap-1">
+                default mode:{' '}
+                {(['live', 'cached', 'replay'] as const).includes(health.default_mode)
+                  ? <ModeBadge mode={health.default_mode} />
+                  : <strong className="font-semibold text-slate-800">{health.default_mode}</strong>}
+              </span>
+            </div>
 
             <Note tone="info">{health.note}</Note>
 

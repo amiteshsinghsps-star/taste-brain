@@ -224,13 +224,14 @@ html.tb-comfortable { font-size: 17px; }
   }
 }
 
+/* Rank medals carry white 12px text, so every stop must clear 4.5:1 against it. */
 .tb-medal {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
   color: white;
   box-shadow: 0 3px 10px -3px rgba(99, 102, 241, 0.7);
   font-weight: 700;
 }
-.tb-medal-gold { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 3px 10px -3px rgba(217, 119, 6, 0.7); }
+.tb-medal-gold { background: linear-gradient(135deg, #a16207, #854d0e); box-shadow: 0 3px 10px -3px rgba(161, 98, 7, 0.7); }
 .tb-medal-silver { background: linear-gradient(135deg, #64748b, #475569); box-shadow: 0 3px 10px -3px rgba(71, 85, 105, 0.7); }
 .tb-medal-bronze { background: linear-gradient(135deg, #b45309, #92400e); box-shadow: 0 3px 10px -3px rgba(146, 64, 14, 0.7); }
 
@@ -351,7 +352,7 @@ dialog.tb-dialog {
 
 /* ── Lights-out (dark) theme ── literal slate/indigo classes are flipped here
    so every existing screen inherits the theme without a per-screen edit. */
-html.tb-moon { color-scheme: dark; }
+html.tb-moon { color-scheme: dark; --muted-foreground: oklch(0.76 0.02 265); }
 html.tb-moon body {
   color: #e2e8f0;
   background:
@@ -372,6 +373,12 @@ html.tb-moon [data-slot='card'] {
   color: #e2e8f0;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 30px -18px rgba(0, 0, 0, 0.7);
 }
+/* Micro-text on paper: slate-400/500 at 10-11px measures 2.5-2.7:1 on white, so
+   the light theme prints these two steps darker. Unlayered, so it beats the
+   Tailwind utility; the tb-moon rules below win in dark by specificity. */
+.text-slate-400 { color: #5b6678; }
+.text-slate-500 { color: #526072; }
+
 html.tb-moon .text-slate-900, html.tb-moon .text-slate-800 { color: #e2e8f0; }
 html.tb-moon .text-slate-700, html.tb-moon .text-slate-600 { color: #cbd5e1; }
 html.tb-moon .text-slate-500, html.tb-moon .text-slate-400 { color: #94a3b8; }
@@ -857,9 +864,6 @@ html.tb-moon [data-slot='card']::after { box-shadow: inset 0 0 0 1px rgba(148, 1
   select:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--tb-glow); }
 }
 
-/* ── Numbers in tables and code read as data, not prose. ── */
-.tb-num { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-
 /* ── The page band ── every screen opens with its own title and its own neighbours,
    so the app reads as a set of designed documents rather than one panel swapped for
    another. The glow sits behind the text, never over it. */
@@ -882,21 +886,12 @@ html.tb-moon .tb-band {
   background: radial-gradient(50% 50% at 50% 50%, var(--tb-glow), transparent 72%);
 }
 html.tb-moon .tb-band::before { opacity: 0.9; }
-.tb-band-eyebrow {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem;
-  font-size: 10px; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; color: var(--tb-g1);
-}
-/* The accent's own g3 is a mid tone — under 3:1 on navy at 10px, so dark uses a fixed light indigo. */
-html.tb-moon .tb-band-eyebrow { color: #a5b4fc; }
-.tb-band-sep { opacity: 0.5; }
 .tb-band-title {
-  margin-top: 0.2rem; font-size: 1.6rem; font-weight: 850; letter-spacing: -0.028em; line-height: 1.1;
+  font-size: 1.6rem; font-weight: 850; letter-spacing: -0.028em; line-height: 1.1;
   background: linear-gradient(96deg, var(--tb-g1), var(--tb-g2) 46%, var(--tb-g3));
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 html.tb-moon .tb-band-title { background-image: linear-gradient(96deg, #c7d2fe, var(--tb-g3) 60%, #a5b4fc); }
-.tb-band-sub { margin-top: 0.28rem; max-width: 62ch; font-size: 12px; line-height: 1.55; color: #475569; }
-html.tb-moon .tb-band-sub { color: #b6c2d6; }
 
 /* ── Segmented screen picker — the band's own control, on the accent when lit. */
 .tb-seg {
@@ -917,6 +912,9 @@ html.tb-moon .tb-seg > button:hover { color: #e2e8f0; }
   color: #fff; background: linear-gradient(118deg, var(--tb-g1), var(--tb-g2));
   box-shadow: 0 10px 20px -12px var(--tb-glow);
 }
+/* The dark rule above out-specifies this one (it names two elements), so the lit
+   pill needs its own dark rule or grey text lands on the accent gradient. */
+html.tb-moon .tb-seg > button[data-on='true'] { color: #fff; }
 
 @media (prefers-reduced-motion: reduce) {
   body::before { animation: none; }

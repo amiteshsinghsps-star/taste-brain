@@ -120,11 +120,6 @@ export default function LedgerScreen() {
             <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${verify.keyed ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-slate-50 text-slate-600'}`}>
               {verify.keyed ? 'keyed chain (HMAC)' : 'unkeyed chain (sha256)'}
             </span>
-            <span className="text-[11px] text-slate-500">
-              {verify.keyed
-                ? 'new entries are hashed with a key only this host holds'
-                : 'a key only this host holds, or a head hash published elsewhere, is what would stop the whole file being rewritten'}
-            </span>
             {verify.keyless_entries > 0 && (
               <span className="tb-pill">{verify.keyless_entries} older entry(ies) predating the key</span>
             )}
@@ -135,8 +130,8 @@ export default function LedgerScreen() {
       <Panel
         title="Entries"
         description={newestFirst
-          ? 'Newest first on the page. Every entry carries the previous entry’s hash as prev_hash — switch to oldest first to follow those links downward by eye.'
-          : 'Written order, oldest first on the page, so each entry’s prev_hash is the entry above it and the chain can be followed by eye.'}
+          ? 'Newest first, so the prev_hash links run opposite to the page order.'
+          : 'Written order, so each entry’s prev_hash is the one above it.'}
         actions={
           <div className="flex flex-wrap items-center gap-1.5">
             <label className="flex items-center gap-1 text-[11px] text-slate-500">
@@ -160,8 +155,7 @@ export default function LedgerScreen() {
           busy ? <Skeleton lines={5} /> : <Empty>The ledger has not loaded.</Empty>
         ) : entries.length === 0 ? (
           <Empty>
-            The ledger is empty because nothing has been proposed yet. The first proposal decided on this server writes the
-            first entry here.
+            Nothing has been decided on this server yet. The first decision writes the first entry.
           </Empty>
         ) : (
           <>
@@ -224,10 +218,9 @@ export default function LedgerScreen() {
         )}
 
         <p className="tb-arm text-[11px] leading-relaxed text-slate-600">
-          The ledger is append-only: nothing here edits or deletes a past entry. Change one and its hash stops matching the
-          link its neighbours carry, so the chain breaks and verification fails — the Trust Center demonstrates exactly this
-          on a copy, without touching these records. What a recomputed chain does not prove is that the file is the only
-          version of itself; that takes the key or the published head hash named above.
+          A recomputed chain proves nothing was edited afterwards. It does not prove this file is the only version of itself —
+          that takes the key behind the badge above or a head hash published elsewhere. The Trust Center demonstrates an edit
+          on a copy, without touching these records.
         </p>
       </Panel>
     </div>

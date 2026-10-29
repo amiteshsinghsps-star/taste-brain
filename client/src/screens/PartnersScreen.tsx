@@ -36,7 +36,7 @@ export default function PartnersScreen() {
     <div className="space-y-5">
       <Panel
         title="Co-promotion partners"
-        description="A room does not sell tickets alone. Qloo is asked for the brands and places that answer to the same taste signal — same seeds, different entity type."
+        description="Qloo is asked for the brands and places that answer to the same taste signal as this room — same seeds, different entity type."
         mode={proposal?.mode}
         actions={<Button size="sm" onClick={ask} disabled={busy || !proposal}>{busy ? 'Asking Qloo…' : data ? 'Ask again' : 'Ask Qloo'}</Button>}
       >
@@ -44,7 +44,7 @@ export default function PartnersScreen() {
           <>
             <Note tone="warn" title="What this screen is not">
               These are audience-overlap matches only. Nothing here means a company has agreed to a promotion, and no partner
-              is added to fill the screen — the engine stops at “this entity answers to the same taste signal as this room’s audience”.
+              is added to fill the screen.
             </Note>
 
             {error && <Note tone="bad" title="Refused">{error}</Note>}

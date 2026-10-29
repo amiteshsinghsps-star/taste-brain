@@ -19,7 +19,6 @@ export default function PlanScreen() {
     <div className="grid gap-5 xl:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
       <Panel
         title="1 · Choose room, goal and options"
-        description="Pick a vertical pack, a room and a goal, then run the agent."
       >
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-slate-500">Vertical pack</label>
@@ -102,10 +101,9 @@ export default function PlanScreen() {
             <Excluded />
           </>
         ) : (
-          <Panel title="2 · What the agent proposes" description="Nothing is shown until a run exists. The engine has no default answer.">
+          <Panel title="2 · What the agent proposes" description="Nothing is shown until a run exists — the engine has no default answer.">
             <Empty>
-              Pick a room, check the goal and press <strong>Run the agent</strong>. Every item you then see is backed by a
-              stored Qloo result or a rule your pack defines — and says which.
+              Pick a room, check the goal and press <strong>Run the agent</strong>.
             </Empty>
           </Panel>
         )}
@@ -151,7 +149,7 @@ function Audience() {
   return (
     <Panel
       title="Audience portrait"
-      description="Qloo's own description of the taste signal this room was matched against. Audience level only — never a person."
+      description="Qloo's own description of the taste signal this room matched — audience level, never a person."
       mode={proposal.mode}
     >
       {tags.length ? (
@@ -261,7 +259,7 @@ function Items({ onRefused }: { onRefused: (m: string) => void }) {
   return (
     <Panel
       title={`2 · Proposal — ${items.length} item${items.length === 1 ? '' : 's'}`}
-      description="Order is Qloo's own. Fit is derived by Taste Brain from that order and is labelled as such on every card."
+      description="Order is Qloo's own; the fit score is Taste Brain's derivation from it, labelled on every card."
       mode={proposal?.mode}
       actions={modeInfo?.qloo_rest_active
         ? <Button size="sm" variant="outline" onClick={() => run({ mode: 'live' })} disabled={busy || running}>Re-run live</Button>
@@ -277,12 +275,12 @@ function Items({ onRefused }: { onRefused: (m: string) => void }) {
       </div>
 
       {!items.length ? (
-        <Empty>Nothing qualified. The engine is showing an empty result because that is the honest result — see the refusals below and the flip points they name.</Empty>
+        <Empty>Nothing qualified — an empty list is the honest result. The refusals and the flip points that would change them are below.</Empty>
       ) : (
         <>
           {tagFreq.length > 0 && (
             <details className="rounded-xl border border-slate-200/80 bg-white/60 px-3 py-2" open>
-              <summary className="cursor-pointer text-xs font-semibold text-slate-700">What these picks have in common — taste tags across this run</summary>
+              <summary className="cursor-pointer text-xs font-semibold text-slate-700">Taste tags shared across this run</summary>
               <div className="mt-2"><TagFrequency tags={tagFreq} of={items.length} /></div>
             </details>
           )}
@@ -520,7 +518,7 @@ function ItemCard({ item, picked, onPick, comparing, onCompare, onDetail, terms,
         ))}
       </div>
       <p className="mt-1 text-[10px] leading-relaxed text-slate-400">
-        {item.rule_results.length} rule check(s) on this item — hover a chip for the reason and the rule’s source
+        {item.rule_results.length} rule check(s) — hover a chip for its reason
       </p>
 
       {item.needs_terms.length > 0 && (
@@ -628,7 +626,7 @@ function Excluded() {
               </div>
             ))}
           </div>
-          <Note tone="info">Moving a threshold is a what-if, not a decision: the change is written to the ledger with your name on it, and the item only becomes approvable when the rule actually passes.</Note>
+          <Note tone="info">Moving a threshold is a what-if, not a decision: it is written to the ledger with your name, and the item becomes approvable only when the rule actually passes.</Note>
         </div>
       )}
     </Panel>

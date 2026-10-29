@@ -91,7 +91,7 @@ export default function BreakItScreen() {
 
       <Panel
         title="Break-it Challenge (W6)"
-        description="Press a button and the engine runs its real defences on the spot — not a recording of a past verdict. The data they act on is the synthetic Replay sample, so nothing here can touch a live run or spend the key. The scoreboard counts the attacks you have run this session."
+        description="Press a button and the engine runs its real defences on the spot — not a recording of a past verdict. The data they act on is the Replay sample, so nothing here can touch a live run or spend the key."
         actions={(
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={runAll} disabled={busy !== null}>
@@ -115,8 +115,8 @@ export default function BreakItScreen() {
               }
             >
               {tried.length === 0
-                ? 'The count stays at zero until you press something — a screen full of green you never earned is exactly what this page is here to refuse.'
-                : 'The verdict, the check name and the log entry are the engine’s own, from the run you just triggered on Replay data.'}
+                ? 'The count stays at zero until you press something.'
+                : 'Verdict, check name and log entry are the engine’s own, from the run you just triggered.'}
             </VerdictBanner>
             <div className="grid gap-2 sm:grid-cols-3">
               <Stat value={blocked} label="blocked this session" />
@@ -140,12 +140,12 @@ export default function BreakItScreen() {
           </div>
         )}
         <Note tone="info" title="What this is not">
-          These are the app&apos;s own deliberately-malformed inputs, run against the app&apos;s own checks. A block here proves the
-          check fired; it is not a penetration test of the host, and it does not prove Qloo&apos;s data is correct.
+          These are the app&apos;s own deliberately-malformed inputs, run against the app&apos;s own checks. A block proves the
+          check fired; it is not a penetration test of the host and it does not prove Qloo&apos;s data is correct.
         </Note>
       </Panel>
 
-      <Panel title="The six attacks" description="Each button calls the real defence now. Nothing is pre-recorded; the rows it attacks are Replay data.">
+      <Panel title="The six attacks" description="Each button calls the real defence now.">
         <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {ORDER.map((id) => (
             <li key={id}>
@@ -187,7 +187,9 @@ export default function BreakItScreen() {
         </Panel>
       )}
       {!board && tried.length > 0 && (
-        <Panel title="Verdict" description="Not shown."><Empty>{`A full run of all six has not been done in this session — the verdict panel appears only for a complete run, so a partial set cannot be presented as a clean bill of health.`}</Empty></Panel>
+        <Panel title="Verdict" description="Not shown.">
+          <Empty>A complete run of all six is required — a partial set cannot be presented as a clean bill of health.</Empty>
+        </Panel>
       )}
     </div>
   );

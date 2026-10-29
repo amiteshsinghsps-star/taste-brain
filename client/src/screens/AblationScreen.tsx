@@ -61,9 +61,9 @@ export default function AblationScreen() {
             </div>
 
             <Note tone="info" title="How to read it">
-              Arm E is the control that matters: it takes Qloo's own items and shuffles the order with a fixed seed. If a
-              destroyed order scored like the real one, the ranking would be carrying no signal and this app would be
-              decoration. Overlap and τ are computed against arm A, the list the proposal actually used.
+              Arm E is the control that matters: it keeps Qloo's items and shuffles their order with a fixed seed. If a
+              destroyed order scored like the real one, the ranking would carry no signal. Overlap and τ are computed
+              against arm A, the list the proposal actually used.
               {data.ablation.candidate_pool <= data.ablation.k && ' On this run the candidate pool is smaller than k, so every arm holds the same items and overlap@k is 100% by construction — read τ and the positions changed, not the overlap bar.'}
             </Note>
 

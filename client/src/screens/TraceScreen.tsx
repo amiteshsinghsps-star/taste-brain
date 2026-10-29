@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { CountUp, Empty, FilterPills, ModeBadge, ModeMixBar, ModeMixLine, Note, Panel, Skeleton, Stat, Time } from '@/components/common';
+import { CountUp, Empty, FilterPills, ModeBadge, ModeMixBar, Note, Panel, Skeleton, Stat, Time } from '@/components/common';
 import { NEEDS_RUN, useApp } from '@/lib/app-context';
 
 const DOT: Record<string, string> = {
@@ -38,7 +38,7 @@ export default function TraceScreen() {
     <div className="space-y-5">
       <Panel
         title="Decision trace"
-        description="Every step the fixed pipeline took, with the mode it ran in and the source it used. The rerun hash covers the steps and the inputs, so the same run reproduces."
+        description="Every step the pipeline took, with the mode it ran in and the source it used. The rerun hash covers the steps and the inputs."
         mode={proposal?.mode}
         actions={proposal ? <Button size="sm" variant="outline" onClick={exportJson}>Export JSON</Button> : undefined}
       >
@@ -78,7 +78,6 @@ export default function TraceScreen() {
                 <dd className="text-right text-slate-800">{proposal.trace.pack} · {proposal.trace.location} · “{proposal.trace.goal}”</dd>
               </div>
             </dl>
-            <ModeMixLine mix={proposal.trace.mode_mix} />
 
             <ol className="relative ml-2 border-l border-slate-300">
               {shown.map(({ s, i }) => (
@@ -108,8 +107,7 @@ export default function TraceScreen() {
 
             <Note tone="info" title="What this trace does not prove">
               It shows the order the deterministic pipeline ran in and the inputs each step used. It does not show a model
-              reasoning: the LLM, when configured, writes one explanation per item and never ranks, filters or approves —
-              those steps are Rule, Filter and Decision entries made by code.
+              reasoning: the LLM, when configured, writes one explanation per item and never ranks, filters or approves.
             </Note>
           </>
         )}

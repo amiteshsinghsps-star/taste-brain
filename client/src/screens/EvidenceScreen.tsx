@@ -26,7 +26,7 @@ export default function EvidenceScreen() {
         mode={proposal?.mode}
       >
         {!proposal ? <Empty>{NEEDS_RUN}</Empty> : items.length === 0 ? (
-          <Empty>This run returned nothing that cleared every applicable rule, so there is no evidence card to show. The refusals and their flip points are on the Plan screen.</Empty>
+          <Empty>Nothing in this run cleared every applicable rule, so there is no card to show. The refusals are on the Plan screen.</Empty>
         ) : (
           <>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -80,14 +80,13 @@ function EvidenceCard({ item }: { item: ProposalItem }) {
         <span className={`tb-medal flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${item.rank === 1 ? 'tb-medal-gold' : item.rank === 2 ? 'tb-medal-silver' : item.rank === 3 ? 'tb-medal-bronze' : ''}`} title={`Qloo rank ${e.qloo_rank}`}>{item.rank}</span>
         <span className="font-semibold">{item.name}</span>
         <ModeBadge mode={e.mode} />
-        <span className="ml-auto text-[10px] text-slate-400">Qloo rank {e.qloo_rank}</span>
+        <span className="ml-auto text-[10px] text-slate-400" title="Qloo's own order — nothing was re-sorted">Qloo rank {e.qloo_rank}</span>
       </div>
       <dl className="mt-2">
         <KV k="entity id" v={<code className="font-mono text-[11px]">{e.entity_id}</code>} />
         <KV k="endpoint" v={<code className="font-mono text-[11px]">{e.endpoint}</code>} />
         <KV k="workflow" v={e.workflow} />
         <KV k="fetched at" v={<FetchedAt iso={e.fetched_at} mode={e.mode} />} />
-        <KV k="Qloo rank" v={`${e.qloo_rank} — Qloo's own order, nothing was re-sorted`} />
         <KV k="popularity" v={num(e.popularity)} />
         <KV k="obscurity" v={num(e.obscurity, 1)} />
         <KV k="followers" v={num(e.followers, 0)} />
@@ -108,8 +107,8 @@ function EvidenceCard({ item }: { item: ProposalItem }) {
         ))}
       </div>
       <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">
-        {item.rule_results.length} rule check(s) on this item — hover a chip for the reason and the rule’s source.
-        The explanation under these fields is written for this item only. {item.approval_blocked ? 'This item is visible but cannot be approved until the missing term is entered.' : 'Every rule that could be proven on the data on file passed.'}
+        {item.rule_results.length} rule check(s) — hover a chip for its reason and source.{' '}
+        {item.approval_blocked ? 'Cannot be approved until the missing term is entered.' : 'Every rule provable on the data on file passed.'}
       </p>
       <div className="mt-2"><JsonBlock obj={e} label="raw evidence JSON" /></div>
     </article>

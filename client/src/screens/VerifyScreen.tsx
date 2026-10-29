@@ -179,8 +179,8 @@ export default function VerifyScreen() {
           </div>
           <Note tone="info" title="Where the arithmetic happens">
             The recomputation runs in <code className="font-mono">server/src/verify/verifier.ts</code> — the same file the CLI loads. The browser
-            renders the report; it does not compute hashes, because the ledger hash uses node:crypto. To reproduce this verdict with no
-            server at all, download the export and run the command above.
+            renders the report; it computes no hashes. To reproduce this verdict with no server at all, download the export
+            and run the command above.
           </Note>
         </Panel>
       )}

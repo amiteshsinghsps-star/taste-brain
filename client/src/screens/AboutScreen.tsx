@@ -12,15 +12,15 @@ const AUTHORITY: { who: string; role: string; limit: string; spine: 'ok' | 'empt
 const PROVENANCE: { name: string; cost: string; spine: 'ok' | 'empty' | 'dead'; body: string }[] = [
   {
     name: 'Live', cost: 'one Qloo call', spine: 'ok',
-    body: 'Real calls to hackathon.api.qloo.com made by the server. The API key lives only in the server environment — never in this browser, never in a response, never in a log. Calls are throttled, retried on failure, and cached.',
+    body: 'Real calls to hackathon.api.qloo.com made by the server. The API key lives only in the server environment — never in this browser, never in a response, never in a log.',
   },
   {
     name: 'Cached', cost: 'no Qloo call', spine: 'empty',
-    body: 'Answers already fetched on this server, kept in a private on-disk cache. The step that reads them is stamped as served from storage, so a cached answer is never shown as if it had just been asked.',
+    body: 'Answers already fetched on this server, kept in a private on-disk cache. A step that reads them is stamped as served from storage, never as if it had just been asked.',
   },
   {
     name: 'Sample (Replay)', cost: 'no Qloo call', spine: 'dead',
-    body: 'Rows committed to the repository so the app works with no key and no network. A live run that could not reach Qloo falls back to these, and the stamp follows the data: such a row reads Sample, never Cached, because nothing here was ever a Qloo answer.',
+    body: 'Rows committed to this repository so the app works with no key and no network. A live run that cannot reach Qloo falls back to these — and such a row reads Sample, never Cached, because nothing here was ever a Qloo answer.',
   },
 ];
 
@@ -44,11 +44,11 @@ const NOT_CLAIMED: string[] = [
 ];
 
 const RUN_STEPS: string[] = [
-  'The taste seeds named in the pack are resolved to Qloo entities; anything ambiguous is shown as ambiguous.',
+  'The taste seeds named in the pack are resolved to Qloo entities; anything ambiguous stays ambiguous.',
   'One insights call returns the taste list for the room, in Qloo’s own order.',
-  'Variants (no location, trend, partners) are fetched within the per-run call budget and cached privately.',
+  'Variants (no location, trend, partners) are fetched within the per-run call budget.',
   'Every item is checked against the pack’s rules: pass, fail, or needs_data — never assumed compliant.',
-  'Flip points are computed: the exact threshold that would turn a refusal into a pass.',
+  'Flip points are computed: the threshold that would turn a refusal into a pass.',
   'An auditor vets the whole proposal before anything is served.',
   'The run is snapshotted server-side, so What-if, Ablation and Finals cost zero extra Qloo calls.',
 ];
@@ -57,38 +57,38 @@ const SCREEN_GUIDE: { group: string; items: [string, string, string][] }[] = [
   {
     group: 'Decide',
     items: [
-      ['plan', 'Plan', 'Pick the pack, room and goal, then run the agent. Shows ranked items with fit, rule results and the approve / refuse actions.'],
-      ['evidence', 'Evidence', 'The source card behind every shown item: the exact Qloo result and the rule that let it through.'],
-      ['trace', 'Trace', 'Every pipeline step in order — seeds, audience, candidates, rule checks, auditor, final list — each stamped with where its data came from.'],
-      ['brief', 'Brief', 'The one-page approval brief for the named human: what is being decided, why, and on whose evidence.'],
+      ['plan', 'Plan', 'Pack, room, goal — run the agent'],
+      ['evidence', 'Evidence', 'The source card behind each item'],
+      ['trace', 'Trace', 'Every pipeline step, stamped by source'],
+      ['brief', 'Brief', 'The one-page approval brief'],
     ],
   },
   {
     group: 'Question',
     items: [
-      ['whynot', 'Why not?', 'Ask about any rejected item and get the exact rule that blocked it and the threshold that would change the answer.'],
-      ['whatif', 'What if?', 'Change a rule number (budget ceiling, minimum order…) and re-evaluate the stored run instantly — zero Qloo calls.'],
-      ['partners', 'Partners', 'Brand and place partner candidates for the same audience, ranked by Qloo and checked against the rules.'],
+      ['whynot', 'Why not?', 'The rule that blocked a rejected item'],
+      ['whatif', 'What if?', 'Change a rule number, re-evaluate'],
+      ['partners', 'Partners', 'Partner candidates for the audience'],
     ],
   },
   {
     group: 'Prove it',
     items: [
-      ['ablation', 'Ablation', 'Turn pipeline stages off on the stored run and watch what breaks — proof each stage earns its place.'],
-      ['trust', 'Trust', 'Which claims the system will make, which it refuses, and the checks backing each row.'],
-      ['verify', 'Verify', 'Recomputes the hashes over the stored run and says whether the evidence still matches what was served.'],
-      ['breakit', 'Break it', 'Fires hostile inputs (oversized payloads, injection strings) at the API and shows how the engine refuses or survives.'],
-      ['coverage', 'Coverage', 'Every feature, its status and the file that implements it — the map of what is real and where.'],
-      ['ledger', 'Ledger', 'Every approve and refuse, by whom and when, recorded in a tamper-evident hash chain.'],
+      ['ablation', 'Ablation', 'Turn stages off, watch what breaks'],
+      ['trust', 'Trust', 'Claims made, claims refused, checks'],
+      ['verify', 'Verify', 'Recompute the hashes of the run'],
+      ['breakit', 'Break it', 'Hostile inputs against the API'],
+      ['coverage', 'Coverage', 'Every feature and where it lives'],
+      ['ledger', 'Ledger', 'Approves and refuses, hash-chained'],
     ],
   },
   {
     group: 'Operate',
     items: [
-      ['budget', 'Budget', 'Live-call usage: per-visitor hour and day, global day and the monthly floor, plus every outbound call log.'],
-      ['finals', 'Finals', 'Re-serve stored runs on stage with zero Qloo calls, so a network problem cannot break the demo.'],
-      ['lift', 'Taste Lift', 'Compares the grounded agent against a plain LLM answer and reports the result honestly, including when a side could not run.'],
-      ['about', 'About', 'This screen: what the system is, what each tab does, where the data comes from, and the limits.'],
+      ['budget', 'Budget', 'Live-call usage and the call log'],
+      ['finals', 'Finals', 'Re-serve stored runs, zero calls'],
+      ['lift', 'Taste Lift', 'Grounded agent vs a plain LLM'],
+      ['about', 'About', 'This screen'],
     ],
   },
 ];
@@ -102,15 +102,13 @@ export default function AboutScreen() {
     <div className="space-y-5">
       <Panel
         title="What Taste Brain is"
-        description="Decision governance for taste-driven venues and operators, built on Qloo. Rules from the business, taste from Qloo, a trace for every decision."
+        description="Decision governance for taste-driven venues and operators, built on Qloo."
         mode={modeInfo?.default_mode}
       >
         <div className="space-y-3 text-sm leading-relaxed text-slate-700">
           <p>
-            A venue booking a room and a retailer setting an assortment make the same kind of call: what fits this audience,
-            this room and this budget, under rules a person wrote. This app runs a fixed pipeline that keeps the three sources
-            of authority separate on screen — <strong>Qloo</strong> for taste, <strong>the pack</strong> for business rules,
-            <strong> a named human</strong> for the decision.
+            This app keeps three sources of authority separate on screen: <strong>Qloo</strong> for taste,
+            <strong> the pack</strong> for business rules, <strong>a named human</strong> for the decision.
           </p>
 
           <div className="grid gap-2.5 sm:grid-cols-3">
@@ -129,7 +127,7 @@ export default function AboutScreen() {
             <li>Every recommendation shown carries a stored Qloo result or a rule citation. One of the two, always.</li>
             <li>The AI writes explanations only. It never ranks, never filters, never approves.</li>
             <li>A human approves, by name, and the decision is written into a tamper-evident ledger.</li>
-            <li>Every result is stamped with where its data came from: Live, Cached, or Sample (synthetic offline data — never a Qloo answer).</li>
+            <li>Every result is stamped with where its data came from: Live, Cached, or Sample (offline data committed to this repo — never a Qloo answer).</li>
             <li>Language is about audiences, never about an individual person.</li>
           </ul>
         </Note>
@@ -168,26 +166,23 @@ export default function AboutScreen() {
       </Panel>
 
       <Panel
-        title="Every tab, in one line each"
+        title="Every tab"
         description="Click any name to jump there — or press Ctrl+K."
       >
-        <div className="space-y-4">
+        <div className="flex flex-wrap gap-x-6 gap-y-3">
           {SCREEN_GUIDE.map((g) => (
-            <div key={g.group} className="tb-arm">
-              <div className="mb-1.5 flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">{g.group}</span>
-                <span className="tb-pill">{g.items.length} tabs</span>
-              </div>
-              <dl className="space-y-1">
+            <div key={g.group} className="tb-arm min-w-0 flex-1 basis-40">
+              <div className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-indigo-700">{g.group}</div>
+              <div className="flex flex-wrap gap-1.5">
                 {g.items.map(([id, name, what]) => (
-                  <div key={id} className="flex gap-2 text-xs leading-relaxed">
-                    <dt className="w-24 shrink-0">
-                      <button onClick={() => jump(id)} className="tb-chip cursor-pointer px-2 py-0.5 font-semibold hover:opacity-80">{name}</button>
-                    </dt>
-                    <dd className="min-w-0 text-slate-600">{what}</dd>
-                  </div>
+                  <button
+                    key={id}
+                    onClick={() => jump(id)}
+                    title={what}
+                    className="tb-chip cursor-pointer px-2 py-0.5 text-xs font-semibold hover:opacity-80"
+                  >{name}</button>
                 ))}
-              </dl>
+              </div>
             </div>
           ))}
         </div>
@@ -225,8 +220,8 @@ export default function AboutScreen() {
           ))}
         </ul>
         <Note tone="info" title="What the app does compute">
-          “Fit”, local lift and rising chips are calculated by Taste Brain from Qloo outputs — every one is labelled that way,
-          and the raw field it was computed from sits beside it on the Evidence card.
+          “Fit”, local lift and rising chips are calculated by Taste Brain from Qloo outputs, never supplied by Qloo, and are
+          labelled as such wherever they appear. The raw field they came from sits beside them on the Evidence card.
         </Note>
         <div className="tb-arm mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-600">
           <span>Qloo key: <strong>{modeInfo?.qloo_key ?? 'unknown'}</strong></span>

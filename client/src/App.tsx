@@ -1,11 +1,9 @@
 // Taste Brain — the shell. One run in memory, seventeen screens over it, and a
-// header that always tells you which mode the data came in and what is left of
-// the budget. Screens never hold state of their own beyond their inputs.
+// header that always says which mode the data came in and what is left of the budget.
+// Screens never hold state of their own beyond their inputs.
 
 import { Component, useCallback, useEffect, useRef, useState, type FC, type ReactNode } from 'react';
-import { ModeBadge, ModeMixLine } from '@/components/common';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { ModeBadge } from '@/components/common';
 import { AppProvider } from '@/lib/state';
 import { useApp } from '@/lib/app-context';
 import type { TasteMode } from '@/lib/types';
@@ -119,9 +117,7 @@ function Shell() {
   const [density, setDensity] = useLocalStorage<typeof DENSITIES[number][0]>('tb.density', 'cozy');
   const [theme, setTheme] = useLocalStorage<'light' | 'dark' | 'system'>('tb.theme', 'light');
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [quickOpen, setQuickOpen] = useState(false);
   const settingsRef = useClickOutside<HTMLDivElement>(settingsOpen, () => setSettingsOpen(false));
-  const quickRef = useClickOutside<HTMLDivElement>(quickOpen, () => setQuickOpen(false));
 
   useEffect(() => { window.location.hash = tab; }, [tab]);
 
@@ -250,12 +246,9 @@ function Shell() {
 
       <header className="sticky top-0 z-10 border-b border-slate-200/70 bg-white/70 shadow-[0_1px_20px_-8px_rgba(15,23,42,0.15)] backdrop-blur-xl print:hidden">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3">
-          <div className="mr-auto flex items-center gap-3">
+          <div className="mr-auto flex items-center gap-2.5">
             <div className="tb-orb" aria-hidden>TB</div>
-            <div>
-              <h1 className="tb-brand-text text-xl font-extrabold tracking-tight">Taste Brain</h1>
-              <p className="text-[11px] text-slate-500">decision governance for taste-driven rooms — rules from the business, taste from Qloo, a trace for every call</p>
-            </div>
+            <h1 className="tb-brand-text text-xl font-extrabold tracking-tight">Taste Brain</h1>
           </div>
 
           <div className="flex items-center gap-2">
@@ -264,7 +257,6 @@ function Shell() {
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-slate-500">request mode</span>
             <div className="flex items-center gap-1 rounded-full border border-slate-200/80 bg-slate-100/80 p-1">
               {(['cached', 'live'] as TasteMode[]).map((m) => {
                 const off = m === 'live' && info !== null && !info.qloo_rest_active;
@@ -282,11 +274,7 @@ function Shell() {
             {info !== null && !info.qloo_rest_active && (
               <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600" title={LIVE_OFF_HINT}>live off on this host</span>
             )}
-          </div>
-
-          <div className="flex items-center gap-2 text-[11px] text-slate-500">
-            <span title="The key lives in the server environment and is never sent to this browser">qloo key: <strong className={info?.qloo_key === 'set' ? 'text-emerald-600' : ''}>{info?.qloo_key ?? '—'}</strong></span>
-            {info?.finals_mode && <span className="rounded bg-indigo-600 px-1.5 py-0.5 font-semibold text-white">FINALS MODE ON</span>}
+            {info?.finals_mode && <span className="rounded bg-indigo-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">FINALS MODE</span>}
           </div>
         </div>
 
@@ -303,37 +291,17 @@ function Shell() {
                   className={`tb-tab cursor-pointer text-sm ${on ? 'tb-tab-on' : 'text-slate-600 bg-white/70 border border-slate-200/80 hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md'}`}
                 >
                   <span className="mr-1.5" aria-hidden>{TAB_ICON[g.group]}</span>{g.group}
-                  <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${on ? 'bg-white/25 text-white' : 'bg-slate-100 text-slate-500'}`}>{g.items.length}</span>
                 </button>
               );
             })}
 
             <div className="ml-auto flex items-center gap-2">
-              <div className="relative" ref={quickRef}>
-                <button onClick={() => setQuickOpen((v) => !v)} title="run the agent from any screen"
-                  className="cursor-pointer rounded-full border border-slate-200/80 bg-white/70 px-2.5 py-1 text-[10px] font-bold text-slate-600 hover:bg-slate-100">⚡ quick run</button>
-                {quickOpen && (
-                  <div className="tb-screen-enter absolute right-0 top-9 z-40 w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
-                    <div className="mb-2 text-xs font-bold text-slate-700">Quick run</div>
-                    <label className="text-[10px] font-medium text-slate-500">pack</label>
-                    <select value={app.pack} onChange={(e) => app.setPack(e.target.value)} className="mb-1.5 w-full cursor-pointer rounded-lg border border-slate-300 px-2 py-1 pr-7 text-xs">
-                      {app.packs.map((p) => <option key={p.pack} value={p.pack}>{p.display_name}</option>)}
-                    </select>
-                    <label className="text-[10px] font-medium text-slate-500">room</label>
-                    <select value={app.location} onChange={(e) => app.setLocation(e.target.value)} className="mb-1.5 w-full cursor-pointer rounded-lg border border-slate-300 px-2 py-1 pr-7 text-xs">
-                      {app.locations.map((l) => <option key={l.id} value={l.id}>{l.name} · {l.city}</option>)}
-                    </select>
-                    <label className="text-[10px] font-medium text-slate-500">goal</label>
-                    <Input value={app.goal} onChange={(e) => app.setGoal(e.target.value)} maxLength={256} className="mb-2 text-xs" />
-                    <Button
-                      className="tb-hero w-full cursor-pointer" size="sm"
-                      disabled={app.busy || !app.location || !app.goal.trim()}
-                      onClick={() => { setQuickOpen(false); setTab('plan'); void app.run(); }}
-                    >{app.busy ? 'running…' : 'Run the agent'}</Button>
-                    <p className="mt-1.5 text-[10px] text-slate-400">Uses the same engine and budget as the Plan screen; opens results there.</p>
-                  </div>
-                )}
-              </div>
+              <button
+                onClick={() => { setTab('plan'); void app.run(); }}
+                disabled={app.busy || !app.location}
+                title="Run the agent on the pack, room and goal you already chose — the inputs themselves are on the Plan screen"
+                className="tb-hero cursor-pointer rounded-full px-3 py-1 text-[11px] font-bold disabled:cursor-not-allowed disabled:opacity-45"
+              >{app.busy ? 'running…' : '▶ Run the agent'}</button>
 
               <button
                 onClick={() => setTheme(theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light')}
@@ -394,11 +362,10 @@ function Shell() {
               <span>active run</span>
               <code className="font-mono">{app.proposal.proposal_id}</code>
               <ModeBadge mode={app.proposal.mode} />
-              <ModeMixLine mix={app.proposal.trace.mode_mix} compact />
               <span>{app.proposal.items.length} item(s) · {app.proposal.status}</span>
               <button onClick={copyJson} className="cursor-pointer rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600 hover:bg-slate-200" title="Copy the full run as JSON">copy JSON</button>
-              {app.servedFrom === 'snapshot' && <span className="rounded bg-indigo-100 px-1.5 py-0.5 font-semibold text-indigo-700">FINALS MODE</span>}
-              {app.servedFrom === 'restored' && <span className="rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-800" title="Re-served from the store — this room's newest stored run, nothing new was computed">restored from the store</span>}
+              {app.servedFrom === 'snapshot' && <span className="rounded bg-indigo-100 px-1.5 py-0.5 font-semibold text-indigo-700" title="Served from the stored run — no Qloo call was made">from the stored run</span>}
+              {app.servedFrom === 'restored' && <span className="rounded bg-amber-100 px-1.5 py-0.5 font-semibold text-amber-800" title="Re-served from the store — this room's newest stored run, nothing new was computed">restored</span>}
             </div>
           </div>
         )}
@@ -407,17 +374,8 @@ function Shell() {
       {/* The page band: what this screen is, and the way to its neighbours. */}
       <div className="mx-auto max-w-7xl px-5 pt-5 print:hidden">
         <div className="tb-band" key={tab}>
-          <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
-            <div className="min-w-0">
-              <div className="tb-band-eyebrow">
-                <span aria-hidden>{TAB_ICON[activeGroup.group]}</span>
-                {activeGroup.group}
-                <span className="tb-band-sep">·</span>
-                screen {flatIds.indexOf(tab) + 1} of {flatIds.length}
-              </div>
-              <h2 className="tb-band-title">{labelOf(tab)}</h2>
-              <p className="tb-band-sub">{SCREEN_BLURB[tab]}</p>
-            </div>
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+            <h2 className="tb-band-title" title={SCREEN_BLURB[tab]}>{labelOf(tab)}</h2>
             <div className="tb-seg" role="group" aria-label={`${activeGroup.group} screens`}>
               {activeGroup.items.map(([id, label]) => (
                 <button key={id} aria-current={tab === id ? 'page' : undefined} data-on={tab === id} onClick={() => setTab(id)} title={SCREEN_BLURB[id]}>
@@ -435,11 +393,10 @@ function Shell() {
         </ScreenBoundary>
       </main>
 
-      <footer className="mx-auto max-w-7xl px-5 pb-8 text-[11px] leading-relaxed text-slate-500">
-        <div className="flex flex-wrap items-center gap-x-3 border-t border-slate-200/70 pt-4">
-          <span>Taste Brain · Qloo Agentic Hackathon. Qloo supplies the taste data, the venue’s own rules enforce the decisions,
-          and every approve or refuse is recorded in a tamper-evident ledger.</span>
-        </div>
+      <footer className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-3 gap-y-1 px-5 pb-8 pt-1 text-[11px] text-slate-500">
+        <span>Taste Brain · Qloo Agentic Hackathon</span>
+        <span aria-hidden className="text-slate-300">|</span>
+        <span>Qloo supplies the taste data, the room’s own rules enforce the decision, every approve and refuse is recorded in a tamper-evident ledger.</span>
       </footer>
 
       {palette && (

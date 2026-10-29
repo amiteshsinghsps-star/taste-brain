@@ -36,12 +36,11 @@ export function ToastHost() {
 export function ServerDot({ h }: { h: Health }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${h.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700'}`}
-      title={h.ok ? `server up · ${h.latency_ms ?? '—'} ms round-trip · Qloo ${h.live ? 'LIVE' : 'off on host'}` : 'server not answering — is `npm run dev` up in server/?'}
+      className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/70 px-2 py-1 text-[10px] font-semibold text-slate-600"
+      title={h.ok ? `server up · ${h.latency_ms ?? '—'} ms round-trip · Qloo ${h.live ? 'LIVE' : 'off on host'}` : 'server not answering — is the API running on this host?'}
     >
       <span className={`h-1.5 w-1.5 rounded-full ${h.ok ? 'bg-emerald-500' : 'bg-red-500'}`} />
-      {h.ok ? 'server up' : 'server down'}
-      {h.ok && h.latency_ms !== null && <span className="font-normal text-emerald-600/80">{h.latency_ms}ms</span>}
+      {h.ok ? 'server' : 'down'}
     </span>
   );
 }
@@ -67,7 +66,7 @@ export function QuotaBar({ h }: { h: Health }) {
           style={{ width: off ? '0%' : `${Math.max(4, pct)}%` }}
         />
       </span>
-      {off ? 'live off' : `${pct}%`}
+      {off ? 'live off' : `${used}/${limit}`}
     </span>
   );
 }
