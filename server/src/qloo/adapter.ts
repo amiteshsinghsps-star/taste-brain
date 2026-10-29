@@ -248,7 +248,7 @@ export function createSession(opts: SessionOptions): Session {
       // 'replay' wherever it stands in for a live answer. Calling it 'cached'
       // would claim a real Qloo response that was never fetched.
       if (fx.length) {
-        s.relaxations.push('audience tags came back empty live; used the synthetic portrait for this room (Replay data, not a Qloo answer)');
+        s.relaxations.push('audience tags came back empty live; used the offline sample portrait for this room (Replay data, not a Qloo answer)');
         return { tags: fx.map((f) => ({ id: f.entity_id, name: f.name, type: 'urn:tag' })), mode: 'replay' };
       }
       return { tags: [], mode };
@@ -310,7 +310,7 @@ export function createSession(opts: SessionOptions): Session {
 
     if (s.mode === 'live' && s.live_calls >= env.QLOO_MAX_CALLS_PER_RUN) {
       const fx = fixtureFor(s.pack, s.location, workflow, variant);
-      s.relaxations.push(`per-run budget of ${env.QLOO_MAX_CALLS_PER_RUN} calls reached before "${variant}"; served the synthetic fixture (Replay data, not a Qloo answer)`);
+      s.relaxations.push(`per-run budget of ${env.QLOO_MAX_CALLS_PER_RUN} calls reached before "${variant}"; served the offline sample fixture (Replay data, not a Qloo answer)`);
       logCall({ workflow, variant, mode: 'replay', cache_hit: false, endpoint: 'budget', entity_count: fx.length, inputs_redacted: inputs }, t0);
       return { entities: fx, mode: 'replay' };
     }
@@ -328,7 +328,7 @@ export function createSession(opts: SessionOptions): Session {
       const fx = fixtureFor(s.pack, s.location, workflow, variant);
       if (fx.length) {
         logCall({ workflow, variant, mode: 'replay', cache_hit: false, endpoint: 'fixture', entity_count: fx.length, inputs_redacted: inputs, note: String(err?.message ?? err).slice(0, 80) }, t0);
-        s.relaxations.push(`"${variant}" failed live (${String(err?.message ?? err).slice(0, 60)}); served the synthetic fixture (Replay data, not a Qloo answer)`);
+        s.relaxations.push(`"${variant}" failed live (${String(err?.message ?? err).slice(0, 60)}); served the offline sample fixture (Replay data, not a Qloo answer)`);
         return { entities: fx, mode: 'replay' };
       }
       logCall({ workflow, variant, mode: s.mode, cache_hit: false, failed: true, endpoint: 'fallback', entity_count: 0, inputs_redacted: inputs, note: String(err?.message ?? err).slice(0, 80) }, t0);

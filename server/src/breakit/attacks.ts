@@ -121,7 +121,7 @@ function attackPolicyText(exp: DecisionExport): AttackOutcome {
       id: 'policy_text_injection', name: 'Inject an instruction into a policy sentence',
       attempted: 'rule budget_cap not present in the pinned rule set',
       defence: { check: 'Rule Checker', where: 'server/src/agents/rule-checker.ts' },
-      blocked: false, detail: 'The synthetic sample carries no budget_cap rule, so this attack could not be run.', log_entry: {},
+      blocked: false, detail: 'The offline sample carries no budget_cap rule, so this attack could not be run.', log_entry: {},
     };
   }
   const injected: Rule = {
@@ -276,7 +276,7 @@ export function runAllAttacks(): BreakItReport {
   return {
     ran_at: new Date().toISOString(),
     sandbox: {
-      basis: 'verification/sample-export.json — a synthetic Replay run; the stored ledger and cache were opened read-only',
+      basis: 'verification/sample-export.json — an offline Replay run; the stored ledger and cache were opened read-only',
       mode: 'replay',
       real_ledger_written: false,
       real_ledger_still_intact: real.length ? verifyLedger(real).ok : null,

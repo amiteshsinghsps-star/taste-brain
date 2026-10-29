@@ -8,7 +8,7 @@ import type { Proposal } from '../types';
 const MODE_TEXT: Record<string, string> = {
   live: 'LIVE — read from Qloo on this run',
   cached: 'CACHED — served from a stored Qloo answer, the live call was not repeated',
-  replay: 'REPLAY — synthetic fixtures, no real Qloo data touched this run',
+  replay: 'REPLAY — offline sample fixtures, no real Qloo data touched this run',
 };
 
 export interface ApprovalBrief {

@@ -225,7 +225,7 @@ function checkModes(exp: DecisionExport): VerifyCheck {
   // every row came from the synthetic fixtures and the badge overstates — the
   // same class of lie as a live badge, just one step down.
   if (exp.decision.mode === 'cached' && mix.cached === 0 && mix.live === 0) {
-    return { ...base, status: 'fail', detail: `badge says cached (a stored Qloo answer) but all ${mix.replay} labelled step(s) are replay — synthetic fixtures, never fetched`, first_failing: exp.decision.proposal_id };
+    return { ...base, status: 'fail', detail: `badge says cached (a stored Qloo answer) but all ${mix.replay} labelled step(s) are replay — offline sample fixtures, never fetched`, first_failing: exp.decision.proposal_id };
   }
   return { ...base, status: 'pass', detail: `${steps.length} step(s) all labelled: ${mix.live} live, ${mix.cached} cached, ${mix.replay} replay; badge reads "${exp.decision.mode}"`, first_failing: null };
 }

@@ -94,11 +94,11 @@ function toCandidate(c: QlooEntityResult): ExportCandidate {
 /** Replay fixtures are synthetic, so a Replay export is safe to publish.
  *  Override only after Qloo confirms the sharing rule. */
 export function exportAllowedForMode(mode: TasteMode, allowLive = false): { ok: boolean; reason: string } {
-  if (mode === 'replay') return { ok: true, reason: 'Replay run: the stored rows are committed synthetic fixtures, so an export carries no live Qloo payload.' };
+  if (mode === 'replay') return { ok: true, reason: 'Replay run: the stored rows are committed offline sample fixtures, so an export carries no live Qloo payload.' };
   if (allowLive) return { ok: true, reason: `Live export permitted by explicit override (allowLive=true) — mode ${mode}.` };
   return {
     ok: false,
-    reason: `This run is "${mode}", which carries Qloo-returned names and tags. Exports and receipts are limited to Replay (synthetic) data until Qloo confirms what may be shared. Run the same room in Replay to get a shareable file.`,
+    reason: `This run is "${mode}", which carries Qloo-returned names and tags. Exports and receipts are limited to Replay (offline sample) data until Qloo confirms what may be shared. Run the same room in Replay to get a shareable file.`,
   };
 }
 

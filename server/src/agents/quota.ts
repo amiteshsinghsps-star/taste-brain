@@ -96,7 +96,7 @@ export function effectiveMode(requested: TasteMode | undefined, ip: string | und
     const why = env.QLOO_API_KEY && env.QLOO_API_KEY.length > 0
       ? 'A Qloo key is present but live is switched off on this host (QLOO_ENABLED=false)'
       : 'No Qloo credential on this host';
-    return { mode: 'cached', degraded_from: 'live', reason: `${why} — serving from the private cache, then from synthetic fixtures.` };
+    return { mode: 'cached', degraded_from: 'live', reason: `${why} — serving from the private cache, then from the offline sample fixtures.` };
   }
   const { ok, reason, state } = reserveLiveCall(ip);
   if (ok) return { mode: 'live', reason: '' };
@@ -105,7 +105,7 @@ export function effectiveMode(requested: TasteMode | undefined, ip: string | und
   }
   // Cached here means stored bytes only: a run that was denied live never goes out
   // to the network, so the promise the badge makes is the one the transport keeps.
-  return { mode: 'cached', degraded_from: 'live', reason: `${reason}. Live was refused for this visitor, so the run reads only what is already stored here — Cached if a real Qloo answer is on file, otherwise the labelled synthetic fixtures.` };
+  return { mode: 'cached', degraded_from: 'live', reason: `${reason}. Live was refused for this visitor, so the run reads only what is already stored here — Cached if a real Qloo answer is on file, otherwise the labelled offline sample fixtures.` };
 }
 
 export function qlooKeyAvailable(): boolean {

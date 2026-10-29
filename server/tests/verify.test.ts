@@ -63,13 +63,13 @@ describe('a freshly built export', () => {
 
   // The chain alone never covered the decision payload, so a self-consistent
   // fiction used to verify 5/5. These two are the forgery that fix must catch.
-  it('fails when a forged export relabels synthetic fixtures as cached', () => {
+  it('fails when a forged export relabels offline sample fixtures as cached', () => {
     const report = verifyExport(forge((exp) => {
       exp.decision.mode = 'cached';
       exp.provenance.decision_mode = 'cached';
     }));
     expect(check(report, 'modes').status).toBe('fail');
-    expect(check(report, 'modes').detail).toMatch(/synthetic fixtures, never fetched/);
+    expect(check(report, 'modes').detail).toMatch(/offline sample fixtures, never fetched/);
   });
 
   it('fails when the trace is emptied so no mode claim was exercised', () => {

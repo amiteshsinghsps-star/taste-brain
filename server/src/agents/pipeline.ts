@@ -432,12 +432,12 @@ export async function runPipeline(input: RunInput): Promise<Proposal> {
   const proposal: Proposal = {
     proposal_id, pack: input.pack, location: loc.id, goal: input.goal, mode,
     degrade_reason: (session.degrade_reason && mode !== session.mode
-      ? `${session.degrade_reason} In the end this run found no stored Qloo answer for it either: every row came from the committed synthetic fixtures, so the badge says Replay.`
+      ? `${session.degrade_reason} In the end this run found no stored Qloo answer for it either: every row came from the committed offline sample fixtures, so the badge says Replay.`
       : session.degrade_reason)
       || (session.mode === 'live' && mode === 'cached'
         ? "Live was allowed and asked for, but every answer was already in this server's stored copy — the run made no live read, so it is labelled Cached."
         : session.mode === 'live' && mode === 'replay'
-          ? 'Live was allowed and asked for, but no Qloo answer was usable for this run: every row came from the committed synthetic fixtures. It is labelled Replay, not Cached, because nothing here is a stored Qloo answer.'
+          ? 'Live was allowed and asked for, but no Qloo answer was usable for this run: every row came from the committed offline sample fixtures. It is labelled Replay, not Cached, because nothing here is a stored Qloo answer.'
           : null),
     created_at: nowIso(), status: 'pending', items, unsupported, rejections,
     unresolved_seeds: resolved.unresolved,

@@ -199,8 +199,8 @@ export function createApp() {
         : qlooRestEnabled()
           ? `Live calls available. Global demo budget today: ${s.global_day_used}/${s.global_day_limit}; this visitor ${s.visitor_day_used}/${s.visitor_day_limit}. Real quota reported by the harness: ${quota.used}/${quota.soft_limit}.`
           : env.QLOO_API_KEY
-            ? 'A Qloo key is present but live is switched off on this host (QLOO_ENABLED=false), so no request leaves this box. Cached/Replay run from the stored copy and synthetic fixtures.'
-            : 'No Qloo key on this host — running Cached/Replay from the stored copy and synthetic fixtures.',
+            ? 'A Qloo key is present but live is switched off on this host (QLOO_ENABLED=false), so no request leaves this box. Cached/Replay run from the stored copy and offline sample fixtures.'
+            : 'No Qloo key on this host — running Cached/Replay from the stored copy and offline sample fixtures.',
       per_run_call_budget: env.QLOO_MAX_CALLS_PER_RUN,
       quota,
     });

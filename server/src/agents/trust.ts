@@ -236,7 +236,7 @@ export function trustReport(proposal: Proposal | null): TrustReport {
     claim: 'Live, Cached and Replay are labelled on every step, and the run badge never claims more than its steps show.',
     status: proposal ? (stepsWithoutMode === 0 && proposal.mode && !overstated ? 'pass' : 'fail') : 'unproven',
     evidence: proposal && mix
-      ? `badge ${proposal.mode}; steps counted from the trace — ${mix.live} live, ${mix.cached} cached, ${mix.replay} replay; ${stepsWithoutMode} step(s) missing a mode${overstated ? '; the run claims live although no step was fetched on it' : ''}. Committed fixtures are synthetic and labelled replay at read time.`
+      ? `badge ${proposal.mode}; steps counted from the trace — ${mix.live} live, ${mix.cached} cached, ${mix.replay} replay; ${stepsWithoutMode} step(s) missing a mode${overstated ? '; the run claims live although no step was fetched on it' : ''}. Committed fixtures are offline samples, labelled replay at read time.`
       : 'no proposal yet',
   });
 
@@ -282,7 +282,7 @@ export function trustReport(proposal: Proposal | null): TrustReport {
   const privacy = memoizeScan('privacy', repoPrivacyScan);
   checks.push({
     id: 'no-qloo-data-in-repo',
-    claim: 'Live Qloo responses are written to the server-side store only; the repository holds synthetic fixtures and counts.',
+    claim: 'Live Qloo responses are written to the server-side store only; the repository holds offline sample fixtures and counts.',
     status: privacy.status,
     evidence: privacy.evidence,
   });
