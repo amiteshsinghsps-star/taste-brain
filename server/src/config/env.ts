@@ -60,6 +60,9 @@ const schema = z.object({
   QLOO_TIMEOUT_MS: z.coerce.number().default(15000),
   QLOO_MAX_CALLS_PER_RUN: z.coerce.number().default(12),
   QLOO_PRIVATE_CACHE_DIR: z.string().default('.private-cache'),
+  // Set on a host that must not answer from stored bytes: a live run then fetches
+  // every step from Qloo and writes the cache on the way past it.
+  QLOO_FORCE_LIVE: boolish.default(false),
   QLOO_DAILY_SOFT_LIMIT: z.coerce.number().default(400),
 
   // Identity overlay for live mode. Committed packs name fictional companies and
@@ -121,6 +124,7 @@ export const env = schema.parse({
   QLOO_TIMEOUT_MS: process.env.QLOO_TIMEOUT_MS,
   QLOO_MAX_CALLS_PER_RUN: process.env.QLOO_MAX_CALLS_PER_RUN,
   QLOO_PRIVATE_CACHE_DIR: process.env.QLOO_PRIVATE_CACHE_DIR,
+  QLOO_FORCE_LIVE: process.env.QLOO_FORCE_LIVE,
   QLOO_DAILY_SOFT_LIMIT: process.env.QLOO_DAILY_SOFT_LIMIT,
   PACK_OVERLAY_DIR: process.env.PACK_OVERLAY_DIR,
   PACK_OVERLAY_B64: process.env.PACK_OVERLAY_B64,

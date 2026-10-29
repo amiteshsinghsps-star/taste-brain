@@ -306,16 +306,21 @@ async function cachedFetch(
   params: Record<string, string | number | undefined>,
 ): Promise<{ data: unknown; mode: TasteMode; fetched_at: string }> {
   const file = cacheFilePath('GET', endpointPath, params);
-  const mem = memGet(file);
-  if (mem) {
-    addRestLog({ workflow, path: endpointPath, status: 200, latency_ms: 0, cache_hit: true, mode: 'cached', entity_count: rawResults(mem.value).length, inputs_redacted: { params_hash: path.basename(file, '.json'), fetched_at: mem.fetched_at } });
-    return { data: mem.value, mode: 'cached', fetched_at: mem.fetched_at };
-  }
-  const persisted = readPrivateCache(file);
-  if (persisted) {
-    memSet(file, persisted.data, persisted.fetched_at);
-    addRestLog({ workflow, path: endpointPath, status: 200, latency_ms: 0, cache_hit: true, mode: 'cached', entity_count: rawResults(persisted.data).length, inputs_redacted: { params_hash: path.basename(file, '.json'), fetched_at: persisted.fetched_at } });
-    return { data: persisted.data, mode: 'cached', fetched_at: persisted.fetched_at };
+  // QLOO_FORCE_LIVE: on a host that must not answer from stored bytes, a run that
+  // is allowed to leave the box reads nothing from disk and writes the cache on
+  // the way past it. A run the guardian degraded still takes the stored answer.
+  if (!(env.QLOO_FORCE_LIVE && liveAllowed())) {
+    const mem = memGet(file);
+    if (mem) {
+      addRestLog({ workflow, path: endpointPath, status: 200, latency_ms: 0, cache_hit: true, mode: 'cached', entity_count: rawResults(mem.value).length, inputs_redacted: { params_hash: path.basename(file, '.json'), fetched_at: mem.fetched_at } });
+      return { data: mem.value, mode: 'cached', fetched_at: mem.fetched_at };
+    }
+    const persisted = readPrivateCache(file);
+    if (persisted) {
+      memSet(file, persisted.data, persisted.fetched_at);
+      addRestLog({ workflow, path: endpointPath, status: 200, latency_ms: 0, cache_hit: true, mode: 'cached', entity_count: rawResults(persisted.data).length, inputs_redacted: { params_hash: path.basename(file, '.json'), fetched_at: persisted.fetched_at } });
+      return { data: persisted.data, mode: 'cached', fetched_at: persisted.fetched_at };
+    }
   }
   // A run the guardian degraded to Cached may not join another run's fetch either:
   // those bytes are not a stored answer yet, and stamping them live would describe

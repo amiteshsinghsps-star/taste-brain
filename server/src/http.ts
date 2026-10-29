@@ -151,6 +151,8 @@ export function createApp() {
       status: s.live_allowed || !qlooKeyAvailable() ? 'ok' : 'degraded',
       qloo_key: qlooKeyStatus(),
       qloo_rest_active: qlooRestEnabled(),
+      // True on a host where a live run re-reads Qloo instead of the private cache.
+      force_live: env.QLOO_FORCE_LIVE,
       finals_mode: env.FINALS_OVERRIDE,
       default_mode: env.DEFAULT_MODE,
       llm_model: llmModel(),
@@ -188,6 +190,8 @@ export function createApp() {
       qloo_enabled: env.QLOO_ENABLED,
       qloo_key: qlooKeyStatus(),
       qloo_rest_active: qlooRestEnabled(),
+      // True on a host where a live run re-reads Qloo instead of the private cache.
+      force_live: env.QLOO_FORCE_LIVE,
       finals_mode: env.FINALS_OVERRIDE,
       llm_model: llmModel(),
       quota_note: env.FINALS_OVERRIDE
