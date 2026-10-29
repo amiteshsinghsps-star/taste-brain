@@ -316,11 +316,11 @@ function Shell() {
                   <div className="tb-screen-enter absolute right-0 top-9 z-40 w-72 rounded-2xl border border-slate-200 bg-white p-3 shadow-2xl">
                     <div className="mb-2 text-xs font-bold text-slate-700">Quick run</div>
                     <label className="text-[10px] font-medium text-slate-500">pack</label>
-                    <select value={app.pack} onChange={(e) => app.setPack(e.target.value)} className="mb-1.5 w-full cursor-pointer rounded-lg border border-slate-300 px-2 py-1 text-xs">
+                    <select value={app.pack} onChange={(e) => app.setPack(e.target.value)} className="mb-1.5 w-full cursor-pointer rounded-lg border border-slate-300 px-2 py-1 pr-7 text-xs">
                       {app.packs.map((p) => <option key={p.pack} value={p.pack}>{p.display_name}</option>)}
                     </select>
                     <label className="text-[10px] font-medium text-slate-500">room</label>
-                    <select value={app.location} onChange={(e) => app.setLocation(e.target.value)} className="mb-1.5 w-full cursor-pointer rounded-lg border border-slate-300 px-2 py-1 text-xs">
+                    <select value={app.location} onChange={(e) => app.setLocation(e.target.value)} className="mb-1.5 w-full cursor-pointer rounded-lg border border-slate-300 px-2 py-1 pr-7 text-xs">
                       {app.locations.map((l) => <option key={l.id} value={l.id}>{l.name} · {l.city}</option>)}
                     </select>
                     <label className="text-[10px] font-medium text-slate-500">goal</label>

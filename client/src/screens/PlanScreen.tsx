@@ -38,7 +38,7 @@ export default function PlanScreen() {
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-slate-500">Room</label>
-          <select value={location} onChange={(e) => setLocation(e.target.value)} className="w-full cursor-pointer rounded-lg border border-slate-300 bg-white/80 px-2.5 py-1.5 text-sm shadow-sm transition-colors hover:border-indigo-300 focus:border-indigo-400 focus:outline-none focus:ring-3 focus:ring-indigo-500/15">
+          <select value={location} onChange={(e) => setLocation(e.target.value)} className="w-full cursor-pointer rounded-lg border border-slate-300 bg-white/80 px-2.5 py-1.5 pr-8 text-sm shadow-sm transition-colors hover:border-indigo-300 focus:border-indigo-400 focus:outline-none focus:ring-3 focus:ring-indigo-500/15">
             {locations.map((l) => <option key={l.id} value={l.id}>{l.name} · {l.city}</option>)}
           </select>
           {currentLocation && (
@@ -303,7 +303,7 @@ function Items({ onRefused }: { onRefused: (m: string) => void }) {
               ))}
             </div>
             <label className="ml-auto flex items-center gap-1.5 text-[11px] text-slate-500">sort by
-              <select value={sort} onChange={(e) => setSort(e.target.value as SortId)} className="cursor-pointer rounded-lg border border-slate-300 bg-white/80 px-2 py-1 text-xs">
+              <select value={sort} onChange={(e) => setSort(e.target.value as SortId)} className="cursor-pointer rounded-lg border border-slate-300 bg-white/80 px-2 py-1 pr-7 text-xs">
                 {SORTS.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
               </select>
             </label>
