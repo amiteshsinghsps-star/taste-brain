@@ -533,6 +533,23 @@ Two things to know before a room full of judges starts clicking:
   conservative and run `npm run warm-cache` before the session so a degraded run still has a real
   Qloo answer to serve.
 
+**The image was built and run, not just written.** On 2026-10-29 `docker build -t taste-brain .`
+succeeded, and two containers were started from it and then removed:
+
+- credential-free (`QLOO_ENABLED=false`, `DEFAULT_MODE=replay`): the app served `HTTP 200`,
+  `/api/mode` reported the key as `missing`, a Replay run returned 6 items with
+  `mode_mix { live: 0, cached: 0, replay: 49 }`, and the healthcheck reported `healthy`;
+- the demo configuration (`--env-file` with `QLOO_ENABLED=true`, `DEFAULT_MODE=live`,
+  `QLOO_FORCE_LIVE=true` and the overlay passed as `PACK_OVERLAY_B64`): a live run returned
+  `mode: "live"` with `mode_mix { live: 66, cached: 0, replay: 0 }`, 6 items and a real Qloo rank on
+  the first one — so the identity overlay reads correctly out of an environment variable alone, which
+  is what a host that cannot take file uploads needs.
+
+The container writes its database to `GRAPH_DB`, default `.private-data/taste-brain.db`, which is
+ephemeral inside an image — mount `/data` and point `GRAPH_DB` at it, or accept that the day's quota
+counters and the ledger start over on restart. Startup also prints a warning if `TRUST_PROXY_HOPS=0`
+looks wrong for the deployment and if no `LEDGER_HMAC_SECRET` is set.
+
 After the deploy, the pre-submit pass is: `GET /api/health` shows `qloo_key: "set"`,
 `default_mode: "live"`, `force_live: true` and no key material; then click **Retail → Store 3 - East
 Austin → "Add 4 brands for spring"** on the public URL and read the badges off the page, not off
