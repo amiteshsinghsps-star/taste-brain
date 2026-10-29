@@ -13,6 +13,8 @@ Built for the Qloo Agentic Hackathon — theme *"Agents, but with taste."*
 | Qloo workflows | `describe_audience`, `recommend`, `rank_shortlist`, `find_tags`, `resolve_entity` |
 | Qloo transport | direct REST `GET https://hackathon.api.qloo.com` with `X-Api-Key`, server-side only |
 | Verticals | 3 packs (retail, restaurants, venues) · 7 rooms |
+| Agents | 17 cooperating — 7 inside a run, 5 answering about a stored run, 5 guarding the key |
+| Shipped capabilities | 24, each owned by one agent and reachable on one endpoint (§12) |
 | Tests | 140 passing across 7 files |
 | Public gate | `npm run gate:public` — 8 checks, PASS against committed content |
 | Ledger right now | 25 entries, chain re-verified, `ok: true` |
@@ -48,6 +50,8 @@ Hash routes mean you can jump straight to any screen; `Ctrl+K` opens the same pi
    copy of the file without touching the records.
 6. **Taste Lift** — press *Run the fixed request set* to see the grounded arm measured. On a host
    with no LLM key, the plain-LLM arm is recorded as *did not run* and **no lift number is invented.**
+7. **Why not? · What if? · Partners** — then ask the same run three questions. Each is answered by a
+   different agent off the same stored snapshot, so the answers cannot drift apart.
 
 Everything on those screens is the server's own word. The UI computes nothing that the API did not
 return.
@@ -77,7 +81,39 @@ offer to rule-check are surfaced as *unsupported*, never promoted into the list.
 
 ---
 
-## 4. What the code enforces, not what the prompt asks
+## 4. The multi-agent roster
+
+Taste Brain is a **multi-agent system with a fixed spine**. Seventeen agents cooperate — seven inside
+a run, five that answer questions about a stored run, five that guard the key and the claim — but no
+agent plans the work and none may step outside the authority it is given: the order of calls is
+written in `pipeline.ts`, so a model cannot decide to skip the Auditor or invent a ranking step.
+
+**Decision agents** (they touch the run):
+
+| agent | module | authority it holds | what it is forbidden to do |
+| --- | --- | --- | --- |
+| **Profiler** | `agents/pipeline.ts` | asks Qloo for the room's audience portrait | resolve an ambiguous seed by guessing |
+| **Taste Explorer** | `agents/pipeline.ts` | brings back Qloo's candidates **in Qloo's order** | re-sort, score or trim the list |
+| **Rule Checker** | `agents/rule-checker.ts` | decides pass / fail / needs-data from pack rules | read prose; call a model |
+| **Flip Point engine** | `agents/flip.ts` | names the exact policy change that would admit a blocked item | claim a change that was not made |
+| **Strategist / LLM** | `agents/llm.ts` | writes the explanation a human reads | rank, filter, approve, or be trusted by the Auditor |
+| **Grounding Auditor** | `agents/auditor.ts` | **veto power** — blocks anything without a stored Qloo id or a passing rule | let an unsupported item into the list |
+| **Approver** | `http.ts` → `Decision` node | records a human's approve/reject by name, into the ledger | act without a named person |
+
+**Question agents** (read-only; they answer a person about a stored run and never call Qloo, never
+re-rank, never write a new number): **Why-not** `whynot.ts`, **What-if** `whatif.ts`, **Partners**
+`partners.ts`, **Ablation Lab** `ablation.ts`, **Approval brief** `brief.ts`.
+
+**Guardian agents** (they protect the key and the claim): **Quota Guardian** `quota.ts`, **Coverage
+Board** `coverage.ts`, **Trust Center** `trust.ts`, **Parameter allowlist** `qloo/allowlist.ts`,
+**identity overlay** `packs/overlay.ts`.
+
+Why seventeen agents rather than one loop: each refusal is testable, each authority is attributable,
+and a judge can ask *which agent* produced a claim. A single autonomous planner could not answer that.
+
+---
+
+## 5. What the code enforces, not what the prompt asks
 
 These are checks, not intentions:
 
@@ -96,7 +132,7 @@ Nine rule kinds are implemented (`rule-checker.ts`): `numeric_max`, `numeric_min
 
 ---
 
-## 5. Live Qloo, measured
+## 6. Live Qloo, measured
 
 From `docs/live-run-scorecard.md`, captured 2026-10-24 by driving the same browser surface a judge
 uses. Machine-readable figures: `server/verification/live-scorecard.json`.
@@ -120,7 +156,7 @@ reason. A demo that always shows six cards is a demo that is making them up.
 
 ---
 
-## 6. Cost control and abuse control
+## 7. Cost control and abuse control
 
 Live calls are money and a shared team key, so they are metered in four buckets plus a hard ceiling:
 
@@ -141,7 +177,7 @@ Counters live in the SQLite database, not in memory, so the day's spend survives
 
 ---
 
-## 7. Provenance and the identity overlay
+## 8. Provenance and the identity overlay
 
 Nothing committed names a real company, artist, venue or dish, and no tracked line carries a Qloo
 entity id. Qloo ids are 36-character UUIDs, so every entity in a tracked pack, fixture, test or
@@ -167,7 +203,7 @@ The shipped default remains off.)*
 
 ---
 
-## 8. Tamper evidence, stated honestly
+## 9. Tamper evidence, stated honestly
 
 The ledger is **hash-chained and tamper-evident, not tamper-proof.**
 
@@ -185,7 +221,7 @@ name to the run that recorded it, not to Qloo's wording.
 
 ---
 
-## 9. Security
+## 10. Security
 
 - `QLOO_API_KEY` is read inside `rest-client.ts` and nowhere else. It is never in client code, API
   responses, the call log, tests, screenshots or git.
@@ -201,7 +237,7 @@ name to the run that recorded it, not to Qloo's wording.
 
 ---
 
-## 10. The interface
+## 11. The interface
 
 17 screens in 4 groups. Nothing was added for colour's sake; each screen exists because a judge or an
 operator needs to answer a question.
@@ -229,7 +265,109 @@ Design decisions that carry weight:
 
 ---
 
-## 11. Data store
+## 12. Feature register — everything it does, and where you use it
+
+Twenty-four shipped capabilities. Each row names the agent that owns it, the screen, the exact
+endpoint, and the decision a team actually uses it for. Nothing in this table is planned; every
+endpoint below answers on the running server.
+
+| capability | who computes it | screen | endpoint | used for |
+| --- | --- | --- | --- | --- |
+| Run the agent, 6-stage grounded pipeline | Profiler · Explorer · Rule Checker · Strategist · Auditor | Plan | `POST /api/proposals` | a room's next assortment, menu or lineup |
+| Pack + room + goal picker, goal templates | pack config | Plan | `GET /api/packs`, `/locations`, `/locations/:loc` | moving the same engine to a new vertical |
+| Mode choice: live · cached · replay, stamped on every result | `qloo/adapter.ts` | Plan, Trace | `mode` on the run body | spending the key deliberately, or never |
+| Per-item rule chips with the value the rule read | Rule Checker | Evidence | `GET /api/proposals/:id` | settling "can we actually carry this?" |
+| Qloo rank shown as Qloo returned it | Taste Explorer | Evidence | `/api/proposals/:id` | proving nothing was re-sorted |
+| Decision Trace, per-step mode and time | `trace/builder.ts` | Trace | `/api/proposals/:id/trace` | reconstructing a decision months later |
+| `rerun_hash` — recompute and prove the same ranking | `trace/builder.ts` | Trace, Verify | `GET /api/proposals/:id/export`, `POST /api/verify` | answering "is this file the run you claim?" |
+| Auditor rejections, with the failing rule and check 1/2/3 | Grounding Auditor | Evidence, Why-not | on the proposal payload | knowing what was refused and why |
+| Flip points — the policy edit that would admit a blocked item | Flip Point engine | Plan, Evidence | on the proposal payload | a buyer changing a ceiling, not the data |
+| Unsupported list — ranked by taste, no approved offer | Auditor + flip | Evidence | on the proposal payload | spotting a catalogue gap before a competitor does |
+| Owner approval brief, one page a person signs | `agents/brief.ts` (V6) | Brief | `GET /api/proposals/:id/brief` | handing the decision to a human with receipts |
+| Why-not — why X is absent from the list | `agents/whynot.ts` (F12) | Why not? | `POST /api/whynot` | the supplier's first question, answered from the stored run |
+| What-if — move one number, see the diff | `agents/whatif.ts` (F13) | What if? | `POST /api/whatif` | a merchandiser testing a budget change, 0 Qloo calls |
+| Co-promotion partners across entity types | `agents/partners.ts` (V5) | Partners | `POST /api/partners` | pairing a show with record shops and places |
+| Ablation Lab — what each guardrail is worth | `agents/ablation.ts` (F11) | Ablation | `GET /api/proposals/:id/ablation` | proving the Auditor changes outcomes, deterministically |
+| Break-it Challenge — six live attacks | `breakit/attacks.ts` (W6) | Break it | `GET /api/breakit`, `POST /api/breakit` | unsupported item · name injection · policy-text injection · ledger tamper · budget breach · unverified parameter |
+| Trust Center — every promised guardrail as a passing or failing check | `agents/trust.ts` (F47) | Trust | `GET /api/trust` | showing an edit detected on an in-memory copy, never the real ledger |
+| Coverage Board — what this key can and cannot do | `agents/coverage.ts` (F49) | Coverage | `GET /api/coverage` | stopping the demo overclaiming a capability |
+| Human decision by name, into a hash-chained ledger | Approver (F7 + F15) | Ledger | `POST /api/proposals/:id/decision`, `GET /api/ledger`, `/api/ledger/verify` | accountability that survives the person who decided |
+| Taste Lift — grounded agent vs plain LLM on a fixed request set | `eval/taste-lift.ts` | Taste Lift | `POST /api/eval/run`, `GET /api/eval/results` | measuring the grounding instead of asserting it |
+| Quota Guardian — four buckets, per-run ceiling, degrade reasons | `agents/quota.ts` (F41) | Budget | `GET /api/health` | never exhausting a shared hackathon key |
+| Finals Mode — rebuild a run from a snapshot, no network, no key | `pipeline.ts` (F48) | Finals | env `FINALS_OVERRIDE`, `GET /api/mode` | a stage demo that cannot fail on Wi-Fi |
+| Run snapshots and the redacted Qloo call log | `qloo/rest-client.ts` | Trace, Budget, Coverage | `GET /api/snapshots`, `/api/qloo/log`, `/api/qloo/rest-log` | auditing spend; headers, keys and payloads are never logged |
+| Packs, overlays, warm cache, public gate, ledger anchor | `packs/`, `scripts/` | About | `npm run warm-cache`, `gate:public`, `ledger:anchor` | shipping a new vertical as one JSON file, and publishing safely |
+
+Three of these are worth reading twice, because they are the ones an agent product usually hides:
+**What-if** and **Why-not** answer from the stored snapshot with zero model calls, so the diff is
+exactly attributable to the one number you moved; the **Break-it** attacks run against the real
+defences and report *"could not be run"* when the fixture does not exercise a path; and the
+**Coverage Board** publishes the Qloo capabilities this key could not demonstrate.
+
+---
+
+## 13. Where it can be used
+
+The engine is three things in a fixed order — a taste signal, a policy check, a named human — so it
+transfers to any decision of the shape *"given this audience and these constraints, what should we
+put in front of them?"* Shipped today: three packs. Everything below it is the same engine with one
+config file added.
+
+**Live in this build**
+
+| pack | rooms | the decision it makes |
+| --- | --- | --- |
+| Retail and fashion (deep) | store_1 · store_2 · store_3 | which brands to add for a season, under budget, minimum-order and brand-safety rules |
+| Restaurants and hospitality (thin) | westside and more | which dishes and promotions to add per neighbourhood, under margin, supplier and dietary rules |
+| Venues, events and media (thin) | corner hall · alder room · redroom | which acts to book for a room, and which shops and places to co-promote with |
+
+**One config file away** — each is a `server/src/packs/data/<vertical>.json` with its own locations,
+goal templates, rules and SOP citations; no agent, graph or trace code changes:
+
+- **Multi-site chains and franchise ops** — assortment and localisation per store, with the
+  contract and capacity rules that stop a store buying what head office excluded.
+- **Hotel and resort groups** — in-room, F&B and experience line-ups per property, by the taste of
+  that property's guests rather than the brand average.
+- **Retail media and sponsorship** — pairing a brand with the inventory whose audience actually
+  overlaps, then rule-checking the exclusivity and category bans.
+- **Festival, club and venue programming** — line-up construction, night-by-night, plus the
+  co-promotion partners the Partners agent already produces for venues.
+- **Radio, playlist and streaming curation** — audience-matched rotation with a documented
+  brand-safety veto and a trace a programmer can defend.
+- **Tourism boards and city cultural programmes** — what to promote to which visitor segment, at
+  aggregate audience level only.
+- **Marketplace and grocery curation** — assortment and on-shelf rotation under margin,
+  minimum-order and prohibited-attribute rules.
+- **Agency pitch and account work** — the same run becomes a client-facing artefact: a brief a human
+  signs, with the evidence attached and the refusals visible.
+- **Menu engineering and CPG line extension** — a candidate list scored against real audience taste
+  instead of a category manager's memory.
+
+**Multiple people, one run — what the multi-agent design is actually for**
+
+A single run is not read by one person. The roster exists because a **buyer** asks *why isn't this on
+the list*, a **category lead** asks *what if the ceiling were 40 instead of 30*, a **marketing
+manager** asks *who can we promote this with*, a **GM** asks *what would it take to say yes to this
+act*, and a **compliance or brand-safety reviewer** asks *what refused, and can I prove it later*.
+Each of those is a different agent on the same stored run, with the same trace, the same rule values
+and the same ledger — not five fresh answers that disagree.
+
+**Deployment shapes it runs in**
+
+- a laptop or a fresh clone with **no credential at all** — Replay on committed sample data;
+- a **hosted demo** with live off (`QLOO_ENABLED=false`) so a visitor cannot spend the team key;
+- a **planned live take** by the key custodian, metered by the four quota buckets;
+- **stage/Finals mode**, rebuilt from a snapshot with no network and no key;
+- **CI**, where the same tests and `gate:public` run on every push.
+
+**Out of scope, on purpose** — the engine is decision support for a named human. It is not medical,
+financial or legal advice; the senior-care scenario is deliberately not in the shipped demo; it never
+profiles an individual, only aggregate audiences; and it makes no claim about revenue or performance,
+because nothing in this build measures them.
+
+---
+
+## 14. Data store
 
 SQLite via `node:sqlite` (`server/src/graph/store.ts`) — a generic `nodes(kind,id,data)` +
 `edges(src,rel,dst,data)` graph, licence-safe for a public open-source release, with no external
@@ -247,7 +385,7 @@ with their SOP source, a candidate catalog. No agent, graph or trace code change
 
 ---
 
-## 12. Verification
+## 15. Verification
 
 ```bash
 cd server
@@ -274,7 +412,7 @@ returning 25 items with all API calls 200, **17/17 screens rendering with 0 cons
 
 ---
 
-## 13. Limitations, in our own words
+## 16. Limitations, in our own words
 
 - Qloo returns **aggregate audience affinities**. Nothing here is evidence about a specific person.
 - Recommendations are **decision support**, not a claim of revenue, savings or performance. No
@@ -293,20 +431,20 @@ returning 25 items with all API calls 200, **17/17 screens rendering with 0 cons
 
 ---
 
-## 14. Self-assessment against the four criteria
+## 17. Self-assessment against the four criteria
 
 Equally weighted, per the [hackathon rules](https://qloo.devpost.com/rules).
 
 | criterion | evidence |
 | --- | --- |
-| **Technological implementation** | 6-stage fixed pipeline over the real REST API; 5 workflows; throttle, backoff, dedup, two-layer cache and a 4-bucket quota; hash-chained ledger; `rerun_hash` reproducibility; 140 tests; a public gate that inspects committed content |
+| **Technological implementation** | 17 cooperating agents in a six-stage fixed pipeline over the real REST API; 5 Qloo workflows; 24 shipped capabilities on 30 HTTP routes; throttle, backoff, dedup, two-layer cache and a 4-bucket quota; hash-chained ledger; `rerun_hash` reproducibility; 140 tests; a public gate that inspects committed content |
 | **Design** | one authority per visual element; mode badges on every result; derived figures labelled where they appear; empty states that explain; tooltips instead of wall text; contrast corrected to AA |
 | **Potential impact** | any organisation serving many audiences needs its rules and its taste signal to meet in one auditable record; 3 verticals prove the pack is config, and a fourth is one JSON file |
 | **Quality of the idea** | the interesting part is what the agent is *not* allowed to do — no ranking, no filtering, no approval, no unstated number. The refusal cases (zero-item rooms, unsupported flip points, no fabricated lift) are the strongest evidence that the boundary is real |
 
 ---
 
-## 15. What we would build next
+## 18. What we would build next
 
 A second key custodian and a written hand-off; overlay materialisation with an expiry so a stale real
 identity cannot silently serve a decision; publishing the ledger head hash into the repository so the
@@ -315,7 +453,7 @@ rather than after; and a scored comparison harness that can run both Taste Lift 
 
 ---
 
-## 16. Repository
+## 19. Repository
 
 ```text
 taste-brain/

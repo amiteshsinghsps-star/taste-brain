@@ -6,6 +6,10 @@
 
 Built for the **Qloo Agentic Hackathon** — theme *"Agents, but with taste."*
 
+> Read [`FINAL.md`](FINAL.md) for the single-document submission: the multi-agent roster, all 24
+> shipped capabilities with the endpoint and screen each one lives on, the measured live figures, and
+> where the engine can be used.
+
 ---
 
 ## Try it in 60 seconds
