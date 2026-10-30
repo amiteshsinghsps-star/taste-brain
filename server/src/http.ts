@@ -561,6 +561,12 @@ export function createApp() {
       return res.status(400).json({ success: false, message: `refused: ${err.param} is not a verified Qloo parameter for ${err.endpoint}` });
     }
     console.error('Taste Brain error:', err?.message ?? err);
+    if (String(err?.message ?? '').includes('not permitted for this run')) {
+      return res.status(429).json({ success: false, code: 'live_quota', message: 'Live Qloo quota is used up for now. Switch to Replay mode, or try again in a few minutes.' });
+    }
+    if (/^Unknown (location|pack)/i.test(String(err?.message ?? ''))) {
+      return res.status(404).json({ success: false, code: 'unknown_location', message: 'Unknown location or pack.' });
+    }
     res.status(500).json({ success: false, message: 'Internal server error' });
   });
 
