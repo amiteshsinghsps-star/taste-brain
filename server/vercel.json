@@ -1,0 +1,9 @@
+{
+  "functions": {
+    "api/index.ts": {
+      "maxDuration": 60,
+      "includeFiles": "{src/packs/data,src/qloo/fixtures,src/eval,dist,public,client}/**"
+    }
+  },
+  "rewrites": [{ "source": "/(.*)", "destination": "/api" }]
+}
