@@ -15,7 +15,6 @@ jobs:
         with:
           # node:sqlite (the graph store) needs Node >= 22.5; the Qloo harness needs 22.19+.
           node-version: 22
-          cache: npm
 
       - name: Install server deps
         working-directory: server
