@@ -1,267 +1,259 @@
 # Taste Brain
 
-**Agents that decide with taste and prove why.** Taste Brain joins an organization's own rules with Qloo's audience taste data, and attaches a checkable Decision Trace to every recommendation.
+**Agents that decide with taste, and prove why.**
 
-> Rules from the business, taste from Qloo, a trace for every decision.
+A multi-agent decision engine for businesses that buy with taste: retail buying, restaurant menus and live-music booking. Candidates come from real Qloo audience data, decisions are ruled by each business's own SOP, and every run produces an artifact a stranger can verify.
 
-Built for the **Qloo Agentic Hackathon** — theme *"Agents, but with taste."*
-
-> Read [`FINAL.md`](FINAL.md) for the single-document submission: the multi-agent roster, all 24
-> shipped capabilities with the endpoint and screen each one lives on, the measured live figures, and
-> where the engine can be used.
-
----
-
-## Try it in 60 seconds
-
-```bash
-# 1. Backend (no credential needed — runs in Replay mode from committed fixtures)
-cd server && npm install
-cp .env.example .env          # defaults are fine for the demo
-npm run dev                    # http://localhost:4000
-
-# 2. Frontend (in a second terminal)
-cd client && npm install
-npm run dev                    # open http://localhost:3000
-```
-
-In the UI: pick **Retail and fashion → Store 3 - East Austin → "Add 4 brands for spring"** and hit **Run the agent**. You get a ranked proposal, a Decision Trace, Auditor rejections, and a Qloo call log — first full trace well under 60 seconds. Then open **Taste Lift** and run the fixed request set, and switch to **Venues** to see the same engine on new data.
-
-> **Data mode honesty.** Every result says where its data came from: **Live** (a Qloo answer read on
-> that request), **Cached** (a stored Qloo answer, no new call), or **Sample** (rows committed to this
-> repository so the app runs with no key and no network — those names are invented and are never
-> presented as a Qloo answer). A fresh clone runs credential-free: the shipped defaults are
-> `QLOO_ENABLED=false` and `DEFAULT_MODE=replay`. **The hosted demo judges see runs the other
-> configuration**: `QLOO_ENABLED=true`, `DEFAULT_MODE=live` and `QLOO_FORCE_LIVE=true`, so a click
-> makes a real read against `https://hackathon.api.qloo.com` instead of serving a stored answer. The
-> `QLOO_API_KEY` stays on the server and never reaches the browser, an API response, a log or git.
+| | |
+| --- | --- |
+| **Live demo** | https://taste-brain.vercel.app |
+| **Source** | https://github.com/amiteshsinghsps-star/taste-brain |
+| **Built for** | Qloo Agentic Hackathon |
+| **Licence** | MIT |
+| **Tests** | 142 cases in 7 files, all passing |
+| **Public-repo gate** | `npm run gate:public`, 8 checks, all pass |
 
 ---
 
-## What it is
+## 1. Problem
 
-Taste Brain is a platform where agents make offer / assortment / campaign decisions for organizations that serve many audiences (chains, venue operators, hotel groups, agencies, care providers). Each decision joins:
+Buyers, chefs and venue bookers all decide the same way: a gut feel about the audience, a spreadsheet of constraints, and a decision they must defend to someone (a merchant committee, a landlord, a head chef, a band's manager).
 
-1. **The organization's own rules** (budgets, contracts, capacity, brand safety, dietary or care constraints), stored as Rule nodes linked to the SOP documents they came from.
-2. **Qloo's taste data** about the audience at each location (aggregate affinities across brands, places, music and more, with explainability).
+Two tools exist today and both fail at the same point:
 
-Every proposal carries a **Decision Trace**. A **Grounding Auditor** blocks anything that cannot be traced to a Qloo result or a passing Rule. A **Taste Lift** panel runs the same request through a plain LLM and through the grounded agent — the plain-LLM arm only runs when an LLM key is configured, and the panel says so when it did not. A **Vertical Pack** (one config file) adapts the engine to retail, restaurants, venues, and more.
+- **Spreadsheets.** The constraints are real, the audience signal is a hunch, and the audit trail is someone's memory.
+- **LLMs.** The prose is confident, entities are often invented, and nobody can tell a grounded recommendation from a plausible one afterwards.
 
-### Why this would not work without Qloo
+The gap is not "recommend something". It is **"recommend something, follow our policy, and let us prove it later."**
 
-- Location audience portraits come from Qloo entity/tag results, not guesses.
-- Candidate ranking is by Qloo's own returned result order — `/v2/insights` gives no score field, so the app reads rank, not a number, and the LLM never decides the ranking.
-- The Auditor vetoes any item without a Qloo entity id in the run's stored results.
-- Taste Lift measures the grounded agent against a plain LLM on the same request.
+## 2. Solution
 
----
+Taste Brain splits the decision into three owners:
 
-## Qloo workflows used, and where
+| Who | Supplies |
+| --- | --- |
+| **Qloo** | What this audience likes (ranked entities, popularity, explainability, audience tags) |
+| **The business** | What is on policy (cost ceilings, guarantee ceilings, no-repeat windows, content rules) |
+| **Taste Brain** | Why this one, in writing, with a trace, a ledger and a verifier |
 
-| Need | Workflow (`QlooRequest.workflow`) | Endpoint & Method | Files |
-|---|---|---|---|
-| Describe a location's audience | `describe_audience` | `GET /v2/tags?filter.query=...` and `GET /v2/insights` | `server/src/qloo/rest-client.ts`, `server/src/agents/pipeline.ts` |
-| Rank candidate offers for a location | `recommend` | `GET /v2/insights?filter.type=urn:entity:brand&signal.interests.entities=...&filter.location.query=...` | `server/src/qloo/rest-client.ts`, `server/src/agents/pipeline.ts` |
-| Style/keyword → tag resolution | `find_tags` | `GET /v2/tags?filter.query=...` | `server/src/qloo/rest-client.ts` |
-| Entity search & seed resolution | `resolve_entity` | `GET /search?query=...&type=urn:entity:...` | `server/src/qloo/rest-client.ts` |
-| Rank a company-approved shortlist | `rank_shortlist` | `GET /v2/insights?filter.type=...&signal.interests.entities=...&take=...` | `server/src/qloo/rest-client.ts` |
-| Live transport | Direct REST Client | HTTP GET with `X-Api-Key` header | `server/src/qloo/rest-client.ts` |
+Core principles:
 
-### Production REST Protection
-- **Global Throttle Queue:** `QLOO_THROTTLE_MS` (default 250 ms, floored at 220 ms in `rest-client.ts`) between outbound calls — about 4 calls/s, comfortably inside the 100-per-5-second burst cap this client enforces.
-- **Resilience:** Automatic retry with exponential backoff and jitter on HTTP 429 and 5xx errors (up to 3 retries).
-- **In-flight Deduplication & Caching:** Concurrent identical requests share a single network call. Results are cached in a LRU memory cache and persistent gitignored private disk cache (`.private-cache/`).
-- **Secret Isolation:** The `QLOO_API_KEY` is accessed only within `rest-client.ts`. It is never returned in HTTP responses, never logged, and never committed to version control.
+1. **Qloo supplies taste.** Every candidate carries a Qloo entity id, rank, popularity and Qloo's own explanation.
+2. **Rules are data.** A JSON threshold plus a line reference into the owner's SOP. Prose never becomes a rule.
+3. **The LLM describes, never decides.** It may write an explanation. It cannot rank, filter, price or approve.
+4. **Nothing is guessed.** Missing data reports `needs_data`, never `pass`. Ambiguous names return candidates. Missing booking terms block approval.
+5. **A named human approves.** The decision is written to a hash-chained, tamper-evident ledger.
 
-**Request→result walkthrough** (`POST /api/proposals` with `{pack:"retail", location:"store_3", goal:"Add 4 brands for spring", mode:"replay"}`) — the trace below was copied off this build's own output, and the pack data is the invented worked example, so every name and figure in it is fixture data and not a Qloo answer:
+## 3. How It Uses Qloo
 
-```text
-1. Seeds             → type Audience: "Replay mode: 3 configured seed(s) not re-resolved
-                       against /search" — Replay trusts the stored fixture ids; a Live run
-                       records "seed resolved to a Qloo entity" per seed, and an ambiguous
-                       or unresolvable seed is recorded as its own step, never guessed.
-2. Audience portrait → type Audience: "Store 3 - East Austin, TX audience portrait"
-                       (GET /v2/insights filter.type=urn:tag)
-3. Candidates        → type QlooEntity: "Qloo returned 10 candidates for this audience"
-                       — the order Qloo returned is the ranking. /v2/insights carries no
-                       score field, so the fit figure shown per item is derived from that
-                       rank by this app and the item's own text says so.
-4. Rule Checker      → per item, one step per rule with the value it read:
-                       budget_cap "unit_cost 46 exceeds the ceiling 40" → fail
-                       min_order  "minimum_order 260 <= 500"           → pass
-                       brand_safety "no excluded tag present"              → pass
-5. Grounding Auditor → Riverstone Co. (Qloo rank 1, popularity 0.490) rejected on
-                       budget_cap, check 3; Boggy Creek Vapor Co. rejected on brand_safety
-                       (carries the excluded tag qlootag:adult_content); Mesa & Main
-                       rejected on min_order (620 > 500). Each rejection is a Filter step.
-6. Shown             → Cedar Row, Lumen Threads, Arbor & Ledge, Northbound Supply,
-                       Halo Athletics, Dusk Records Apparel — six, in Qloo's order.
-7. Unsupported       → Unknown Indie Label: Qloo ranks it for this audience, but there is
-                       no approved offer or entered term to rule-check, so it is surfaced,
-                       never approved.
-```
+Base URL `https://hackathon.api.qloo.com`, server-side key only.
 
----
+| Endpoint | Used for |
+| --- | --- |
+| `GET /search` | Resolve taste seeds to real entities (ambiguity returns candidates, never a guess) |
+| `GET /v2/tags` | Tag guards and exclusions |
+| `GET /v2/insights` | Ranked candidates, audience portrait (`filter.type=urn:tag`), location-lift variants |
+| `GET /v2/analysis/compare` | Audience overlap for partner suggestions |
 
-## Architecture
+What Qloo provides that a self-contained recommender cannot: **a third-party entity id and a third-party explanation attached to every result**, which is what makes grounding checkable.
 
-```text
-Browser UI -> Express API -> fixed pipeline (agent steps inside)
-  Profiler -------> Qloo adapter (describe_audience; handle needs_input)
-  Taste Explorer --> Qloo adapter (recommend; rank by Qloo score)
-  Rule Checker ---> SQLite graph (Rules, Offers)
-  Strategist -----> LLM (explanations only; never ranks)
-  Auditor --------> graph + stored Qloo results (veto power)
-  Approver -------> SQLite graph (Decision nodes)
-Qloo adapter modes: live | cached | replay — labelled on every result
-```
+How the integration stays safe:
 
-Graph store is **SQLite** (`node:sqlite`) — see `server/src/graph/store.ts`. A license-safe store for a public open-source release, with no external database to stand up.
+- **Parameter allowlist per endpoint.** An unverified parameter throws before the request leaves the process.
+- **Throttle and retry.** Minimum 220 ms gap, 15 s timeout, retries on 429 and 5xx only (a 400 is a bug, never retried).
+- **Capability gate.** A Qloo capability enters the product only if it returned rows on this key. `/v2/trending` is allowlisted but never called.
+- **No invented scores.** `/v2/insights` returns no score field, so `fit` is Taste Brain's own derivation from Qloo's rank and is labelled "(derived)" everywhere.
+- **Audience level only.** Only entity ids, tags and a location signal are sent. Nothing about an individual.
 
-Full model, contracts and the trace spec: [`docs/architecture.md`](docs/architecture.md).
+## 4. Architecture
 
----
+> **Insert architecture diagram here:** `docs/architecture.png`
 
-## Vertical Packs
+![Taste Brain architecture](docs/architecture.png)
 
-Adding a pack is config only — no change to the agents, graph or trace code.
+Layers, top to bottom:
 
-| Pack | Depth | Files |
-|---|---|---|
-| Retail and fashion | Deep | `server/src/packs/data/retail.json` |
-| Restaurants and hospitality | Thin | `server/src/packs/data/restaurants.json` |
-| Venues, events and media | Thin | `server/src/packs/data/venues.json` |
-
-Each pack defines entity types, goal templates, Rule templates (with their SOP source), fictional locations, and a candidate catalog. Rule kinds implemented: `numeric_max`, `numeric_min`, `band`, `exclude_tags`, `require_tags`, `allow_list`, `deny_list`, `exclude_recent`, `require_present` (`server/src/agents/rule-checker.ts`).
-
----
-
-## Evidence: tests, Taste Lift, and Cache Warming
-
-```bash
-cd server
-npm test                 # Grounding Auditor checks (§11), REST client contracts, rule kinds, pipeline hard scenario
-npm run eval             # Taste Lift fixed request set -> server/src/eval/results.json
-npm run gate:public      # the publish checklist below, run against committed content
-npm run warm-cache       # Pre-fetches one-click scenarios on deployment host into gitignored .private-cache/
-```
-
-- The **Grounding Auditor** has automated unit tests verifying that unsupported items are vetoed, rule violations are caught, and decision traces produce reproducible `rerun_hash` values.
-- **REST Client Tests** cover throttle contracts, exponential backoff on 429/5xx, timeouts, error shapes, and ensure credentials are never leaked.
-- **Taste Lift** publishes whatever the numbers are. On a host with no LLM key it runs Arm B (grounded) and states plainly that Arm A (plain LLM) did not run — **no lift figure is fabricated.**
-- **Cache Warmer (`npm run warm-cache`):** Run on the deployed host to populate `.private-cache/` for all one-click demo scenarios. The cache directory is gitignored and never committed.
-
----
-
-## Data & provenance
-
-Disclosed 2026-10-29 against this tree; the live figures were re-measured the same day.
-
-- All sample data is fictional. No customer data, credentials or personal data are present.
-- **Nothing committed names a real company, artist or venue, and no committed file carries a Qloo entity id.** Qloo entity ids are 36-character UUIDs, so every entity in a tracked pack, fixture, test or document is a symbolic `qloo:brand:cedar_row`-style name, and ids that appeared inside live request parameters are recorded as `qloo-entity-N` tokens (`server/verification/gate-report.json` says so in its own provenance field).
-- **Live mode reaches real entities through a gitignored identity overlay** — `server/.private-data/<pack>.overlay.json` (or the `PACK_OVERLAY_B64` bundle on a host that cannot upload files). It maps each fictional seed to the real name to ask Qloo for, and each offer row to its real entity id, and it is merged in memory at pack load (`server/src/packs/overlay.ts`). It holds Qloo data, so it is treated as the same class of secret as the API key: one custodian, never committed, never printed. A checkout without it runs Replay and Cached exactly as published, and the two live-drawing rooms report that they have no fixture rather than inventing one.
-- Committed artifacts (`npm run eval`, `npm run verify:sample`, `npm run smoke:replay`) set `PACK_OVERLAY_DISABLE=true`, so a Replay-generated file can never carry a real identity from the machine that made it.
-- Every result is labelled with its mode (Live / Cached / Replay); nothing is presented as live that isn't.
-- Live responses are kept strictly on the server in `.private-cache/` and never checked into source control.
-
-### Two configurations, stated plainly
-
-**A fresh clone (the committed default) is credential-free.** `QLOO_ENABLED=false` and
-`DEFAULT_MODE=replay` are the defaults in code and in `server/.env.example`:
-
-- the header's **live** control renders disabled with the reason in its tooltip, and the header shows `live off on this host`;
-- the Plan screen offers no one-click **Re-run live** button;
-- even a hand-made `POST /api/proposals` with `"mode":"live"` comes back labelled Cached or Sample, with the reason written into the run.
-
-**The hosted demo runs live, on purpose.** Those judges see real Qloo reads, so the host sets
-`QLOO_ENABLED=true`, `DEFAULT_MODE=live` and `QLOO_FORCE_LIVE=true`. The last one matters: it stops a
-run from quietly serving the stored answer, so a badge that says LIVE was earned by a request that
-left the box. Live traffic is still metered — 8 live runs per visitor per hour, 40 per visitor per
-day, 400 globally per day, a 1,500 monthly floor and at most 12 Qloo calls per run — and going over
-a bucket is **not an error**: the run answers `HTTP 200` as `cached` with the reason written into the
-proposal ("this visitor hit the hourly live-run budget…"), because a judge mid-click should get a
-honest labelled answer rather than a 429. The key custodian turns live off again when the demo is
-over.
-
-`cd server && npm run gate:public` re-checks the committed content (that the shipped defaults are
-still credential-free, plus no key, no entity id, no real name, the license and the keyless Replay
-path), and runs in CI.
-
-### Deploying the hosted demo
-
-`Dockerfile` at the repository root builds both halves into one image — the client is built, copied
-to `server/public`, and served by the API (`server/src/http.ts:541`). No `.env` is baked into the
-image; real environment variables always win over the file, and a missing file is fine.
-
-```bash
-docker build -t taste-brain .
-docker run -p 8080:8080 -e PORT=8080 -e QLOO_API_KEY=… -e QLOO_ENABLED=true \
-  -e DEFAULT_MODE=live -e QLOO_FORCE_LIVE=true -e TRUST_PROXY_HOPS=1 \
-  -e GRAPH_DB=/data/taste-brain.db -e PACK_OVERLAY_B64=… taste-brain
-```
-
-Host variables for Northflank or Render, and why each one is needed:
-
-| variable | value | why |
+| Layer | Responsibility | Forbidden from |
 | --- | --- | --- |
-| `PORT` | injected by the host | the container `EXPOSE`s 8080 and reads `PORT` |
-| `QLOO_API_KEY` | secret | the only place the key exists; never sent to the browser |
-| `QLOO_ENABLED` / `DEFAULT_MODE` | `true` / `live` | live reads, and the badge a judge sees |
-| `QLOO_FORCE_LIVE` | `true` | no run may be served from the stored answer |
-| `PACK_OVERLAY_B64` | secret bundle | the identity overlay; file upload is often impossible on a free host |
-| `TRUST_PROXY_HOPS` | `1` | both hosts terminate TLS in front of the app, so without it every visitor shares one rate bucket and one quota bucket |
-| `GRAPH_DB` | a path on a mounted volume | holds the quota counters and the ledger; on an ephemeral disk both reset with the container |
-| `LEDGER_HMAC_SECRET` | any long secret | makes the ledger keyed rather than self-attested |
-| `NODE_ENV` | `production` | turns on the static client mount and the startup warnings |
+| **Client** (React 19, 17 screens, 4 groups) | Paint what the server sent | Computing any number or re-sorting a list |
+| **HTTP** (Express, zod, 30 routes) | Validation, rate limit, status codes | Business logic |
+| **Pipeline** | Sequence the run, stamp mode, build the trace | Talking to Qloo directly |
+| **Agents** (13 modules) | One decision each | Acting outside their authority |
+| **Qloo adapter / REST client** | Session, budget, allowlist, cache, retries | Ranking |
+| **Graph store** (`node:sqlite`) | Nodes, edges, proposals, snapshots, ledger, quota | Answering the browser directly |
+| **Verify / Break-it** | Recompute and attack the defences | Touching the real ledger |
 
-On an ephemeral filesystem `GRAPH_DB` resets with the host, which resets the day's counters — so on a
-free tier, keep the buckets conservative (`QUOTA_VISITOR_HOUR=4`, `QUOTA_GLOBAL_DAY=200`) and warm the
-cache before the session (`npm run warm-cache`) so a degraded run still has a real Qloo answer to
-serve.
+The key cut: **the pipeline never talks to Qloo.** Everything goes through the adapter, so budget, allowlist, throttle and mode stamping cannot be bypassed by a new stage.
 
-The overlay bundle is a command, not a guess: `cd server && npm run overlay:bundle` writes a
-one-line base64 value to `server/.private-data/overlay-bundle.b64` (gitignored, never printed) and
-checks every seed id and `offer_id` key against the committed packs first — `applyOverlay` drops a
-patch that matches nothing without complaining, so a mistyped key is a demo that still prints LIVE
-badges on invented names.
+### Pipeline
 
-`gate:public` fails the build if any tracked line carries a credential value, a Qloo entity id (UUID literal) or a name taken from the private overlay; if `.env`, `.private-cache/`, `.private-data/` or a live capture is tracked; if the shipped defaults are not `QLOO_ENABLED=false` / `DEFAULT_MODE=replay`; if `LICENSE` is missing; if the README disclosure is older than the evidence files it describes; or if a keyless Replay run returns nothing for the three demo rooms.
+1. Resolve the room (pack, seeds, rules, catalogue).
+2. Grant or degrade the data mode (live, cached, replay).
+3. Profile the audience (resolve seeds through `/search`).
+4. Describe the audience (aggregate tags only).
+5. Rank candidates (one constrained `/v2/insights` query).
+6. Relax only if empty, in a fixed visible order, re-applying the tag guard locally.
+7. Rule check: `pass`, `fail` or `needs_data` per rule.
+8. Ground audit: five numbered checks per item.
+9. Narrate (LLM optional, output discarded if ungrounded).
+10. Store proposal, snapshot and a `proposed` ledger entry.
+11. A named human approves or rejects; the decision is hash-chained.
 
-### Host settings the operator chooses
+## 5. Agents
 
-Three settings describe the machine, not the product, and each defaults to the behaviour that is safe on a laptop:
+| Class | Agents | Role |
+| --- | --- | --- |
+| **In-run** | Profiler, Audience, Taste Explorer, Rule Checker, Strategist (LLM), Grounding Auditor, Approver (human) | Move the decision forward |
+| **Question** | Why-not, What-if, Partners, Brief, Ablation | Read-only, never re-decide |
+| **Guardians** | Auditor, Verifier, Break-it harness, Quota meter, Public gate | Police everything else |
 
-- `GRAPH_DB` (default `.private-data/taste-brain.db`) is a file, not `:memory:`, because `server/src/agents/quota.ts` promises the day's counters survive a restart — an in-memory database would break that promise on the first redeploy. Set it to a path on persistent storage; on ephemeral filesystems the quota resets with the host and the ledger starts over.
-- `TRUST_PROXY_HOPS` (default `0`) is how many proxy layers sit in front of the server. Rate limiting and the per-visitor quota are keyed on `req.ip`, and behind a reverse proxy every visitor arrives as `127.0.0.1` — so with the default, one visitor's traffic spends the whole world's bucket. Set it to `1` on a host that terminates TLS in front of the app, and leave it `0` if the client connects directly, because a directly-connected client can otherwise invent its own address. The server logs which of the two it is at startup, and `/api/ledger` keeps using the same key.
-- `LEDGER_HMAC_SECRET` (unset by default) keys each ledger hash with `createHmac('sha256', …)` instead of a bare `createHash('sha256', …)`. Entries record which algorithm made them, so a chain written before the key existed still verifies.
+The separation of powers is structural: twelve of thirteen agent modules cannot write the ledger, and no guardian can spend the Qloo key.
 
-### What the ledger chain does and does not prove
+## 6. Features
 
-The ledger is **hash-chained and tamper-evident**, not tamper-proof. Recomputing it proves no entry was edited in place unnoticed — an edit changes the entry's hash, which breaks the `prev_hash` link below it. It does not prove the chain is the only chain: without `LEDGER_HMAC_SECRET`, anyone holding the database file can rewrite every entry consistently and produce a chain that verifies. The honest mitigation is outside the file, so `npm run ledger:anchor` prints the current head hash for publishing somewhere the writer does not control (the README, a commit, a screenshot). Same rule applies to the item names: a hash binds a name to the run that recorded it, not to Qloo's wording.
+**Decide**
+- **Plan:** pick a vertical and room, run the agent, get ranked items with Qloo rank, popularity, explanation and rule verdicts.
+- **Audience portrait:** Qloo's own aggregate taste tags for the room.
+- **Operator term entry:** missing commercial terms (e.g. guarantee) are typed by a human, stored and ledgered, never attributed to Qloo.
+- **Evidence / Trace / Brief:** per-item grounding, ordered step trace, downloadable six-section approval brief.
 
----
+**Question**
+- **Why not?** Seven honest verdicts, including `not_returned_by_qloo`. Never an invented excuse.
+- **What if?** Change a threshold and re-cut the list offline with 0 Qloo calls.
+- **Partners:** audience-overlap co-promotion candidates. Overlap is not agreement, and the UI says so.
 
-## Known limitations
+**Prove it**
+- **Verify:** six recomputed checks over an exported decision, via CLI, API or browser.
+- **Break it:** six real attacks against the real defences. Blocked and successful are both data.
+- **Ablation:** five arms including a shuffled-Qloo control with fixed seed 42.
+- **Trust:** thirteen guardrail checks with evidence. **Coverage:** every Qloo capability used and its probe date. **Ledger:** re-verify the whole chain.
 
-- Qloo returns **aggregate audience affinities**, not evidence about any individual. The UI says so and never claims to know a person's individual taste.
-- A fresh clone ships with **Replay mode on the committed sample fixtures** enabled by default, so the demo is 100% runnable offline without any credentials. The hosted demo runs Live with Force-live on — see *Two configurations, stated plainly*.
-- In **Live mode**, recommendations derive from real calls to `https://hackathon.api.qloo.com`. An API key must be supplied in `server/.env`, `QLOO_ENABLED` must be turned on by the key custodian, and the host needs the private identity overlay described above — without it, the fictional seeds in the committed packs resolve to nothing real.
-- Outbound API calls are limited by a 250ms throttle queue and daily soft quota limits.
-- The decision ledger is tamper-evident, not tamper-proof: without `LEDGER_HMAC_SECRET` set on the host, whoever holds the database file can rewrite the whole chain and it will still verify. The chain proves an entry was not edited in place, not that the file is the only version of itself — see *What the ledger chain does and does not prove*.
-- Results provide **decision support and proof traces**, not guarantees of commercial sales or performance.
-- Multi-tenancy, billing and production cloud isolation are out of scope for the hackathon.
+**Operate**
+- **Budget:** live quota buckets and the REST call log (counts and hashes only).
+- **Finals Mode:** serve stored snapshots with zero network calls.
+- **Taste Lift** and **About** (what is real, what is invented, what was not measured).
 
----
+## 7. Rules and Flip Points
 
-## Repo layout
+Rules are typed, cite an SOP line, and have three states:
 
-```text
-taste-brain/
-  README.md  LICENSE  server/.env.example
-  server/  src/{config,types,graph,qloo,packs,agents,trace,eval,http,index}.ts  tests/  verification/
-  client/  src/{App.tsx,lib/api.ts,components/ui/*}
-  docs/    architecture.md  limits.md  demo-script.md  devpost-description.md  live-run-scorecard.md
-  .github/workflows/ci.yml
+| State | Meaning | Result |
+| --- | --- | --- |
+| `pass` | Data on file, rule satisfied | Approvable |
+| `fail` | Data on file, rule broken | Refused, with a flip point |
+| `needs_data` | Data not on file | Blocked until a human enters it (or flagged) |
+
+| Pack | Rules |
+| --- | --- |
+| Retail | `budget_cap` (unit cost <= $40), `min_order` (<= 500), `brand_safety` |
+| Restaurants | `margin_floor` (food cost <= 32%), `dietary_shellfish` |
+| Venues | `room_fit` (popularity band), `guarantee_ceiling` (<= $8,000), `no_repeat`, `matinee_content` |
+
+Every refusal answers "what would change this?" with a **flip point**, proven in both directions: the flipped value passes and one step back still fails. Example: *raising the guarantee ceiling from 8000 to 9500 admits Vex; at 9400 it still fails.*
+
+## 8. Data Modes: Never a Fourth
+
+| Mode | Badge | Source |
+| --- | --- | --- |
+| `live` | LIVE | Fetched this run, over HTTPS, with the key |
+| `cached` | CACHED | A stored real Qloo response, labelled as such |
+| `replay` | SAMPLE | Committed offline fixtures, invented data, not a Qloo answer |
+
+Every trace step carries its own mode and the run badge is **derived from the steps**, so it cannot overstate. Going over budget is not an error: it returns `HTTP 200` in about half a second, all steps labelled Cached, with a reason sentence naming the budget.
+
+## 9. What Makes It Different
+
+| Usual hackathon shape | Taste Brain |
+| --- | --- |
+| A "live data" banner for the whole page | A mode label per step; badge computed from the steps |
+| HTTP error or a silent cached page when over quota | `200`, labelled Cached, reason shown, Replay still works |
+| Model output is the ranking | Qloo order plus deterministic rules; LLM barred from the decision path |
+| Unsupported items hidden | Counted and shown as a first-class result |
+| "Trust our eval numbers" | Six re-derivable checks plus a Break-it suite on the shipped artifact |
+| Log lines | Hash-chained, HMAC-keyed ledger with external anchor |
+| Own guardrail failures unreported | Found, fixed and regression-tested in public |
+| Key pasted in `.env` and committed | Server-side only; CI gate fails on any tracked credential or real name |
+
+Exceptional build details:
+
+- **Zero arithmetic in the client.** If the server does not know something, the UI shows a blank or "not measured".
+- **Refuses to guess.** Missing guarantee, ambiguous seed (e.g. an ambiguous venue name returns Hall & Oates, Thalia, Tally Hall...) and absent entities are all reported honestly.
+- **The verifier is a tool, not a boolean.** It names the first failing record, for example a rank and a field.
+- **Documented its own bug.** A verifier check once accused an intact run of tampering because it read neighbouring proposals' ledger entries. It was fixed and two regression tests pin the corrected behaviour.
+- **Verticals are files, not code.** Retail, restaurants and venues are three JSON packs; a new vertical is a pack, a rule set and an SOP reference.
+
+## 10. Integrity and Verification
+
+- **Decision Trace:** typed, ordered, mode-stamped steps citing rule and SOP line.
+- **Ledger:** SHA-256 chain, or HMAC-SHA256 when `LEDGER_HMAC_SECRET` is set. Canonical JSON, algorithm stored inside the hashed detail, `npm run ledger:anchor` publishes the head externally.
+- **`rerun_hash` v2:** hashes `{id, name, rank, verdict}` of decision steps, binding names so rename forgeries fail.
+- **Verifier checks:** `chain`, `decision_bound`, `qloo_ids`, `ranking`, `rules`, `modes`.
+- **Break-it attacks:** `unsupported_item`, `entity_name_injection`, `policy_text_injection`, `ledger_tamper`, `budget_exceeded`, `unverified_parameter`. Result on the host: 6 of 6 blocked with `network_calls_before == after`.
+
+## 11. Tech Stack
+
+| Area | Technology |
+| --- | --- |
+| Backend | Node 22+, Express, TypeScript (CommonJS), zod at every boundary |
+| Frontend | React 19, Vite, Tailwind v4 |
+| Storage | `node:sqlite` (no ORM, no daemon) |
+| Data source | Qloo REST (`/search`, `/v2/tags`, `/v2/insights`, `/v2/analysis/compare`) |
+| LLM (optional) | OpenAI-compatible chat completions, temperature 0, text only |
+| Testing | Vitest, 142 cases, no network |
+| CI | GitHub Actions on Node 22, keyless and Replay-only |
+| Hosting | Vercel serverless (also Docker on `node:24-slim`, or localhost) |
+
+## 12. Security Model
+
+- **Key never leaks:** server-side only, optional in the schema, never logged, never in a response or the client bundle.
+- **No real identity published:** committed packs are fictional; real names and entity ids live in a gitignored overlay delivered via `PACK_OVERLAY_B64`. `gate:public` scans every tracked line.
+- **Injection:** sanitised names, length-capped text, 64 kb body cap, id regex, policy text treated as data.
+- **Spend control:** four quota buckets (visitor-hour 6, visitor-day 40, global-day 300, monthly floor 1500), 12 calls per run, 400 harness soft limit, 30 req/min per IP.
+- **Export gate:** live runs are not exportable by default, so bulk Qloo identity data stays out of shared files.
+
+## 13. Venue Walkthrough (Live Demo)
+
+1. Open https://taste-brain.vercel.app and pick **Live music venues**, then **Corner Hall, Headline Room, Chicago**, mode **LIVE**.
+2. Goal: `Book 3 acts for the autumn series in this room`. Press **Run the agent**.
+3. Expect 25 real Qloo artists, an audience portrait, all items "waiting on a term", and the ambiguous-seed warning (the engine refuses to guess).
+4. Type an approver name, enter a guarantee of `6000` for one act (approves under the $8,000 ceiling) and `9000` for another (refused, flip point shown).
+5. Open **Prove it** for the ledger, Verify and Break it.
+6. For the offline story, use **Red Room + CACHED/Replay**: DJ Marlow approves, Vex shows the flip point, Paper Lanterns fails `no_repeat`.
+
+## 14. Quickstart (No Key Needed)
+
+```bash
+cd server && npm ci && npm run dev            # API on :4000, Replay mode
+cd client && npm ci && npm run build          # client served from server/public
+cd server && npm run smoke:replay             # full run, zero network
+cd server && npm test                         # 142 cases
+cd server && npm run gate:public              # 8 public-safety checks
+cd server && npm run verify -- verification/sample-export.json
 ```
 
-License: **MIT** (see `LICENSE`).
+With a Qloo key, add `server/.env`:
+
+```ini
+QLOO_ENABLED=true
+DEFAULT_MODE=live
+QLOO_API_KEY=<your key>
+```
+
+Fresh clones default to `QLOO_ENABLED=false` and `DEFAULT_MODE=replay`, so the repository is safe to publish and runs with no credential.
+
+## 15. Limits (Stated Plainly)
+
+- Qloo returns aggregate audience affinities, not evidence about any individual.
+- Recommendations are decision support. No revenue or business outcome is claimed or measured.
+- The verifier proves internal consistency, not that Qloo is correct or the recommendation is good.
+- Serverless disk is ephemeral: quota counters and the ledger are per-instance.
+- Taste Lift Arm A needs an LLM key and has not run on the host, so no lift number is implied.
+- Booking terms are never supplied by Qloo; they are operator-entered by design.
+
+## 16. Links
+
+- **Live demo:** https://taste-brain.vercel.app
+- **Source:** https://github.com/amiteshsinghsps-star/taste-brain
+- **Licence:** MIT (c) 2026 Taste Brain contributors
+
+*Qloo supplies the taste, the room's rules decide, and missing terms are never guessed.*

@@ -387,7 +387,9 @@ and the same ledger — not five fresh answers that disagree.
 **Deployment shapes it runs in**
 
 - a laptop or a fresh clone with **no credential at all** — Replay on committed sample data;
-- a **hosted demo** with live off (`QLOO_ENABLED=false`) so a visitor cannot spend the team key;
+- a **hosted demo** running **live** for judging (`QLOO_ENABLED=true`, `DEFAULT_MODE=live`,
+  `QLOO_FORCE_LIVE=true`), metered by the buckets so a visitor cannot spend the key past the hour's budget;
+  outside a planned session the custodian turns live off again;
 - a **planned live take** by the key custodian, metered by the four quota buckets;
 - **stage/Finals mode**, rebuilt from a snapshot with no network and no key;
 - **CI**, where the same tests and `gate:public` run on every push.
