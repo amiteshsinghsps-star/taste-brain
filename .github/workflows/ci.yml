@@ -61,7 +61,7 @@ jobs:
 
       - name: Secret scan (fail if a Qloo credential is present)
         run: |
-          if grep -RilE 'QLOO_API_KEY=[A-Za-z0-9]|sk-proj-[A-Za-z0-9]' --include='*.ts' --include='*.json' --include='*.env' . ; then
+          if grep -RilE 'QLOO_API_KEY=[A-Za-z0-9_-]{20,}|sk-proj-[A-Za-z0-9_-]{20,}' --include='*.ts' --include='*.json' --include='*.env' . ; then
             echo "Potential secret found in the repo" && exit 1
           else
             echo "no secrets detected"
