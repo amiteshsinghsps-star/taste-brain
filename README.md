@@ -67,7 +67,6 @@ How the integration stays safe:
 
 ## 4. Architecture
 
-> **Insert architecture diagram here:** `docs/architecture.png`
 
 ![Taste Brain architecture](docs/architecture.png)
 
