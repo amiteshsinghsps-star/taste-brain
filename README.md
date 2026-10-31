@@ -10,7 +10,7 @@ A multi-agent decision engine for businesses that buy with taste: retail buying,
 | **Source** | https://github.com/amiteshsinghsps-star/taste-brain |
 | **Built for** | Qloo Agentic Hackathon |
 | **Licence** | MIT |
-| **Tests** | 142 cases in 7 files, all passing |
+| **Tests** | 140 cases in 7 files, all passing |
 | **Public-repo gate** | `npm run gate:public`, 8 checks, all pass |
 
 ---
@@ -199,7 +199,7 @@ Exceptional build details:
 | Storage | `node:sqlite` (no ORM, no daemon) |
 | Data source | Qloo REST (`/search`, `/v2/tags`, `/v2/insights`, `/v2/analysis/compare`) |
 | LLM (optional) | OpenAI-compatible chat completions, temperature 0, text only |
-| Testing | Vitest, 142 cases, no network |
+| Testing | Vitest, 140 cases, no network |
 | CI | GitHub Actions on Node 22, keyless and Replay-only |
 | Hosting | Vercel serverless (also Docker on `node:24-slim`, or localhost) |
 
@@ -226,7 +226,7 @@ Exceptional build details:
 cd server && npm ci && npm run dev            # API on :4000, Replay mode
 cd client && npm ci && npm run build          # client served from server/public
 cd server && npm run smoke:replay             # full run, zero network
-cd server && npm test                         # 142 cases
+cd server && npm test                         # 140 cases
 cd server && npm run gate:public              # 8 public-safety checks
 cd server && npm run verify -- verification/sample-export.json
 ```
@@ -257,3 +257,6 @@ Fresh clones default to `QLOO_ENABLED=false` and `DEFAULT_MODE=replay`, so the r
 - **Licence:** MIT (c) 2026 Taste Brain contributors
 
 *Qloo supplies the taste, the room's rules decide, and missing terms are never guessed.*
+## Data mode
+
+Every result is labelled Live, Cached or Replay. Replay and Sample rows are invented fixture data committed to this repository so the app runs with no key and no network; they are not a Qloo answer and are never presented as one. A fresh clone is credential-free (QLOO_ENABLED=false, DEFAULT_MODE=replay). The hosted demo runs with QLOO_ENABLED=true so judges see real Qloo reads. Disclosed 2026-10-30 against this tree.
